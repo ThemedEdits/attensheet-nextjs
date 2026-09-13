@@ -11,7 +11,7 @@
   "dependencies": {
     "clsx": "^2.1.1",
     "firebase": "^12.19.0",
-    "firebase-admin": "^14.4.0",
+    "firebase-admin": "13.5.0",
     "googleapis": "^180.0.0",
     "jose": "^6.2.12",
     "next": "16.3.5",
