@@ -11,3 +11,11 @@ export function getAdminDb() {
   });
   return getFirestore(adminApp);
 }
+
+export async function verifyBearerToken(request: Request) {
+  const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+  if (!token) throw new Error("Authentication required.");
+  const { getAuth } = await import("firebase-admin/auth");
+  getAdminDb(); // Ensure the default Admin app exists before resolving Auth.
+  return getAuth().verifyIdToken(token);
+}

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createGoogleOAuthClient } from "@/lib/google";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { encryptSecret } from "@/lib/token-crypto";
+import { createAttendanceSpreadsheet } from "@/lib/google";
 
 export async function GET(request: NextRequest) {
   const url = new URL(request.url); const state = url.searchParams.get("state"); const code = url.searchParams.get("code");
@@ -11,8 +12,20 @@ export async function GET(request: NextRequest) {
   const uid = request.cookies.get("google_oauth_uid")?.value;
   if (!uid) return NextResponse.json({ error: "OAuth session expired. Please try again." }, { status: 400 });
   await getAdminDb().collection("googleTokens").doc(uid).set({ refreshToken: encryptSecret(tokens.refresh_token), updatedAt: new Date() }, { merge: true });
+  const classId = request.cookies.get("google_oauth_class")?.value;
+  if (classId) {
+    const classRef = getAdminDb().collection("classes").doc(classId);
+    const classSnapshot = await classRef.get();
+    if (classSnapshot.exists && classSnapshot.data()?.crUid === uid) {
+      const data = classSnapshot.data() ?? {};
+      const title = `Attensheet - ${data.university} - ${data.department} - ${data.className} - ${data.section} - ${data.semester}`;
+      const spreadsheetId = await createAttendanceSpreadsheet(uid, title, []);
+      await classRef.update({ spreadsheetId, updatedAt: new Date() });
+    }
+  }
   const response = NextResponse.redirect(new URL("/dashboard?google=connected", request.url));
   response.cookies.delete("google_oauth_state");
   response.cookies.delete("google_oauth_uid");
+  response.cookies.delete("google_oauth_class");
   return response;
 }

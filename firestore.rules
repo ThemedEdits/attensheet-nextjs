@@ -5,6 +5,7 @@ service cloud.firestore {
     function isUser(uid) { return signedIn() && request.auth.uid == uid; }
     function userRole(uid, role) { return signedIn() && get(/databases/$(database)/documents/users/$(uid)).data.role == role; }
     function ownsClass(classId) { return signedIn() && get(/databases/$(database)/documents/classes/$(classId)).data.crUid == request.auth.uid; }
+    function memberOf(classId) { return signedIn() && get(/databases/$(database)/documents/memberships/$(classId + '_' + request.auth.uid)).data.status == 'approved'; }
     match /users/{uid} {
       allow read: if isUser(uid) || (signedIn() && resource.data.role == 'cr');
       allow create: if isUser(uid) && request.resource.data.uid == request.auth.uid && request.resource.data.profileCompleted == true && request.resource.data.role in ['cr','teacher','student'];
@@ -12,12 +13,12 @@ service cloud.firestore {
       allow delete: if false;
     }
     match /classes/{classId} {
-      allow read: if signedIn() && (resource.data.crUid == request.auth.uid);
+      allow read: if signedIn() && (resource.data.crUid == request.auth.uid || memberOf(classId));
       allow create: if userRole(request.auth.uid, 'cr') && request.resource.data.crUid == request.auth.uid;
       allow update, delete: if ownsClass(classId);
     }
     match /subjects/{subjectId} {
-      allow read: if signedIn() && (ownsClass(resource.data.classId) || resource.data.teacherUid == request.auth.uid);
+      allow read: if signedIn() && (ownsClass(resource.data.classId) || memberOf(resource.data.classId) || resource.data.teacherUid == request.auth.uid);
       allow create: if signedIn() && ownsClass(request.resource.data.classId);
       allow update, delete: if signedIn() && ownsClass(resource.data.classId);
     }
@@ -37,6 +38,11 @@ service cloud.firestore {
       allow read: if signedIn() && (resource.data.uid == request.auth.uid || ownsClass(resource.data.classId));
       allow write: if false;
     }
+    match /attendance/{attendanceId} {
+      allow read: if signedIn() && (resource.data.studentUid == request.auth.uid || ownsClass(resource.data.classId) || (memberOf(resource.data.classId) && get(/databases/$(database)/documents/memberships/$(resource.data.classId + '_' + request.auth.uid)).data.role == 'teacher'));
+      allow write: if false;
+    }
+    match /googleTokens/{uid} { allow read, write: if false; }
     match /{document=**} { allow read, write: if false; }
   }
 }

@@ -17,4 +17,13 @@ Attensheet is a dark, responsive attendance-management workspace for university 
 
 Firebase client configuration is public configuration, not a password. Firestore Rules and server-side authorization are the security boundary. Keep Firebase Admin credentials, Google OAuth client secret, and token-encryption key server-only. Google Sheets uses `drive.file` plus Sheets scopes; refresh tokens must be encrypted before persistence. Attendance writes must be performed by authenticated server handlers that verify the Firebase identity, approved class membership, assigned subject, date, and immutable-lock state.
 
+## Product flows
+
+Authenticated mutations use the server routes under `/api`: students and teachers
+submit `/api/class/join` requests, CRs review them at `/cr/requests`, subjects
+are created through `/api/subjects`, and attendance is read/written through
+`/api/attendance`. Attendance dates are calendar dates in `Asia/Karachi`; dates
+before today are immutable. Google synchronization is available at
+`/api/google/sync` after OAuth connection and writes each subject to its tab.
+
 The OAuth consent screen, test users, enabled APIs, authorized origins, and Vercel environment variables require manual Google Cloud/Vercel configuration and cannot be safely generated from this repository.

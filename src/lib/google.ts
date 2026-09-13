@@ -4,3 +4,24 @@ export function createGoogleOAuthClient() {
   return new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET, process.env.GOOGLE_REDIRECT_URI);
 }
 export const googleScopes = ["https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/spreadsheets"];
+
+import { google as googleApi } from "googleapis";
+import { decryptSecret } from "./token-crypto";
+import { getAdminDb } from "./firebase-admin";
+export async function getAuthorizedSheets(uid: string) {
+  const snap = await getAdminDb().collection("googleTokens").doc(uid).get();
+  const encrypted = snap.data()?.refreshToken;
+  if (!encrypted) throw new Error("Google Sheets is not connected.");
+  const client = createGoogleOAuthClient();
+  client.setCredentials({ refresh_token: decryptSecret(encrypted) });
+  return googleApi.sheets({ version: "v4", auth: client });
+}
+export async function createAttendanceSpreadsheet(uid: string, title: string, subjects: string[]) {
+  const sheets = await getAuthorizedSheets(uid);
+  const created = await sheets.spreadsheets.create({ requestBody: { properties: { title }, sheets: subjects.map((name) => ({ properties: { title: name } })) } });
+  return created.data.spreadsheetId;
+}
+export async function syncAttendanceTab(uid: string, spreadsheetId: string, tab: string, values: string[][]) {
+  const sheets = await getAuthorizedSheets(uid);
+  await sheets.spreadsheets.values.update({ spreadsheetId, range: `${tab}!A1`, valueInputOption: "USER_ENTERED", requestBody: { values } });
+}
