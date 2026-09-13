@@ -49,11 +49,17 @@ export async function GET(request: Request) {
         console.error("Approved student sheet reconciliation failed", error);
       }
     }
+    const approvedMembers = await Promise.all(repairedMemberships.docs.filter((d) => d.data().status === "approved").map(async (d) => {
+      const data = d.data();
+      if (data.fullName) return { id: d.id, ...data };
+      const user = await db.collection("users").doc(String(data.uid)).get();
+      return { id: d.id, ...data, fullName: user.data()?.name ?? String(data.uid), email: user.data()?.email };
+    }));
     return NextResponse.json({
       classId,
       requests: [...students.docs, ...teachers.docs].filter((d) => d.data().status === "pending").map((d) => ({ id: d.id, ...d.data() })),
       counts: { students: repairedMemberships.docs.filter((d) => d.data().status === "approved" && d.data().role === "student").length, teachers: repairedMemberships.docs.filter((d) => d.data().status === "approved" && d.data().role === "teacher").length },
-      members: repairedMemberships.docs.filter((d) => d.data().status === "approved").map((d) => ({ id: d.id, ...d.data() })),
+      members: approvedMembers,
     });
   } catch (error) {
     console.error("Request list failed", error);

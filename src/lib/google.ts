@@ -32,6 +32,30 @@ export async function createAttendanceTab(uid: string, spreadsheetId: string, ti
   return result.data.replies?.[0]?.addSheet?.properties?.sheetId;
 }
 
+export async function renameAttendanceTab(uid: string, spreadsheetId: string, sheetId: number, title: string) {
+  const sheets = await getAuthorizedSheets(uid);
+  await sheets.spreadsheets.batchUpdate({ spreadsheetId, requestBody: { requests: [{ updateSheetProperties: { properties: { sheetId, title }, fields: "title" } }] } });
+}
+
+export async function deleteAttendanceTab(uid: string, spreadsheetId: string, sheetId: number) {
+  const sheets = await getAuthorizedSheets(uid);
+  await sheets.spreadsheets.batchUpdate({ spreadsheetId, requestBody: { requests: [{ deleteSheet: { sheetId } }] } });
+}
+
+export async function removeDefaultBlankTabs(uid: string, spreadsheetId: string) {
+  const sheets = await getAuthorizedSheets(uid);
+  const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId });
+  const tabs = spreadsheet.data.sheets ?? [];
+  const deletions = tabs.filter((tab) => tab.properties?.title === "Sheet1" && tabs.length > 1 && tab.properties?.sheetId !== undefined).map((tab) => ({ deleteSheet: { sheetId: tab.properties!.sheetId! } }));
+  if (deletions.length) await sheets.spreadsheets.batchUpdate({ spreadsheetId, requestBody: { requests: deletions } });
+}
+
+export async function syncAttendanceMatrix(uid: string, spreadsheetId: string, tab: string, values: string[][]) {
+  const sheets = await getAuthorizedSheets(uid);
+  await sheets.spreadsheets.values.clear({ spreadsheetId, range: `${tab}!A:ZZ` });
+  await sheets.spreadsheets.values.update({ spreadsheetId, range: `${tab}!A1`, valueInputOption: "USER_ENTERED", requestBody: { values } });
+}
+
 export async function addStudentToAttendanceTabs(uid: string, spreadsheetId: string, tabs: string[], student: { uid: string; fullName?: string; seatNumber?: string }) {
   const sheets = await getAuthorizedSheets(uid);
   for (const tab of tabs) {

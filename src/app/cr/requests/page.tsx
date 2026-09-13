@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { authHeaders } from "@/lib/client-auth";
 import { readApiResponse } from "@/lib/client-response";
 import { CustomSelect } from "@/components/CustomSelect";
+import { useToast } from "@/components/ToastProvider";
 
 type RequestItem = { id: string; fullName?: string; teacherUid?: string; studentUid?: string; seatNumber?: string };
 type Subject = { id: string; name: string };
@@ -16,6 +17,7 @@ export default function RequestsPage() {
   const [counts, setCounts] = useState({ students: 0, teachers: 0 });
   const [members, setMembers] = useState<Member[]>([]);
   const [requestSubjects, setRequestSubjects] = useState<Record<string, string>>({});
+  const toast = useToast();
 
   async function load() {
     try {
@@ -47,14 +49,15 @@ export default function RequestsPage() {
       const result = await readApiResponse(response);
       if (!response.ok) throw new Error(String(result.error ?? "Unable to update request."));
       await load();
+      toast(`Request ${decision}.`, "success");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to update request.");
     }
   }
   async function assign(subjectId: string, teacherUid: string) {
     const response = await fetch("/api/subjects", { method: "PATCH", headers: await authHeaders(true), body: JSON.stringify({ subjectId, teacherUid: teacherUid || null }) });
-    if (!response.ok) { const data = await readApiResponse(response); setMessage(String(data.error ?? "Unable to assign teacher.")); }
-    else setMessage("Teacher assignment saved.");
+    if (!response.ok) { const data = await readApiResponse(response); const error = String(data.error ?? "Unable to assign teacher."); setMessage(error); toast(error, "error"); }
+    else { setMessage("Teacher assignment saved."); toast("Teacher assignment saved.", "success"); }
   }
 
   return <main className="mx-auto min-h-screen max-w-3xl px-6 py-12">

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createGoogleOAuthClient } from "@/lib/google";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { encryptSecret } from "@/lib/token-crypto";
-import { addStudentToAttendanceTabs, createAttendanceSpreadsheet } from "@/lib/google";
+import { addStudentToAttendanceTabs, createAttendanceSpreadsheet, removeDefaultBlankTabs } from "@/lib/google";
 
 export async function GET(request: NextRequest) {
   const url = new URL(request.url); const state = url.searchParams.get("state"); const code = url.searchParams.get("code");
@@ -22,6 +22,7 @@ export async function GET(request: NextRequest) {
       const subjects = await getAdminDb().collection("subjects").where("classId", "==", classId).get();
       const spreadsheetId = await createAttendanceSpreadsheet(uid, title, subjects.docs.filter((item) => item.data().active === true).map((item) => String(item.data().name)));
       if (!spreadsheetId) throw new Error("Google did not return a spreadsheet ID.");
+      await removeDefaultBlankTabs(uid, spreadsheetId);
       await classRef.update({ spreadsheetId, updatedAt: new Date() });
       const students = await getAdminDb().collection("memberships").where("classId", "==", classId).limit(500).get();
       for (const subject of subjects.docs.filter((item) => item.data().active === true)) {

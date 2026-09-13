@@ -34,5 +34,27 @@ export async function POST(request: Request) {
     if (typeof item?.studentUid !== "string" || typeof item?.present !== "boolean") continue;
     batch.set(db.collection("attendance").doc(`${classId}_${subjectId}_${date}_${item.studentUid}`), { classId, subjectId, date, studentUid: item.studentUid, present: item.present, markedBy: user.uid, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
   }
-  await batch.commit(); return NextResponse.json({ ok: true, date, today: date === karachiDate() });
+  await batch.commit();
+  if (cls.data()?.spreadsheetId) {
+    try {
+      const { syncAttendanceMatrix } = await import("@/lib/google");
+      const [members, attendance] = await Promise.all([
+        db.collection("memberships").where("classId", "==", classId).limit(500).get(),
+        db.collection("attendance").where("classId", "==", classId).where("subjectId", "==", subjectId).limit(5000).get(),
+      ]);
+      const dates = [...new Set(attendance.docs.map((item) => String(item.data().date)))].sort();
+      const values = [
+        [`${cls.data()?.university ?? ""} · ${cls.data()?.department ?? ""} · ${cls.data()?.className ?? ""} · Section ${cls.data()?.section ?? ""} · ${cls.data()?.semester ?? ""}`],
+        ["Seat number", "Student name", "Father name", ...dates, "Total"],
+        ...members.docs.filter((item) => item.data().role === "student" && item.data().status === "approved").sort((a, b) => String(a.data().seatNumber ?? "").localeCompare(String(b.data().seatNumber ?? ""))).map((item) => {
+          const student = item.data();
+          const studentRows = attendance.docs.filter((record) => record.data().studentUid === student.uid);
+          const statuses = dates.map((day) => studentRows.find((record) => record.data().date === day)?.data().present === true ? "Present" : studentRows.some((record) => record.data().date === day) ? "Absent" : "");
+          return [String(student.seatNumber ?? ""), String(student.fullName ?? ""), String(student.fatherName ?? ""), ...statuses, `${statuses.filter((status) => status === "Present").length}/${statuses.filter(Boolean).length}`];
+        }),
+      ];
+      await syncAttendanceMatrix(cls.data()!.crUid, cls.data()!.spreadsheetId, subject.data()?.name ?? "Attendance", values);
+    } catch (error) { console.error("Attendance sheet sync failed", error); }
+  }
+  return NextResponse.json({ ok: true, date, today: date === karachiDate() });
 }
