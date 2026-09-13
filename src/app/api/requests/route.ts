@@ -6,14 +6,21 @@ import { getAdminDb } from "@/lib/firebase-admin";
 export const runtime = "nodejs";
 
 export async function GET(request: Request) {
-  const user = await authenticated(request); if (!user) return unauthorized();
-  const db = getAdminDb(); const cls = await db.collection("classes").where("crUid", "==", user.uid).limit(1).get();
-  if (cls.empty) return NextResponse.json({ requests: [] });
-  const classId = cls.docs[0].id;
-  const [students, teachers] = await Promise.all(["studentRequests", "teacherRequests"].map((c) => db.collection(c).where("classId", "==", classId).limit(100).get()));
-  return NextResponse.json({ requests: [...students.docs, ...teachers.docs].filter((d) => d.data().status === "pending").map((d) => ({ id: d.id, ...d.data() })) });
+  try {
+    const user = await authenticated(request); if (!user) return unauthorized();
+    const db = getAdminDb();
+    const cls = await db.collection("classes").where("crUid", "==", user.uid).limit(1).get();
+    if (cls.empty) return NextResponse.json({ requests: [] });
+    const classId = cls.docs[0].id;
+    const [students, teachers] = await Promise.all(["studentRequests", "teacherRequests"].map((c) => db.collection(c).where("classId", "==", classId).limit(100).get()));
+    return NextResponse.json({ requests: [...students.docs, ...teachers.docs].filter((d) => d.data().status === "pending").map((d) => ({ id: d.id, ...d.data() })) });
+  } catch (error) {
+    console.error("Request list failed", error);
+    return NextResponse.json({ error: error instanceof Error ? `Request list failed: ${error.message}` : "Request list failed." }, { status: 500 });
+  }
 }
 export async function PATCH(request: Request) {
+  try {
   const user = await authenticated(request); if (!user) return unauthorized();
   const { requestId, kind, decision, subjectId } = await request.json().catch(() => ({}));
   if (!requestId || !["studentRequests", "teacherRequests"].includes(kind) || !["approved", "rejected"].includes(decision)) return NextResponse.json({ error: "Invalid decision." }, { status: 400 });
@@ -27,4 +34,8 @@ export async function PATCH(request: Request) {
     if (kind === "teacherRequests" && subjectId) await db.collection("subjects").doc(subjectId).update({ teacherUid: uid, updatedAt: FieldValue.serverTimestamp() });
   }
   return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error("Request decision failed", error);
+    return NextResponse.json({ error: error instanceof Error ? `Request update failed: ${error.message}` : "Request update failed." }, { status: 500 });
+  }
 }

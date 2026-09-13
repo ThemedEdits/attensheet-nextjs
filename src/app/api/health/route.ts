@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getAdminAuth, getAdminDb } from "@/lib/firebase-admin";
 
 export const runtime = "nodejs";
 
@@ -17,11 +18,26 @@ export async function GET() {
   const privateKeyShape = key
     ? { hasBeginMarker: key.includes("BEGIN PRIVATE KEY"), hasEndMarker: key.includes("END PRIVATE KEY"), hasEscapedNewlines: key.includes("\\n"), length: key.length }
     : null;
-  const ready = missing.length === 0;
+  let adminStatus = "not_checked";
+  let firestoreStatus = "not_checked";
+  if (missing.length === 0) {
+    try {
+      getAdminAuth();
+      adminStatus = "initialized";
+      await getAdminDb().collection("classes").limit(1).get();
+      firestoreStatus = "reachable";
+    } catch (error) {
+      adminStatus = error instanceof Error ? error.message : "initialization_failed";
+      firestoreStatus = "unreachable";
+      console.error("Health dependency check failed", error);
+    }
+  }
+  const ready = missing.length === 0 && adminStatus === "initialized" && firestoreStatus === "reachable";
   return NextResponse.json({
     ok: ready,
     missing,
-    firebaseAdmin: ready ? "variables_present" : "variables_missing",
+    firebaseAdmin: adminStatus,
+    firestore: firestoreStatus,
     privateKeyShape,
     googleRedirectUri: process.env.GOOGLE_REDIRECT_URI ?? null,
   }, { status: ready ? 200 : 503 });

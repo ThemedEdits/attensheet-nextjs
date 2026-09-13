@@ -29,6 +29,9 @@ export async function POST(request: Request) {
     const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
     const body = await request.json().catch(() => ({}));
     if (!token || typeof body.classId !== "string") return NextResponse.json({ error: "Authentication and class are required." }, { status: 400 });
+    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET || !process.env.GOOGLE_REDIRECT_URI) {
+      return NextResponse.json({ error: "Google OAuth environment variables are missing on this deployment." }, { status: 503 });
+    }
     const user = await getAdminAuth().verifyIdToken(token);
     const cls = await getAdminDb().collection("classes").doc(body.classId).get();
     if (!cls.exists || cls.data()?.crUid !== user.uid) return NextResponse.json({ error: "Only the class representative can connect Sheets." }, { status: 403 });
@@ -42,6 +45,7 @@ export async function POST(request: Request) {
     return response;
   } catch (error) {
     console.error("Google authorization setup failed", error);
-    return NextResponse.json({ error: "Server OAuth configuration is incomplete. Check Firebase Admin and Google OAuth environment variables." }, { status: 500 });
+    const detail = error instanceof Error ? error.message : "unknown server error";
+    return NextResponse.json({ error: `Google authorization failed: ${detail}` }, { status: 500 });
   }
 }
