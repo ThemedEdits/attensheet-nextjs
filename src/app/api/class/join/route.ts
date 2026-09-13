@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     if (membership.exists && membership.data()?.status === "approved") {
       return NextResponse.json({ error: "You are already approved for this class and cannot request it again." }, { status: 409 });
     }
-    if (existing.docs.some((item) => item.data().classId === cls.id && item.data().status === "approved")) {
+    if (existing.docs.some((item) => item.data().classId === cls.id && ["approved", "active"].includes(String(item.data().status)))) {
       return NextResponse.json({ error: "You are already approved for this class and cannot request it again." }, { status: 409 });
     }
     if (existing.docs.some((item) => item.data().classId === cls.id && item.data().status === "pending")) {

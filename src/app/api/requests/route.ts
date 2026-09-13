@@ -6,18 +6,40 @@ export const runtime = "nodejs";
 export async function GET(request: Request) {
   try {
     const user = await authenticated(request); if (!user) return unauthorized();
-    const { getAdminDb } = await import("@/lib/firebase-admin");
+    const [{ getAdminDb }, { FieldValue }] = await Promise.all([
+      import("@/lib/firebase-admin"),
+      import("firebase-admin/firestore"),
+    ]);
     const db = getAdminDb();
     const cls = await db.collection("classes").where("crUid", "==", user.uid).limit(1).get();
     if (cls.empty) return NextResponse.json({ requests: [] });
     const classId = cls.docs[0].id;
     const [students, teachers] = await Promise.all(["studentRequests", "teacherRequests"].map((c) => db.collection(c).where("classId", "==", classId).limit(100).get()));
-    const memberships = await db.collection("memberships").where("classId", "==", classId).limit(500).get();
+    const approvedRequests = [...students.docs, ...teachers.docs].filter((item) => item.data().status === "approved");
+    for (const requestDoc of approvedRequests) {
+      const requestData = requestDoc.data();
+      const uid = requestData.studentUid ?? requestData.teacherUid;
+      if (!uid) continue;
+      const membershipRef = db.collection("memberships").doc(`${classId}_${uid}`);
+      const membership = await membershipRef.get();
+      if (!membership.exists || membership.data()?.status !== "approved") {
+        await membershipRef.set({
+          ...requestData,
+          classId,
+          uid,
+          role: requestData.studentUid ? "student" : "teacher",
+          status: "approved",
+          approvedAt: membership.data()?.approvedAt ?? FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        }, { merge: true });
+      }
+    }
+    const repairedMemberships = await db.collection("memberships").where("classId", "==", classId).limit(500).get();
     return NextResponse.json({
       classId,
       requests: [...students.docs, ...teachers.docs].filter((d) => d.data().status === "pending").map((d) => ({ id: d.id, ...d.data() })),
-      counts: { students: memberships.docs.filter((d) => d.data().status === "approved" && d.data().role === "student").length, teachers: memberships.docs.filter((d) => d.data().status === "approved" && d.data().role === "teacher").length },
-      members: memberships.docs.filter((d) => d.data().status === "approved").map((d) => ({ id: d.id, ...d.data() })),
+      counts: { students: repairedMemberships.docs.filter((d) => d.data().status === "approved" && d.data().role === "student").length, teachers: repairedMemberships.docs.filter((d) => d.data().status === "approved" && d.data().role === "teacher").length },
+      members: repairedMemberships.docs.filter((d) => d.data().status === "approved").map((d) => ({ id: d.id, ...d.data() })),
     });
   } catch (error) {
     console.error("Request list failed", error);
@@ -43,7 +65,7 @@ export async function PATCH(request: Request) {
   await ref.update({ status: decision, updatedAt: FieldValue.serverTimestamp() });
   if (decision === "approved") {
     const uid = kind === "studentRequests" ? data.studentUid : data.teacherUid;
-    await db.collection("memberships").doc(`${data.classId}_${uid}`).set({ classId: data.classId, uid, role: kind === "studentRequests" ? "student" : "teacher", status: "approved", ...data, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+    await db.collection("memberships").doc(`${data.classId}_${uid}`).set({ ...data, classId: data.classId, uid, role: kind === "studentRequests" ? "student" : "teacher", status: "approved", approvedAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
     if (kind === "studentRequests") {
       const clsData = cls.data() ?? {};
       if (clsData.spreadsheetId) {
