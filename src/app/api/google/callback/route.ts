@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
       for (const subject of subjects.docs.filter((item) => item.data().active === true)) {
         for (const student of students.docs.filter((item) => item.data().role === "student" && item.data().status === "approved")) {
           const studentData = student.data();
-          await addStudentToAttendanceTabs(uid, spreadsheetId, [String(subject.data().name)], { uid: String(studentData.uid), fullName: studentData.fullName, seatNumber: studentData.seatNumber });
+          await addStudentToAttendanceTabs(uid, spreadsheetId, [String(subject.data().name)], { uid: String(studentData.uid), fullName: studentData.fullName, fatherName: studentData.fatherName, seatNumber: studentData.seatNumber });
         }
       }
     }

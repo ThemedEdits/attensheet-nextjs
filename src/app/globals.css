@@ -19,3 +19,9 @@ a { text-decoration: none; }
 @utility button-secondary {
   @apply inline-flex items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-medium text-white transition hover:border-white/20 hover:bg-white/[0.07] disabled:cursor-not-allowed disabled:opacity-50;
 }
+@keyframes toast-in { from { opacity: 0; transform: translateY(-18px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes toast-out { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(-14px) scale(.98); } }
+@keyframes toast-progress { from { width: 100%; } to { width: 0; } }
+.toast-enter { animation: toast-in .28s ease-out both; }
+.toast-exit { animation: toast-out .28s ease-in both; }
+.toast-progress { animation: toast-progress 4.2s linear both; }

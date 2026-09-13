@@ -43,7 +43,7 @@ export async function GET(request: Request) {
         const tabs = activeSubjects.docs.filter((item) => item.data().active === true).map((item) => String(item.data().name));
         for (const member of repairedMemberships.docs.filter((item) => item.data().status === "approved" && item.data().role === "student")) {
           const memberData = member.data();
-          await addStudentToAttendanceTabs(user.uid, classData.spreadsheetId, tabs, { uid: String(memberData.uid), fullName: memberData.fullName, seatNumber: memberData.seatNumber });
+          await addStudentToAttendanceTabs(user.uid, classData.spreadsheetId, tabs, { uid: String(memberData.uid), fullName: memberData.fullName, fatherName: memberData.fatherName, seatNumber: memberData.seatNumber });
         }
       } catch (error) {
         console.error("Approved student sheet reconciliation failed", error);
@@ -55,9 +55,15 @@ export async function GET(request: Request) {
       const user = await db.collection("users").doc(String(data.uid)).get();
       return { id: d.id, ...data, fullName: user.data()?.name ?? String(data.uid), email: user.data()?.email };
     }));
+    const pendingRequests = await Promise.all([...students.docs, ...teachers.docs].filter((d) => d.data().status === "pending").map(async (d) => {
+      const data = d.data();
+      if (!data.teacherUid || data.fullName) return { id: d.id, ...data };
+      const teacher = await db.collection("users").doc(String(data.teacherUid)).get();
+      return { id: d.id, ...data, fullName: teacher.data()?.name ?? data.teacherUid, email: teacher.data()?.email };
+    }));
     return NextResponse.json({
       classId,
-      requests: [...students.docs, ...teachers.docs].filter((d) => d.data().status === "pending").map((d) => ({ id: d.id, ...d.data() })),
+      requests: pendingRequests,
       counts: { students: repairedMemberships.docs.filter((d) => d.data().status === "approved" && d.data().role === "student").length, teachers: repairedMemberships.docs.filter((d) => d.data().status === "approved" && d.data().role === "teacher").length },
       members: approvedMembers,
     });
@@ -96,7 +102,7 @@ export async function PATCH(request: Request) {
         try {
           const { addStudentToAttendanceTabs } = await import("@/lib/google");
           const subjects = await db.collection("subjects").where("classId", "==", data.classId).get();
-          await addStudentToAttendanceTabs(user.uid, clsData.spreadsheetId, subjects.docs.filter((item) => item.data().active === true).map((item) => String(item.data().name)), { uid, fullName: data.fullName, seatNumber: data.seatNumber });
+          await addStudentToAttendanceTabs(user.uid, clsData.spreadsheetId, subjects.docs.filter((item) => item.data().active === true).map((item) => String(item.data().name)), { uid, fullName: data.fullName, fatherName: data.fatherName, seatNumber: data.seatNumber });
         } catch (error) { console.error("Student sheet enrollment failed", error); }
       }
     }

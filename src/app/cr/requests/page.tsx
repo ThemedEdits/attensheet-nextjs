@@ -3,20 +3,14 @@
 import { useEffect, useState } from "react";
 import { authHeaders } from "@/lib/client-auth";
 import { readApiResponse } from "@/lib/client-response";
-import { CustomSelect } from "@/components/CustomSelect";
 import { useToast } from "@/components/ToastProvider";
 
 type RequestItem = { id: string; fullName?: string; teacherUid?: string; studentUid?: string; seatNumber?: string };
-type Subject = { id: string; name: string };
-type Member = { uid: string; fullName?: string; role: string };
 
 export default function RequestsPage() {
   const [items, setItems] = useState<RequestItem[]>([]);
   const [message, setMessage] = useState("");
-  const [subjects, setSubjects] = useState<Subject[]>([]);
   const [counts, setCounts] = useState({ students: 0, teachers: 0 });
-  const [members, setMembers] = useState<Member[]>([]);
-  const [requestSubjects, setRequestSubjects] = useState<Record<string, string>>({});
   const toast = useToast();
 
   async function load() {
@@ -26,9 +20,6 @@ export default function RequestsPage() {
       if (!response.ok) throw new Error(String(result.error ?? "Unable to load requests."));
       setItems(Array.isArray(result.requests) ? result.requests as RequestItem[] : []);
       setCounts((result.counts as { students: number; teachers: number } | undefined) ?? { students: 0, teachers: 0 });
-      setMembers((result.members as Member[] | undefined) ?? []);
-      const first = await fetch(`/api/subjects?classId=${encodeURIComponent(String(result.classId ?? ""))}`, { headers: await authHeaders() });
-      if (first.ok) { const data = await first.json(); setSubjects(data.subjects ?? []); }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to load requests.");
     }
@@ -44,7 +35,7 @@ export default function RequestsPage() {
       const response = await fetch("/api/requests", {
         method: "PATCH",
         headers: await authHeaders(true),
-        body: JSON.stringify({ requestId: item.id, kind: item.teacherUid ? "teacherRequests" : "studentRequests", decision, subjectId: item.teacherUid ? requestSubjects[item.id] || undefined : undefined }),
+        body: JSON.stringify({ requestId: item.id, kind: item.teacherUid ? "teacherRequests" : "studentRequests", decision }),
       });
       const result = await readApiResponse(response);
       if (!response.ok) throw new Error(String(result.error ?? "Unable to update request."));
@@ -54,18 +45,12 @@ export default function RequestsPage() {
       setMessage(error instanceof Error ? error.message : "Unable to update request.");
     }
   }
-  async function assign(subjectId: string, teacherUid: string) {
-    const response = await fetch("/api/subjects", { method: "PATCH", headers: await authHeaders(true), body: JSON.stringify({ subjectId, teacherUid: teacherUid || null }) });
-    if (!response.ok) { const data = await readApiResponse(response); const error = String(data.error ?? "Unable to assign teacher."); setMessage(error); toast(error, "error"); }
-    else { setMessage("Teacher assignment saved."); toast("Teacher assignment saved.", "success"); }
-  }
-
   return <main className="mx-auto min-h-screen max-w-3xl px-6 py-12">
     <p className="text-sm text-emerald-400">Class management</p>
     <h1 className="mt-2 text-4xl font-semibold text-white">Join requests</h1>
     {message && <p className="mt-4 text-sm text-rose-200">{message}</p>}
-    <div className="mt-6 flex gap-4 text-sm text-slate-300"><span>Approved students: {counts.students}</span><span>Approved teachers: {counts.teachers}</span></div><div className="mt-6 space-y-2">{subjects.map((subject) => <div key={subject.id} className="flex items-center justify-between rounded-xl border border-white/10 p-3"><span className="text-white">{subject.name}</span><CustomSelect value="" placeholder="Assign approved teacher" options={members.filter((member) => member.role === "teacher").map((member) => ({ value: member.uid, label: member.fullName ?? member.uid }))} onChange={(value) => void assign(subject.id, value)} /></div>)}</div><div className="mt-8 space-y-3">{items.length ? items.map((item) => <div key={item.id} className="flex items-center justify-between rounded-xl border border-white/[0.04] bg-white/[0.04] p-4">
-      <div><p className="font-medium text-white">{item.fullName ?? item.teacherUid}</p><p className="text-xs text-slate-400">{item.studentUid ? `Student${item.seatNumber ? ` · Seat ${item.seatNumber}` : ""}` : "Teacher"}</p>{item.teacherUid && <div className="mt-2"><CustomSelect value={requestSubjects[item.id] ?? ""} placeholder="Assign subject (optional)" options={subjects.map((subject) => ({ value: subject.id, label: subject.name }))} onChange={(value) => setRequestSubjects((current) => ({ ...current, [item.id]: value }))} /></div>}</div>
+    <div className="mt-6 flex gap-4 text-sm text-slate-300"><span>Approved students: {counts.students}</span><span>Approved teachers: {counts.teachers}</span></div><div className="mt-8 space-y-3">{items.length ? items.map((item) => <div key={item.id} className="flex items-center justify-between rounded-xl border border-white/[0.04] bg-white/[0.04] p-4">
+      <div><p className="font-medium text-white">{item.fullName ?? item.teacherUid}</p><p className="text-xs text-slate-400">{item.studentUid ? `Student${item.seatNumber ? ` · Seat ${item.seatNumber}` : ""}` : "Teacher"}</p></div>
       <div className="flex gap-2"><button onClick={() => void decide(item, "approved")} className="button-primary">Approve</button><button onClick={() => void decide(item, "rejected")} className="button-secondary">Reject</button></div>
     </div>) : <p className="text-slate-400">No pending requests.</p>}</div>
   </main>;

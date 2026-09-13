@@ -56,18 +56,27 @@ export async function syncAttendanceMatrix(uid: string, spreadsheetId: string, t
   await sheets.spreadsheets.values.update({ spreadsheetId, range: `${tab}!A1`, valueInputOption: "USER_ENTERED", requestBody: { values } });
 }
 
-export async function addStudentToAttendanceTabs(uid: string, spreadsheetId: string, tabs: string[], student: { uid: string; fullName?: string; seatNumber?: string }) {
+export async function addStudentToAttendanceTabs(uid: string, spreadsheetId: string, tabs: string[], student: { uid: string; fullName?: string; fatherName?: string; seatNumber?: string }) {
   const sheets = await getAuthorizedSheets(uid);
   for (const tab of tabs) {
     const current = await sheets.spreadsheets.values.get({ spreadsheetId, range: `${tab}!A:C` });
     const rows = current.data.values ?? [];
-    if (rows.some((row) => String(row[0] ?? "") === student.uid)) continue;
+    const existingIndex = rows.findIndex((row) => String(row[0] ?? "") === student.uid || String(row[1] ?? "") === student.fullName);
+    if (existingIndex >= 0) {
+      await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: `${tab}!A${existingIndex + 1}:C${existingIndex + 1}`,
+        valueInputOption: "USER_ENTERED",
+        requestBody: { values: [[student.seatNumber ?? "", student.fullName ?? "", student.fatherName ?? ""]] },
+      });
+      continue;
+    }
     await sheets.spreadsheets.values.append({
       spreadsheetId,
       range: `${tab}!A:C`,
       valueInputOption: "USER_ENTERED",
       insertDataOption: "INSERT_ROWS",
-      requestBody: { values: [[student.uid, student.fullName ?? "", student.seatNumber ?? ""]] },
+      requestBody: { values: [[student.seatNumber ?? "", student.fullName ?? "", student.fatherName ?? ""]] },
     });
   }
 }

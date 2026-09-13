@@ -26,7 +26,7 @@ export async function POST(request: Request) {
       await removeDefaultBlankTabs(user.uid, clsData.spreadsheetId);
       await ref.update({ googleSheetTabId: tabId ?? null });
       const students = await db.collection("memberships").where("classId", "==", classId).limit(500).get();
-      await Promise.all(students.docs.filter((student) => student.data().role === "student" && student.data().status === "approved").map((student) => addStudentToAttendanceTabs(user.uid, clsData.spreadsheetId, [name.trim()], { uid: String(student.data().uid), fullName: student.data().fullName, seatNumber: student.data().seatNumber })));
+      await Promise.all(students.docs.filter((student) => student.data().role === "student" && student.data().status === "approved").map((student) => addStudentToAttendanceTabs(user.uid, clsData.spreadsheetId, [name.trim()], { uid: String(student.data().uid), fullName: student.data().fullName, fatherName: student.data().fatherName, seatNumber: student.data().seatNumber })));
     } catch (error) { console.error("Subject sheet tab creation failed", error); }
   }
   return NextResponse.json({ id: ref.id }, { status: 201 });
@@ -45,6 +45,7 @@ export async function PATCH(request: Request) {
   }
   if (typeof active === "boolean") updates.active = active;
   if (typeof teacherUid === "string" || teacherUid === null) {
+    if (cls.data()?.crUid !== user.uid) return NextResponse.json({ error: "Only the class representative can assign a teacher." }, { status: 403 });
     if (teacherUid) { const member = await db.collection("memberships").doc(`${snap.data()?.classId}_${teacherUid}`).get(); if (!member.exists || member.data()?.role !== "teacher" || member.data()?.status !== "approved") return NextResponse.json({ error: "Teacher must be approved first." }, { status: 400 }); }
     updates.teacherUid = teacherUid ?? FieldValue.delete();
   }

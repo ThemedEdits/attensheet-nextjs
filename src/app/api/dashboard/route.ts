@@ -34,10 +34,12 @@ export async function GET(request: Request) {
     .map((item) => item.data())
     .filter((item) => item.studentUid === user.uid)
     .map((item) => ({ date: String(item.date), present: Boolean(item.present) })) ?? [];
+  const members = memberSnap.docs.filter((item) => item.data().status === "approved").map((item) => ({ uid: item.data().uid, fullName: item.data().fullName, role: item.data().role }));
   return NextResponse.json({
     profile,
     class: { id: classId, ...classData },
     subjects: subjectSnap.docs.filter((item) => item.data().active === true).map((item) => ({ id: item.id, ...item.data() })),
+    members,
     memberCount: memberSnap.docs.filter((item) => item.data().status === "approved" && item.data().role === "student").length,
     attendance,
   });
