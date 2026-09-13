@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
+import { useSearchParams } from "next/navigation";
 import { firebaseAuth } from "@/lib/firebase";
 import { authHeaders } from "@/lib/client-auth";
 import { readApiResponse } from "@/lib/client-response";
@@ -13,7 +14,7 @@ type Student = { uid: string; fullName?: string; fatherName?: string; seatNumber
 type Attendance = { studentUid: string; date: string; present: boolean };
 type ClassData = { university?: string; department?: string; className?: string; section?: string; semester?: string };
 
-export default function AttendancePage() {
+function AttendanceContent() {
   const [date, setDate] = useState(karachiDate());
   const [students, setStudents] = useState<Student[]>([]);
   const [attendance, setAttendance] = useState<Attendance[]>([]);
@@ -24,11 +25,13 @@ export default function AttendancePage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [canEdit, setCanEdit] = useState(false);
+  const [canManage, setCanManage] = useState(false);
   const [confirmSave, setConfirmSave] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [message, setMessage] = useState("");
   const [authReady, setAuthReady] = useState(false);
   const toast = useToast();
-  const params = useMemo(() => new URLSearchParams(typeof window === "undefined" ? "" : window.location.search), []);
+  const params = useSearchParams();
   const classId = params.get("classId");
   const subjectId = params.get("subjectId");
 
@@ -46,6 +49,7 @@ export default function AttendancePage() {
       setSubjectName(String((result.subject as { name?: string } | undefined)?.name ?? "Attendance"));
       setClassData((result.class ?? {}) as ClassData);
       setCanEdit(result.canEdit === true);
+      setCanManage(result.canManage === true);
       setMessage(`${nextAttendance.length} records loaded for ${date}.`);
     } catch (error) {
       const text = error instanceof Error ? error.message : "Unable to load attendance.";
@@ -88,13 +92,32 @@ export default function AttendancePage() {
     finally { setBusy(false); }
   }
 
+  async function deleteDate() {
+    if (!classId || !subjectId) return;
+    setBusy(true);
+    try {
+      const response = await fetch(`/api/attendance?classId=${encodeURIComponent(classId)}&subjectId=${encodeURIComponent(subjectId)}&date=${encodeURIComponent(date)}`, { method: "DELETE", headers: await authHeaders() });
+      const result = await readApiResponse(response);
+      if (!response.ok) throw new Error(String(result.error ?? "Unable to delete attendance."));
+      setConfirmDelete(false);
+      toast("Attendance for this date was deleted and the sheet was synchronized.", "success");
+      await load();
+    } catch (error) { toast(error instanceof Error ? error.message : "Unable to delete attendance.", "error"); }
+    finally { setBusy(false); }
+  }
+
   const header = `${classData.university ?? ""} · ${classData.department ?? ""} · ${classData.className ?? ""} · Section ${classData.section ?? ""} · ${classData.semester ?? ""}`;
   return <main className="min-h-screen px-4 py-8 sm:px-6"><div className="mx-auto max-w-7xl">
     <p className="text-sm text-emerald-400">Attendance · {subjectName}</p>
     <div className="mt-2 flex flex-wrap items-end justify-between gap-4"><div><h1 className="text-4xl font-semibold text-white">Daily attendance</h1><p className="mt-2 text-sm text-slate-400">{canEdit ? (date === karachiDate() ? "Today is editable until midnight Asia/Karachi." : "This past date has not been marked yet and can be saved once.") : "This date has already been saved and is permanently locked."}</p></div><div className="flex flex-wrap gap-3"><input value={search} onChange={(event) => setSearch(event.target.value)} className="field mt-0 w-64" placeholder="Search name or seat number" /><label className="text-xs text-slate-400">Attendance date<input type="date" value={date} max={karachiDate()} onChange={(event) => setDate(event.target.value)} className="field mt-1" /></label></div></div>
     {message && <p className="mt-5 text-sm text-slate-400">{message}</p>}
-    <section className="mt-6 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]"><div className="overflow-x-auto"><table className="w-full min-w-[620px] text-left text-sm"><thead className="border-b border-white/10 bg-white/[0.04] text-xs uppercase tracking-wide text-slate-400"><tr><th className="w-24 px-5 py-4">Status</th><th className="px-5 py-4">Seat number</th><th className="px-5 py-4">Student name</th><th className="px-5 py-4">Father name</th></tr></thead><tbody className="divide-y divide-white/[0.06]">{loading ? Array.from({ length: 6 }, (_, index) => <tr key={index}><td colSpan={4} className="px-5 py-4"><div className="skeleton h-5 w-full" /></td></tr>) : filteredStudents.length ? filteredStudents.map((student) => <tr key={student.uid} className="hover:bg-white/[0.03]"><td className="px-5 py-4"><input type="checkbox" aria-label={`Present: ${student.fullName ?? student.uid}`} disabled={!canEdit} checked={records[student.uid] === true} onChange={(event) => setRecords((current) => ({ ...current, [student.uid]: event.target.checked }))} className="h-5 w-5 accent-emerald-400" /></td><td className="px-5 py-4 font-medium text-white">{student.seatNumber ?? "—"}</td><td className="px-5 py-4 text-slate-200">{student.fullName ?? "Unnamed student"}</td><td className="px-5 py-4 text-slate-400">{student.fatherName ?? "—"}</td></tr>) : <tr><td colSpan={4} className="px-5 py-12 text-center text-slate-500">No students match this search.</td></tr>}</tbody></table></div><div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 p-4"><span className="text-sm text-slate-400">{filteredStudents.length} of {students.length} students</span>{canEdit && <button disabled={busy || loading} onClick={() => setConfirmSave(true)} className="button-primary">{busy ? "Saving..." : "Save attendance"}</button>}</div></section>
+    <section className="mt-6 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]"><div className="overflow-x-auto"><table className="w-full min-w-[620px] text-left text-sm"><thead className="border-b border-white/10 bg-white/[0.04] text-xs uppercase tracking-wide text-slate-400"><tr><th className="w-24 px-5 py-4">Status</th><th className="px-5 py-4">Seat number</th><th className="px-5 py-4">Student name</th><th className="px-5 py-4">Father name</th></tr></thead><tbody className="divide-y divide-white/[0.06]">{loading ? Array.from({ length: 6 }, (_, index) => <tr key={index}><td colSpan={4} className="px-5 py-4"><div className="skeleton h-5 w-full" /></td></tr>) : filteredStudents.length ? filteredStudents.map((student) => <tr key={student.uid} className="hover:bg-white/[0.03]"><td className="px-5 py-4"><input type="checkbox" aria-label={`Present: ${student.fullName ?? student.uid}`} disabled={!canEdit} checked={records[student.uid] === true} onChange={(event) => setRecords((current) => ({ ...current, [student.uid]: event.target.checked }))} className="h-5 w-5 accent-emerald-400" /></td><td className="px-5 py-4 font-medium text-white">{student.seatNumber ?? "—"}</td><td className="px-5 py-4 text-slate-200">{student.fullName ?? "Unnamed student"}</td><td className="px-5 py-4 text-slate-400">{student.fatherName ?? "—"}</td></tr>) : <tr><td colSpan={4} className="px-5 py-12 text-center text-slate-500">No students match this search.</td></tr>}</tbody></table></div><div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 p-4"><span className="text-sm text-slate-400">{filteredStudents.length} of {students.length} students</span><div className="flex gap-2">{canEdit && <button disabled={busy || loading} onClick={() => setConfirmSave(true)} className="button-primary">{busy ? "Saving..." : "Save attendance"}</button>}{canManage && attendance.some((item) => item.date === date) && <button disabled={busy || loading} onClick={() => setConfirmDelete(true)} className="rounded-lg border border-rose-400/30 px-4 py-3 text-sm font-medium text-rose-200 hover:bg-rose-400/10">Delete this date</button>}</div></div></section>
     <section className="mt-10"><div><p className="text-sm text-emerald-400">Google Sheets blueprint</p><h2 className="mt-1 text-2xl font-semibold text-white">{subjectName} register</h2></div><div className="mt-4 overflow-x-auto rounded-2xl border border-blue-400/20 bg-[#071827] p-4"><p className="mb-4 text-xs text-blue-200">{header}</p><table className="min-w-full text-left text-xs"><thead><tr className="border-b border-blue-300/20 text-blue-200"><th className="px-3 py-3">Seat number</th><th className="px-3 py-3">Student name</th><th className="px-3 py-3">Father name</th>{dates.map((day) => <th key={day} className="px-3 py-3 whitespace-nowrap">{day}</th>)}<th className="px-3 py-3">Total</th></tr></thead><tbody>{matrix.map(({ student, statuses, present, marked }) => <tr key={student.uid} className="border-b border-blue-300/10 text-slate-300"><td className="px-3 py-3">{student.seatNumber ?? "—"}</td><td className="px-3 py-3">{student.fullName ?? "—"}</td><td className="px-3 py-3">{student.fatherName ?? "—"}</td>{statuses.map((item, index) => <td key={`${student.uid}-${index}`} className="px-3 py-3">{item ? item.present ? "Present" : "Absent" : "—"}</td>)}<td className="px-3 py-3 font-semibold text-blue-200">{present}/{marked}</td></tr>)}</tbody></table></div></section>
-    {confirmSave && <ActionModal title="Save attendance?" description="Once saved, today’s attendance can only be edited until midnight in Asia/Karachi. Past dates are permanently locked." confirmLabel="Save permanently" onClose={() => setConfirmSave(false)} onConfirm={() => void save()} />}
+    {confirmSave && <ActionModal title="Save attendance?" description="This date will be recorded for every student. Past dates become permanently locked after saving." confirmLabel="Save attendance" onClose={() => setConfirmSave(false)} onConfirm={() => void save()} />}
+    {confirmDelete && <ActionModal title="Delete attendance date?" description={`Delete every attendance record for ${date}? This will also remove the date column data from the Google Sheet.`} confirmLabel="Delete date" onClose={() => setConfirmDelete(false)} onConfirm={() => void deleteDate()} />}
   </div></main>;
+}
+
+export default function AttendancePage() {
+  return <Suspense fallback={<main className="grid min-h-screen place-items-center text-slate-400">Loading attendance...</main>}><AttendanceContent /></Suspense>;
 }
