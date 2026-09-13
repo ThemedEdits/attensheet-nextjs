@@ -30,18 +30,23 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-  const body = await request.json().catch(() => ({}));
-  if (!token || typeof body.classId !== "string") return NextResponse.json({ error: "Authentication and class are required." }, { status: 400 });
-  const user = await adminAuth().verifyIdToken(token);
-  const cls = await (await import("@/lib/firebase-admin")).getAdminDb().collection("classes").doc(body.classId).get();
-  if (!cls.exists || cls.data()?.crUid !== user.uid) return NextResponse.json({ error: "Only the class representative can connect Sheets." }, { status: 403 });
-  const state = randomBytes(24).toString("hex");
-  const client = createGoogleOAuthClient();
-  const authUrl = client.generateAuthUrl({ access_type: "offline", prompt: "consent", scope: googleScopes, state });
-  const response = NextResponse.json({ url: authUrl });
-  response.cookies.set("google_oauth_state", state, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", maxAge: 600, path: "/" });
-  response.cookies.set("google_oauth_uid", user.uid, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", maxAge: 600, path: "/" });
-  response.cookies.set("google_oauth_class", body.classId, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", maxAge: 600, path: "/" });
-  return response;
+  try {
+    const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+    const body = await request.json().catch(() => ({}));
+    if (!token || typeof body.classId !== "string") return NextResponse.json({ error: "Authentication and class are required." }, { status: 400 });
+    const user = await adminAuth().verifyIdToken(token);
+    const cls = await (await import("@/lib/firebase-admin")).getAdminDb().collection("classes").doc(body.classId).get();
+    if (!cls.exists || cls.data()?.crUid !== user.uid) return NextResponse.json({ error: "Only the class representative can connect Sheets." }, { status: 403 });
+    const state = randomBytes(24).toString("hex");
+    const client = createGoogleOAuthClient();
+    const authUrl = client.generateAuthUrl({ access_type: "offline", prompt: "consent", scope: googleScopes, state });
+    const response = NextResponse.json({ url: authUrl });
+    response.cookies.set("google_oauth_state", state, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", maxAge: 600, path: "/" });
+    response.cookies.set("google_oauth_uid", user.uid, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", maxAge: 600, path: "/" });
+    response.cookies.set("google_oauth_class", body.classId, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", maxAge: 600, path: "/" });
+    return response;
+  } catch (error) {
+    console.error("Google authorization setup failed", error);
+    return NextResponse.json({ error: "Server OAuth configuration is incomplete. Check Firebase Admin and Google OAuth environment variables." }, { status: 500 });
+  }
 }
