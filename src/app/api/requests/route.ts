@@ -1,13 +1,12 @@
 import { NextResponse } from "next/server";
-import { FieldValue } from "firebase-admin/firestore";
 import { authenticated, unauthorized } from "@/lib/server-auth";
-import { getAdminDb } from "@/lib/firebase-admin";
 
 export const runtime = "nodejs";
 
 export async function GET(request: Request) {
   try {
     const user = await authenticated(request); if (!user) return unauthorized();
+    const { getAdminDb } = await import("@/lib/firebase-admin");
     const db = getAdminDb();
     const cls = await db.collection("classes").where("crUid", "==", user.uid).limit(1).get();
     if (cls.empty) return NextResponse.json({ requests: [] });
@@ -22,6 +21,10 @@ export async function GET(request: Request) {
 export async function PATCH(request: Request) {
   try {
   const user = await authenticated(request); if (!user) return unauthorized();
+  const [{ getAdminDb }, { FieldValue }] = await Promise.all([
+    import("@/lib/firebase-admin"),
+    import("firebase-admin/firestore"),
+  ]);
   const { requestId, kind, decision, subjectId } = await request.json().catch(() => ({}));
   if (!requestId || !["studentRequests", "teacherRequests"].includes(kind) || !["approved", "rejected"].includes(decision)) return NextResponse.json({ error: "Invalid decision." }, { status: 400 });
   const db = getAdminDb(); const ref = db.collection(kind).doc(requestId); const snap = await ref.get(); if (!snap.exists) return NextResponse.json({ error: "Request not found." }, { status: 404 });

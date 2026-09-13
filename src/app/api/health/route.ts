@@ -21,10 +21,31 @@ export async function GET() {
     ];
     const missing = required.filter((name) => !process.env[name]?.trim());
     const key = process.env.FIREBASE_ADMIN_PRIVATE_KEY;
+    let admin: "not_checked" | "initialized" | "failed" = "not_checked";
+    let firestore: "not_checked" | "reachable" | "failed" = "not_checked";
+    let adminError: string | undefined;
+    if (missing.length === 0) {
+      try {
+        const { getAdminAuth, getAdminDb } = await import("@/lib/firebase-admin");
+        getAdminAuth();
+        admin = "initialized";
+        await getAdminDb().collection("classes").limit(1).get();
+        firestore = "reachable";
+      } catch (error) {
+        admin = "failed";
+        firestore = "failed";
+        adminError = error instanceof Error ? error.message : "Firebase Admin initialization failed.";
+        console.error("Health Firebase Admin check failed", error);
+      }
+    }
+    const ok = missing.length === 0 && admin === "initialized" && firestore === "reachable";
     return json({
-      ok: missing.length === 0,
+      ok,
       deployment: "health-v3",
       missing,
+      admin,
+      firestore,
+      ...(adminError ? { adminError } : {}),
       privateKeyShape: key ? {
         hasBeginMarker: key.includes("BEGIN PRIVATE KEY"),
         hasEndMarker: key.includes("END PRIVATE KEY"),
@@ -32,7 +53,7 @@ export async function GET() {
         length: key.length,
       } : null,
       googleRedirectUri: process.env.GOOGLE_REDIRECT_URI ?? null,
-    }, missing.length === 0 ? 200 : 503);
+    }, ok ? 200 : 503);
   } catch (error) {
     console.error("Health endpoint failed", error);
     return json({ ok: false, deployment: "health-v3", error: "Health endpoint failed before diagnostics could complete." }, 500);

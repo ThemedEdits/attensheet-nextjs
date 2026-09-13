@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
 import { authenticated, unauthorized } from "@/lib/server-auth";
-import { getAdminDb } from "@/lib/firebase-admin";
-import { repositories } from "@/lib/repositories";
 import { joinClassSchema, studentRequestSchema } from "@/lib/validation";
 
 export const runtime = "nodejs";
@@ -9,6 +7,10 @@ export const runtime = "nodejs";
 export async function POST(request: Request) {
   try {
     const user = await authenticated(request); if (!user) return unauthorized();
+    const [{ getAdminDb }, { repositories }] = await Promise.all([
+      import("@/lib/firebase-admin"),
+      import("@/lib/repositories"),
+    ]);
     const body = await request.json().catch(() => ({}));
     const profile = await repositories.profile(user.uid);
     if (!profile || !["student", "teacher"].includes(String(profile.role))) return NextResponse.json({ error: "Only students and teachers can join." }, { status: 403 });

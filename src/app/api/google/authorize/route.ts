@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { createGoogleOAuthClient, googleScopes } from "@/lib/google";
 import { randomBytes } from "node:crypto";
-import { getAdminAuth, getAdminDb } from "@/lib/firebase-admin";
 
 export const runtime = "nodejs";
 
@@ -9,6 +8,7 @@ async function createAuthorization(request: Request, classId: string | null) {
   const state = randomBytes(24).toString("hex");
   const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
   if (!token) return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+  const { getAdminAuth } = await import("@/lib/firebase-admin");
   const user = await getAdminAuth().verifyIdToken(token);
   const client = createGoogleOAuthClient();
   const url = client.generateAuthUrl({ access_type: "offline", prompt: "consent", scope: googleScopes, state });
@@ -32,6 +32,7 @@ export async function POST(request: Request) {
     if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET || !process.env.GOOGLE_REDIRECT_URI) {
       return NextResponse.json({ error: "Google OAuth environment variables are missing on this deployment." }, { status: 503 });
     }
+    const { getAdminAuth, getAdminDb } = await import("@/lib/firebase-admin");
     const user = await getAdminAuth().verifyIdToken(token);
     const cls = await getAdminDb().collection("classes").doc(body.classId).get();
     if (!cls.exists || cls.data()?.crUid !== user.uid) return NextResponse.json({ error: "Only the class representative can connect Sheets." }, { status: 403 });
