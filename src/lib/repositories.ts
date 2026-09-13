@@ -14,9 +14,10 @@ export const repositories = {
     const db = getAdminDb();
     const own = await db.collection("classes").where("crUid", "==", uid).limit(1).get();
     if (!own.empty) return ({ id: own.docs[0].id, ...own.docs[0].data() } as Record<string, unknown> & { id: string });
-    const membership = await db.collection("memberships").where("uid", "==", uid).where("status", "==", "approved").limit(1).get();
-    if (membership.empty) return null;
-    const id = membership.docs[0].data().classId;
+    const membership = await db.collection("memberships").where("uid", "==", uid).limit(10).get();
+    const approved = membership.docs.find((item) => item.data().status === "approved");
+    if (!approved) return null;
+    const id = approved.data().classId;
     const cls = await db.collection("classes").doc(id).get();
     return cls.exists ? ({ id: cls.id, ...cls.data() } as Record<string, unknown> & { id: string }) : null;
   },

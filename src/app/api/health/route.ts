@@ -17,14 +17,21 @@ export async function GET() {
     try {
       getAdminAuth();
       firebaseAdmin = "ready";
-    } catch {
+    } catch (error) {
       firebaseAdmin = "invalid_configuration";
+      console.error("Health check Firebase Admin initialization failed", error);
     }
   }
-  return NextResponse.json({
-    ok: missing.length === 0 && firebaseAdmin === "ready",
-    missing,
-    firebaseAdmin,
-    googleRedirectUri: process.env.GOOGLE_REDIRECT_URI ?? null,
-  }, { status: missing.length === 0 && firebaseAdmin === "ready" ? 200 : 503 });
+  try {
+    const ready = missing.length === 0 && firebaseAdmin === "ready";
+    return NextResponse.json({
+      ok: ready,
+      missing,
+      firebaseAdmin,
+      googleRedirectUri: process.env.GOOGLE_REDIRECT_URI ?? null,
+    }, { status: ready ? 200 : 503 });
+  } catch (error) {
+    console.error("Health response failed", error);
+    return new Response("Attensheet health check failed.", { status: 500 });
+  }
 }

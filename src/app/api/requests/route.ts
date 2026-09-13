@@ -8,8 +8,8 @@ export async function GET(request: Request) {
   const db = getAdminDb(); const cls = await db.collection("classes").where("crUid", "==", user.uid).limit(1).get();
   if (cls.empty) return NextResponse.json({ requests: [] });
   const classId = cls.docs[0].id;
-  const [students, teachers] = await Promise.all(["studentRequests", "teacherRequests"].map((c) => db.collection(c).where("classId", "==", classId).where("status", "==", "pending").get()));
-  return NextResponse.json({ requests: [...students.docs, ...teachers.docs].map((d) => ({ id: d.id, ...d.data() })) });
+  const [students, teachers] = await Promise.all(["studentRequests", "teacherRequests"].map((c) => db.collection(c).where("classId", "==", classId).limit(100).get()));
+  return NextResponse.json({ requests: [...students.docs, ...teachers.docs].filter((d) => d.data().status === "pending").map((d) => ({ id: d.id, ...d.data() })) });
 }
 export async function PATCH(request: Request) {
   const user = await authenticated(request); if (!user) return unauthorized();
