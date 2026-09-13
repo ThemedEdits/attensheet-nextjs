@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { authenticated, unauthorized } from "@/lib/server-auth";
 import { getAdminDb } from "@/lib/firebase-admin";
-import { attendanceDateIsLocked, karachiDate } from "@/lib/domain";
+import { karachiDate } from "@/lib/domain";
 
 async function context(request: Request) {
   const user = await authenticated(request); if (!user) return null;
@@ -20,16 +20,21 @@ export async function GET(request: Request) {
   const snap = await query.get();
   const students = await db.collection("memberships").where("classId", "==", classId).where("role", "==", "student").where("status", "==", "approved").get();
   const subjectData = (await db.collection("subjects").doc(subjectId).get()).data() ?? {};
-  return NextResponse.json({ attendance: snap.docs.map((d) => ({ id: d.id, ...d.data() })), students: students.docs.map((d) => ({ uid: d.data().uid, fullName: d.data().fullName, fatherName: d.data().fatherName, seatNumber: d.data().seatNumber })), subject: { id: subjectId, name: subjectData.name }, class: cls.data(), canEdit: cls.data()?.crUid === user.uid || (membership.data()?.role === "teacher" && subjectData.teacherUid === user.uid) });
+  const isManager = cls.data()?.crUid === user.uid || (membership.data()?.role === "teacher" && subjectData.teacherUid === user.uid);
+  const selectedDateRecords = date ? snap.docs.filter((item) => item.data().date === date) : [];
+  const canEditDate = date !== null && (date === karachiDate() || (date < karachiDate() && selectedDateRecords.length === 0));
+  return NextResponse.json({ attendance: snap.docs.map((d) => ({ id: d.id, ...d.data() })), students: students.docs.map((d) => ({ uid: d.data().uid, fullName: d.data().fullName, fatherName: d.data().fatherName, seatNumber: d.data().seatNumber })), subject: { id: subjectId, name: subjectData.name }, class: cls.data(), canEdit: isManager && canEditDate, dateLocked: isManager && !canEditDate });
 }
 export async function POST(request: Request) {
   const result = await context(request); if (!result) return unauthorized();
   const { user, body, db } = result; const { classId, subjectId, date, records } = body;
   if (!classId || !subjectId || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !Array.isArray(records)) return NextResponse.json({ error: "Invalid attendance payload." }, { status: 400 });
-  if (date !== karachiDate()) return NextResponse.json({ error: attendanceDateIsLocked(date) ? "Historical attendance is locked permanently." : "Attendance can only be marked for today." }, { status: 409 });
   const cls = await db.collection("classes").doc(classId).get(); const subject = await db.collection("subjects").doc(subjectId).get();
   const member = await db.collection("memberships").doc(`${classId}_${user.uid}`).get();
   if (cls.data()?.crUid !== user.uid && (!member.exists || member.data()?.role !== "teacher" || subject.data()?.teacherUid !== user.uid)) return NextResponse.json({ error: "Only the assigned teacher can mark attendance." }, { status: 403 });
+  if (date > karachiDate()) return NextResponse.json({ error: "Attendance cannot be marked for a future date." }, { status: 409 });
+  const existingDate = await db.collection("attendance").where("classId", "==", classId).where("subjectId", "==", subjectId).where("date", "==", date).limit(1).get();
+  if (existingDate.size > 0 && date < karachiDate()) return NextResponse.json({ error: "This historical attendance is permanently locked." }, { status: 409 });
   const batch = db.batch();
   for (const item of records) {
     if (typeof item?.studentUid !== "string" || typeof item?.present !== "boolean") continue;
