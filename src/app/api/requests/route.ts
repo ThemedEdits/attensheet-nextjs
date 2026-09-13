@@ -35,6 +35,20 @@ export async function GET(request: Request) {
       }
     }
     const repairedMemberships = await db.collection("memberships").where("classId", "==", classId).limit(500).get();
+    const classData = cls.docs[0].data();
+    if (classData.spreadsheetId) {
+      try {
+        const { addStudentToAttendanceTabs } = await import("@/lib/google");
+        const activeSubjects = await db.collection("subjects").where("classId", "==", classId).get();
+        const tabs = activeSubjects.docs.filter((item) => item.data().active === true).map((item) => String(item.data().name));
+        for (const member of repairedMemberships.docs.filter((item) => item.data().status === "approved" && item.data().role === "student")) {
+          const memberData = member.data();
+          await addStudentToAttendanceTabs(user.uid, classData.spreadsheetId, tabs, { uid: String(memberData.uid), fullName: memberData.fullName, seatNumber: memberData.seatNumber });
+        }
+      } catch (error) {
+        console.error("Approved student sheet reconciliation failed", error);
+      }
+    }
     return NextResponse.json({
       classId,
       requests: [...students.docs, ...teachers.docs].filter((d) => d.data().status === "pending").map((d) => ({ id: d.id, ...d.data() })),
@@ -65,17 +79,18 @@ export async function PATCH(request: Request) {
   await ref.update({ status: decision, updatedAt: FieldValue.serverTimestamp() });
   if (decision === "approved") {
     const uid = kind === "studentRequests" ? data.studentUid : data.teacherUid;
-    await db.collection("memberships").doc(`${data.classId}_${uid}`).set({ ...data, classId: data.classId, uid, role: kind === "studentRequests" ? "student" : "teacher", status: "approved", approvedAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+    const userSnap = kind === "teacherRequests" && !data.fullName ? await db.collection("users").doc(uid).get() : null;
+    const memberData = userSnap?.data();
+    const normalizedData = memberData?.name ? { ...data, fullName: memberData.name, email: memberData.email } : data;
+    if (normalizedData.fullName && !data.fullName) await ref.set({ fullName: normalizedData.fullName, email: normalizedData.email, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+    await db.collection("memberships").doc(`${data.classId}_${uid}`).set({ ...normalizedData, classId: data.classId, uid, role: kind === "studentRequests" ? "student" : "teacher", status: "approved", approvedAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
     if (kind === "studentRequests") {
       const clsData = cls.data() ?? {};
       if (clsData.spreadsheetId) {
         try {
-          const { getAuthorizedSheets } = await import("@/lib/google");
+          const { addStudentToAttendanceTabs } = await import("@/lib/google");
           const subjects = await db.collection("subjects").where("classId", "==", data.classId).get();
-          const sheets = await getAuthorizedSheets(user.uid);
-          for (const subject of subjects.docs.filter((item) => item.data().active === true)) {
-            await sheets.spreadsheets.values.append({ spreadsheetId: clsData.spreadsheetId, range: `${subject.data().name}!A:A`, valueInputOption: "USER_ENTERED", requestBody: { values: [[uid]] } });
-          }
+          await addStudentToAttendanceTabs(user.uid, clsData.spreadsheetId, subjects.docs.filter((item) => item.data().active === true).map((item) => String(item.data().name)), { uid, fullName: data.fullName, seatNumber: data.seatNumber });
         } catch (error) { console.error("Student sheet enrollment failed", error); }
       }
     }

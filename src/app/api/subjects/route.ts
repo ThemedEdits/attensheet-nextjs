@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { authenticated, unauthorized } from "@/lib/server-auth";
 import { getAdminDb } from "@/lib/firebase-admin";
-import { createAttendanceTab } from "@/lib/google";
+import { addStudentToAttendanceTabs, createAttendanceTab } from "@/lib/google";
 export async function GET(request: Request) {
   const user = await authenticated(request); if (!user) return unauthorized();
   const classId = new URL(request.url).searchParams.get("classId"); if (!classId) return NextResponse.json({ error: "classId is required." }, { status: 400 });
@@ -24,6 +24,8 @@ export async function POST(request: Request) {
     try {
       const tabId = await createAttendanceTab(user.uid, clsData.spreadsheetId, name.trim(), [["Student UID", "Date", "Status"]]);
       await ref.update({ googleSheetTabId: tabId ?? null });
+      const students = await db.collection("memberships").where("classId", "==", classId).limit(500).get();
+      await Promise.all(students.docs.filter((student) => student.data().role === "student" && student.data().status === "approved").map((student) => addStudentToAttendanceTabs(user.uid, clsData.spreadsheetId, [name.trim()], { uid: String(student.data().uid), fullName: student.data().fullName, seatNumber: student.data().seatNumber })));
     } catch (error) { console.error("Subject sheet tab creation failed", error); }
   }
   return NextResponse.json({ id: ref.id }, { status: 201 });

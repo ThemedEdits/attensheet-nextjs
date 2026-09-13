@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createGoogleOAuthClient } from "@/lib/google";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { encryptSecret } from "@/lib/token-crypto";
-import { createAttendanceSpreadsheet } from "@/lib/google";
+import { addStudentToAttendanceTabs, createAttendanceSpreadsheet } from "@/lib/google";
 
 export async function GET(request: NextRequest) {
   const url = new URL(request.url); const state = url.searchParams.get("state"); const code = url.searchParams.get("code");
@@ -21,7 +21,15 @@ export async function GET(request: NextRequest) {
       const title = `Attensheet - ${data.university} - ${data.department} - ${data.className} - ${data.section} - ${data.semester}`;
       const subjects = await getAdminDb().collection("subjects").where("classId", "==", classId).get();
       const spreadsheetId = await createAttendanceSpreadsheet(uid, title, subjects.docs.filter((item) => item.data().active === true).map((item) => String(item.data().name)));
+      if (!spreadsheetId) throw new Error("Google did not return a spreadsheet ID.");
       await classRef.update({ spreadsheetId, updatedAt: new Date() });
+      const students = await getAdminDb().collection("memberships").where("classId", "==", classId).limit(500).get();
+      for (const subject of subjects.docs.filter((item) => item.data().active === true)) {
+        for (const student of students.docs.filter((item) => item.data().role === "student" && item.data().status === "approved")) {
+          const studentData = student.data();
+          await addStudentToAttendanceTabs(uid, spreadsheetId, [String(subject.data().name)], { uid: String(studentData.uid), fullName: studentData.fullName, seatNumber: studentData.seatNumber });
+        }
+      }
     }
   }
   const response = NextResponse.redirect(new URL("/dashboard?google=connected", request.url));
