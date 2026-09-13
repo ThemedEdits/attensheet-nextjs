@@ -1,0 +1,18 @@
+import { NextRequest, NextResponse } from "next/server";
+import { createGoogleOAuthClient } from "@/lib/google";
+import { getAdminDb } from "@/lib/firebase-admin";
+import { encryptSecret } from "@/lib/token-crypto";
+
+export async function GET(request: NextRequest) {
+  const url = new URL(request.url); const state = url.searchParams.get("state"); const code = url.searchParams.get("code");
+  if (!code || state !== request.cookies.get("google_oauth_state")?.value) return NextResponse.json({ error: "Invalid OAuth state." }, { status: 400 });
+  const client = createGoogleOAuthClient(); const { tokens } = await client.getToken(code);
+  if (!tokens.refresh_token) return NextResponse.json({ error: "Google did not return a refresh token. Re-authorize access." }, { status: 400 });
+  const uid = request.cookies.get("google_oauth_uid")?.value;
+  if (!uid) return NextResponse.json({ error: "OAuth session expired. Please try again." }, { status: 400 });
+  await getAdminDb().collection("googleTokens").doc(uid).set({ refreshToken: encryptSecret(tokens.refresh_token), updatedAt: new Date() }, { merge: true });
+  const response = NextResponse.redirect(new URL("/dashboard?google=connected", request.url));
+  response.cookies.delete("google_oauth_state");
+  response.cookies.delete("google_oauth_uid");
+  return response;
+}

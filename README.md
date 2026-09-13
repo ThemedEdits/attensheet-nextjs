@@ -1,36 +1,20 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Attensheet
 
-## Getting Started
+Attensheet is a dark, responsive attendance-management workspace for university classes. Class representatives create a class, invite teachers and students, and connect a Google Sheet that stores the attendance record. Firebase Authentication and Firestore hold identity, class metadata, memberships, permissions, and workflow state.
 
-First, run the development server:
+## Local development
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+1. Copy `.env.example` to `.env.local` and fill the Firebase client values.
+2. Create a Firebase web app for project `attensheet-fuuast`.
+3. Enable Email/Password and Google providers in Firebase Authentication.
+4. Create a Firestore database and deploy `firestore.rules`.
+5. Enable Google Sheets API and Google Drive API in Google Cloud.
+6. Configure a Google OAuth Web application. Add `http://localhost:3000/api/google/callback` as a redirect URI and add the production Vercel callback after deployment.
+7. Set server-only Google variables and a 32-byte `TOKEN_ENCRYPTION_KEY`.
+8. Run `npm install` and `npm run dev`.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Production security
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Firebase client configuration is public configuration, not a password. Firestore Rules and server-side authorization are the security boundary. Keep Firebase Admin credentials, Google OAuth client secret, and token-encryption key server-only. Google Sheets uses `drive.file` plus Sheets scopes; refresh tokens must be encrypted before persistence. Attendance writes must be performed by authenticated server handlers that verify the Firebase identity, approved class membership, assigned subject, date, and immutable-lock state.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The OAuth consent screen, test users, enabled APIs, authorized origins, and Vercel environment variables require manual Google Cloud/Vercel configuration and cannot be safely generated from this repository.
