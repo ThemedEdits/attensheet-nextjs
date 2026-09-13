@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { authHeaders } from "@/lib/client-auth";
+import { readApiResponse } from "@/lib/client-response";
 
 type RequestItem = { id: string; fullName?: string; teacherUid?: string; studentUid?: string; seatNumber?: string };
 
@@ -12,9 +13,9 @@ export default function RequestsPage() {
   async function load() {
     try {
       const response = await fetch("/api/requests", { headers: await authHeaders() });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error ?? "Unable to load requests.");
-      setItems(result.requests);
+      const result = await readApiResponse(response);
+      if (!response.ok) throw new Error(String(result.error ?? "Unable to load requests."));
+      setItems(Array.isArray(result.requests) ? result.requests as RequestItem[] : []);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to load requests.");
     }
@@ -32,8 +33,8 @@ export default function RequestsPage() {
         headers: await authHeaders(true),
         body: JSON.stringify({ requestId: item.id, kind: item.teacherUid ? "teacherRequests" : "studentRequests", decision }),
       });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error ?? "Unable to update request.");
+      const result = await readApiResponse(response);
+      if (!response.ok) throw new Error(String(result.error ?? "Unable to update request."));
       await load();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to update request.");

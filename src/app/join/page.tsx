@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { authHeaders } from "@/lib/client-auth";
+import { readApiResponse } from "@/lib/client-response";
 
 export default function JoinPage() {
   const [code, setCode] = useState("");
@@ -19,8 +20,8 @@ export default function JoinPage() {
         headers: await authHeaders(true),
         body: JSON.stringify(data),
       });
-      const result = await response.json();
-      setMessage(response.ok ? "Request submitted. A class representative must approve it." : result.error ?? "Unable to join.");
+      const result = await readApiResponse(response);
+      setMessage(response.ok ? "Request submitted. A class representative must approve it." : String(result.error ?? "Unable to join."));
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to submit the request.");
     } finally {

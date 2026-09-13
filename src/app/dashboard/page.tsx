@@ -4,6 +4,7 @@ import { onAuthStateChanged, signOut } from "firebase/auth";
 import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 import { firebaseAuth, firestore } from "@/lib/firebase";
 import { authHeaders } from "@/lib/client-auth";
+import { readApiResponse } from "@/lib/client-response";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -48,9 +49,9 @@ export default function DashboardPage() {
     if (!classRecord || !subjectName.trim()) return;
     setMessage("");
     const response = await fetch("/api/subjects", { method: "POST", headers: await authHeaders(true), body: JSON.stringify({ classId: classRecord.id, name: subjectName.trim() }) });
-    const result = await response.json();
-    if (!response.ok) { setMessage(result.error ?? "Unable to create subject."); return; }
-    setSubjects((current) => [...current, { id: result.id, classId: classRecord.id, name: subjectName.trim(), active: true, createdAt: "", updatedAt: "" }]);
+    const result = await readApiResponse(response);
+    if (!response.ok) { setMessage(String(result.error ?? "Unable to create subject.")); return; }
+    setSubjects((current) => [...current, { id: String(result.id), classId: classRecord.id, name: subjectName.trim(), active: true, createdAt: "", updatedAt: "" }]);
     setSubjectName("");
     setMessage("Subject created.");
   }
@@ -60,8 +61,9 @@ export default function DashboardPage() {
     setConnecting(true);
     setMessage("");
     const response = await fetch("/api/google/authorize", { method: "POST", headers: await authHeaders(true), body: JSON.stringify({ classId: classRecord.id }) });
-    const result = await response.json().catch(() => ({ error: "The server returned an invalid response." }));
-    if (!response.ok) { setMessage(result.error ?? "Unable to start Google authorization."); setConnecting(false); return; }
+    const result = await readApiResponse(response);
+    if (!response.ok) { setMessage(String(result.error ?? "Unable to start Google authorization.")); setConnecting(false); return; }
+    if (typeof result.url !== "string") { setMessage("Google authorization did not return a redirect URL."); setConnecting(false); return; }
     window.location.assign(result.url);
   }
 

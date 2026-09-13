@@ -30,6 +30,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ id, status: "pending" }, { status: 201 });
   } catch (error) {
     console.error("Class join failed", error);
-    return NextResponse.json({ error: "Unable to submit the join request. Check the server Firebase configuration and try again." }, { status: 500 });
+    const detail = error instanceof Error ? error.message : "unknown server error";
+    return NextResponse.json({ error: `Class join failed: ${detail}` }, { status: 500 });
   }
 }
