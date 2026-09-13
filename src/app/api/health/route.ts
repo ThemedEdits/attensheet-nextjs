@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { getAdminAuth } from "@/lib/firebase-admin";
+
+export const runtime = "nodejs";
 
 export async function GET() {
   const required = [
@@ -12,26 +13,16 @@ export async function GET() {
     "TOKEN_ENCRYPTION_KEY",
   ];
   const missing = required.filter((name) => !process.env[name]);
-  let firebaseAdmin = "not_checked";
-  if (!missing.includes("FIREBASE_ADMIN_PROJECT_ID") && !missing.includes("FIREBASE_ADMIN_CLIENT_EMAIL") && !missing.includes("FIREBASE_ADMIN_PRIVATE_KEY")) {
-    try {
-      getAdminAuth();
-      firebaseAdmin = "ready";
-    } catch (error) {
-      firebaseAdmin = "invalid_configuration";
-      console.error("Health check Firebase Admin initialization failed", error);
-    }
-  }
-  try {
-    const ready = missing.length === 0 && firebaseAdmin === "ready";
-    return NextResponse.json({
-      ok: ready,
-      missing,
-      firebaseAdmin,
-      googleRedirectUri: process.env.GOOGLE_REDIRECT_URI ?? null,
-    }, { status: ready ? 200 : 503 });
-  } catch (error) {
-    console.error("Health response failed", error);
-    return new Response("Attensheet health check failed.", { status: 500 });
-  }
+  const key = process.env.FIREBASE_ADMIN_PRIVATE_KEY;
+  const privateKeyShape = key
+    ? { hasBeginMarker: key.includes("BEGIN PRIVATE KEY"), hasEndMarker: key.includes("END PRIVATE KEY"), hasEscapedNewlines: key.includes("\\n"), length: key.length }
+    : null;
+  const ready = missing.length === 0;
+  return NextResponse.json({
+    ok: ready,
+    missing,
+    firebaseAdmin: ready ? "variables_present" : "variables_missing",
+    privateKeyShape,
+    googleRedirectUri: process.env.GOOGLE_REDIRECT_URI ?? null,
+  }, { status: ready ? 200 : 503 });
 }

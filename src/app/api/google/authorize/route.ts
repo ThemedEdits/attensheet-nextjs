@@ -3,6 +3,8 @@ import { createGoogleOAuthClient, googleScopes } from "@/lib/google";
 import { randomBytes } from "node:crypto";
 import { getAdminAuth, getAdminDb } from "@/lib/firebase-admin";
 
+export const runtime = "nodejs";
+
 async function createAuthorization(request: Request, classId: string | null) {
   const state = randomBytes(24).toString("hex");
   const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");

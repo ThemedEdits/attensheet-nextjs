@@ -3,6 +3,8 @@ import { FieldValue } from "firebase-admin/firestore";
 import { authenticated, unauthorized } from "@/lib/server-auth";
 import { getAdminDb } from "@/lib/firebase-admin";
 
+export const runtime = "nodejs";
+
 export async function GET(request: Request) {
   const user = await authenticated(request); if (!user) return unauthorized();
   const db = getAdminDb(); const cls = await db.collection("classes").where("crUid", "==", user.uid).limit(1).get();

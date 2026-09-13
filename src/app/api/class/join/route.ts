@@ -4,6 +4,8 @@ import { getAdminDb } from "@/lib/firebase-admin";
 import { repositories } from "@/lib/repositories";
 import { joinClassSchema, studentRequestSchema } from "@/lib/validation";
 
+export const runtime = "nodejs";
+
 export async function POST(request: Request) {
   try {
     const user = await authenticated(request); if (!user) return unauthorized();
