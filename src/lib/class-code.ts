@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 
-const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ2345678";
 export function generateClassCode() {
   const bytes = randomBytes(8);
   const value = Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join("");
