@@ -1,21 +1,32 @@
 import { cert, getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
+import { getAuth } from "firebase-admin/auth";
 
-export function getAdminDb() {
-  const adminApp = getApps()[0] ?? initializeApp({
+function getAdminApp() {
+  const clean = (value: string | undefined) => value?.trim().replace(/^"(.*)"$/, "$1").replace(/^'(.*)'$/, "$1");
+  const projectId = clean(process.env.FIREBASE_ADMIN_PROJECT_ID);
+  const clientEmail = clean(process.env.FIREBASE_ADMIN_CLIENT_EMAIL);
+  const privateKey = clean(process.env.FIREBASE_ADMIN_PRIVATE_KEY)?.replace(/\\n/g, "\n");
+  if (!projectId || !clientEmail || !privateKey) throw new Error("Firebase Admin environment variables are missing.");
+  return getApps()[0] ?? initializeApp({
     credential: cert({
-      projectId: process.env.FIREBASE_ADMIN_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+      projectId,
+      clientEmail,
+      privateKey,
     }),
   });
-  return getFirestore(adminApp);
+}
+
+export function getAdminDb() {
+  return getFirestore(getAdminApp());
+}
+
+export function getAdminAuth() {
+  return getAuth(getAdminApp());
 }
 
 export async function verifyBearerToken(request: Request) {
   const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
   if (!token) throw new Error("Authentication required.");
-  const { getAuth } = await import("firebase-admin/auth");
-  getAdminDb(); // Ensure the default Admin app exists before resolving Auth.
-  return getAuth().verifyIdToken(token);
+  return getAdminAuth().verifyIdToken(token);
 }

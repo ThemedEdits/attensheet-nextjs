@@ -1,22 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { authHeaders } from "@/lib/client-auth";
 import { karachiDate } from "@/lib/domain";
 
 export default function AttendancePage() {
-  const [classId, setClassId] = useState<string | null>(null);
-  const [subjectId, setSubjectId] = useState<string | null>(null);
   const [date, setDate] = useState(karachiDate());
   const [message, setMessage] = useState("Choose a date to load attendance.");
   const [busy, setBusy] = useState(false);
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    setClassId(params.get("classId"));
-    setSubjectId(params.get("subjectId"));
-  }, []);
-
   async function load() {
+    const params = new URLSearchParams(window.location.search);
+    const classId = params.get("classId");
+    const subjectId = params.get("subjectId");
     if (!classId || !subjectId) { setMessage("Choose a subject from your dashboard first."); return; }
     setBusy(true);
     try {
