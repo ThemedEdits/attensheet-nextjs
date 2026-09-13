@@ -19,7 +19,8 @@ export async function GET(request: NextRequest) {
     if (classSnapshot.exists && classSnapshot.data()?.crUid === uid) {
       const data = classSnapshot.data() ?? {};
       const title = `Attensheet - ${data.university} - ${data.department} - ${data.className} - ${data.section} - ${data.semester}`;
-      const spreadsheetId = await createAttendanceSpreadsheet(uid, title, []);
+      const subjects = await getAdminDb().collection("subjects").where("classId", "==", classId).get();
+      const spreadsheetId = await createAttendanceSpreadsheet(uid, title, subjects.docs.filter((item) => item.data().active === true).map((item) => String(item.data().name)));
       await classRef.update({ spreadsheetId, updatedAt: new Date() });
     }
   }

@@ -17,7 +17,9 @@ export async function GET(request: Request) {
   if ((!membership.exists || membership.data()?.status !== "approved") && cls.data()?.crUid !== user.uid) return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   let query = db.collection("attendance").where("classId", "==", classId).where("subjectId", "==", subjectId);
   if (date) query = query.where("date", "==", date) as typeof query;
-  const snap = await query.get(); return NextResponse.json({ attendance: snap.docs.map((d) => ({ id: d.id, ...d.data() })) });
+  const snap = await query.get();
+  const students = await db.collection("memberships").where("classId", "==", classId).where("role", "==", "student").where("status", "==", "approved").get();
+  return NextResponse.json({ attendance: snap.docs.map((d) => ({ id: d.id, ...d.data() })), students: students.docs.map((d) => ({ uid: d.data().uid, fullName: d.data().fullName, seatNumber: d.data().seatNumber })), canEdit: cls.data()?.crUid === user.uid || (membership.data()?.role === "teacher" && (await db.collection("subjects").doc(subjectId).get()).data()?.teacherUid === user.uid) });
 }
 export async function POST(request: Request) {
   const result = await context(request); if (!result) return unauthorized();

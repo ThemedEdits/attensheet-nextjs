@@ -25,3 +25,9 @@ export async function syncAttendanceTab(uid: string, spreadsheetId: string, tab:
   const sheets = await getAuthorizedSheets(uid);
   await sheets.spreadsheets.values.update({ spreadsheetId, range: `${tab}!A1`, valueInputOption: "USER_ENTERED", requestBody: { values } });
 }
+export async function createAttendanceTab(uid: string, spreadsheetId: string, title: string, values?: string[][]) {
+  const sheets = await getAuthorizedSheets(uid);
+  const result = await sheets.spreadsheets.batchUpdate({ spreadsheetId, requestBody: { requests: [{ addSheet: { properties: { title } } }] } });
+  if (values?.length) await sheets.spreadsheets.values.update({ spreadsheetId, range: `${title}!A1`, valueInputOption: "USER_ENTERED", requestBody: { values } });
+  return result.data.replies?.[0]?.addSheet?.properties?.sheetId;
+}

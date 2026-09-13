@@ -23,13 +23,15 @@ service cloud.firestore {
       allow update, delete: if signedIn() && ownsClass(resource.data.classId);
     }
     match /teacherRequests/{requestId} {
-      allow create: if userRole(request.auth.uid, 'teacher') && request.resource.data.teacherUid == request.auth.uid;
+      allow create: if userRole(request.auth.uid, 'teacher') && request.resource.data.teacherUid == request.auth.uid
+        && !exists(/databases/$(database)/documents/memberships/$(request.resource.data.classId + '_' + request.auth.uid));
       allow read: if signedIn() && (resource.data.teacherUid == request.auth.uid || ownsClass(resource.data.classId));
       allow update: if ownsClass(resource.data.classId);
       allow delete: if false;
     }
     match /studentRequests/{requestId} {
-      allow create: if userRole(request.auth.uid, 'student') && request.resource.data.studentUid == request.auth.uid;
+      allow create: if userRole(request.auth.uid, 'student') && request.resource.data.studentUid == request.auth.uid
+        && !exists(/databases/$(database)/documents/memberships/$(request.resource.data.classId + '_' + request.auth.uid));
       allow read: if signedIn() && (resource.data.studentUid == request.auth.uid || ownsClass(resource.data.classId));
       allow update: if ownsClass(resource.data.classId);
       allow delete: if false;
