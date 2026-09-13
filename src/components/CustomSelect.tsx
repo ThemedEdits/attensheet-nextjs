@@ -1,8 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { ChevronDown, Check } from "lucide-react";
 
-export function CustomSelect({ value, options, placeholder, onChange }: {
+export function CustomSelect({
+  value,
+  options,
+  placeholder,
+  onChange,
+}: {
   value: string;
   options: { value: string; label: string }[];
   placeholder: string;
@@ -10,19 +16,81 @@ export function CustomSelect({ value, options, placeholder, onChange }: {
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
-    const close = (event: MouseEvent) => { if (!ref.current?.contains(event.target as Node)) setOpen(false); };
-    document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (!ref.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
   }, []);
+
   const selected = options.find((option) => option.value === value);
-  return <div ref={ref} className="relative w-56">
-    <button type="button" onClick={() => setOpen((current) => !current)} className="flex w-full items-center justify-between rounded-lg border border-white/10 bg-white/[0.05] px-3 py-3 text-left text-sm text-white hover:border-emerald-400/50">
-      <span className={selected ? "text-white" : "text-slate-400"}>{selected?.label ?? placeholder}</span>
-      <span className="text-slate-400">⌄</span>
-    </button>
-    {open && <div className="absolute z-20 mt-2 max-h-56 w-full overflow-auto rounded-lg border border-white/10 bg-[#10231f] p-1 shadow-xl">
-      {options.length ? options.map((option) => <button type="button" key={option.value} onClick={() => { onChange(option.value); setOpen(false); }} className="block w-full rounded-md px-3 py-2 text-left text-sm text-slate-200 hover:bg-emerald-400/15 hover:text-emerald-200">{option.label}</button>) : <p className="px-3 py-2 text-sm text-slate-500">No approved teachers</p>}
-    </div>}
-  </div>;
+
+  return (
+    <div ref={ref} className="relative w-full">
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        className="flex w-full items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] px-3.5 py-2.5 text-left text-sm text-[var(--text-primary)] transition-all hover:border-[var(--border-hover)] focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--accent-soft)]"
+      >
+        <span className={selected ? "text-[var(--text-primary)] font-medium" : "text-[var(--text-muted)]"}>
+          {selected?.label ?? placeholder}
+        </span>
+        <ChevronDown 
+          className={`h-4 w-4 text-[var(--text-muted)] transition-transform duration-200 ${
+            open ? "rotate-180 text-[var(--accent)]" : ""
+          }`} 
+        />
+      </button>
+
+      {open && (
+        <div 
+          role="listbox" 
+          className="absolute z-30 mt-2 max-h-56 w-full overflow-auto rounded-xl border border-[var(--border-hover)] bg-[var(--surface-elevated)] p-1.5 shadow-2xl shadow-black/50"
+        >
+          {options.length ? (
+            options.map((option) => {
+              const isSelected = option.value === value;
+              return (
+                <button
+                  type="button"
+                  key={option.value}
+                  onClick={() => {
+                    onChange(option.value);
+                    setOpen(false);
+                  }}
+                  className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+                    isSelected
+                      ? "bg-[var(--accent-soft)] text-[var(--accent)] font-semibold"
+                      : "text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-white"
+                  }`}
+                >
+                  <span>{option.label}</span>
+                  {isSelected && <Check className="h-4 w-4 text-[var(--accent)]" />}
+                </button>
+              );
+            })
+          ) : (
+            <p className="px-3 py-3 text-center text-xs text-[var(--text-muted)]">
+              No options available
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
+

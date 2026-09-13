@@ -7,11 +7,144 @@ import { firebaseAuth } from "@/lib/firebase";
 import { authHeaders } from "@/lib/client-auth";
 import { readApiResponse } from "@/lib/client-response";
 import { useToast } from "@/components/ToastProvider";
+import { ArrowLeft, User, Mail, Shield, KeyRound, LogOut, Sparkles } from "lucide-react";
 
 export default function SettingsPage() {
   const [profile, setProfile] = useState<{ name?: string; email?: string; role?: string }>({});
+  const [resetting, setResetting] = useState(false);
   const toast = useToast();
-  useEffect(() => { const timer = window.setTimeout(() => void (async () => { const response = await fetch("/api/dashboard", { headers: await authHeaders() }); const result = await readApiResponse(response); if (response.ok) setProfile((result.profile ?? {}) as typeof profile); })(), 0); return () => window.clearTimeout(timer); }, []);
-  async function resetPassword() { if (!firebaseAuth.currentUser?.email) return; await sendPasswordResetEmail(firebaseAuth, firebaseAuth.currentUser.email); toast("Password reset email sent.", "success"); }
-  return <main className="app-page"><div className="app-page-header"><Link href="/dashboard" className="back-link">← Dashboard</Link><p className="eyebrow">Account</p><h1>Settings</h1><p>Manage your account and sign-in preferences.</p></div><section className="settings-card"><div className="settings-row"><span><small>Display name</small><strong>{profile.name ?? "—"}</strong></span></div><div className="settings-row"><span><small>Linked email</small><strong>{profile.email ?? firebaseAuth.currentUser?.email ?? "—"}</strong></span></div><div className="settings-row"><span><small>Role</small><strong className="capitalize">{profile.role ?? "—"}</strong></span></div><div className="settings-actions"><button type="button" onClick={() => void resetPassword()} className="button-secondary">Send password reset</button><button type="button" onClick={() => void signOut(firebaseAuth)} className="button-secondary">Sign out</button></div></section></main>;
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        try {
+          const response = await fetch("/api/dashboard", { headers: await authHeaders() });
+          const result = await readApiResponse(response);
+          if (response.ok) setProfile((result.profile ?? {}) as typeof profile);
+        } catch {
+          // ignore
+        }
+      })();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  async function resetPassword() {
+    const email = profile.email ?? firebaseAuth.currentUser?.email;
+    if (!email) return;
+    setResetting(true);
+    try {
+      await sendPasswordResetEmail(firebaseAuth, email);
+      toast("Password reset email sent. Check your inbox.", "success");
+    } catch {
+      toast("Unable to send password reset email.", "error");
+    } finally {
+      setResetting(false);
+    }
+  }
+
+  const email = profile.email ?? firebaseAuth.currentUser?.email ?? "—";
+  const initials = profile.name ? profile.name.charAt(0).toUpperCase() : "U";
+
+  return (
+    <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+      {/* Back Link */}
+      <Link
+        href="/dashboard"
+        className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:text-white"
+      >
+        <ArrowLeft className="h-3.5 w-3.5" />
+        <span>Back to Dashboard</span>
+      </Link>
+
+      <div className="mt-4">
+        <div className="flex items-center gap-2 text-xs font-semibold text-[var(--accent)] uppercase tracking-wider">
+          <Sparkles className="h-3.5 w-3.5" />
+          <span>User Profile</span>
+        </div>
+        <h1 className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-3xl">
+          Account Settings
+        </h1>
+        <p className="mt-1 text-xs sm:text-sm text-[var(--text-secondary)]">
+          Manage your university profile, academic credentials, and security settings.
+        </p>
+      </div>
+
+      <section className="mt-8 card p-6 sm:p-8">
+        {/* Profile Card Header */}
+        <div className="flex items-center gap-4 pb-6 border-b border-[var(--border)]">
+          <div className="grid h-14 w-14 place-items-center rounded-2xl bg-[var(--surface-elevated)] border border-[var(--border)] text-xl font-bold text-[var(--accent)]">
+            {initials}
+          </div>
+          <div>
+            <h2 className="text-base font-bold text-white sm:text-lg">
+              {profile.name ?? "University Member"}
+            </h2>
+            <p className="text-xs text-[var(--text-secondary)]">
+              {email}
+            </p>
+          </div>
+        </div>
+
+        {/* Profile Details Rows */}
+        <div className="mt-6 divide-y divide-[var(--border)]">
+          <div className="flex items-center justify-between py-4">
+            <div className="flex items-center gap-3">
+              <User className="h-4 w-4 text-[var(--text-muted)]" />
+              <div>
+                <p className="text-xs font-medium text-[var(--text-secondary)]">Full Name</p>
+                <p className="text-sm font-semibold text-white mt-0.5">{profile.name ?? "—"}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between py-4">
+            <div className="flex items-center gap-3">
+              <Mail className="h-4 w-4 text-[var(--text-muted)]" />
+              <div>
+                <p className="text-xs font-medium text-[var(--text-secondary)]">Email Address</p>
+                <p className="text-sm font-semibold text-white mt-0.5">{email}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between py-4">
+            <div className="flex items-center gap-3">
+              <Shield className="h-4 w-4 text-[var(--text-muted)]" />
+              <div>
+                <p className="text-xs font-medium text-[var(--text-secondary)]">Assigned Role</p>
+                <p className="text-sm font-semibold text-white capitalize mt-0.5">{profile.role ?? "—"}</p>
+              </div>
+            </div>
+            <span className="badge-present text-xs capitalize">
+              {profile.role ?? "Student"}
+            </span>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="mt-8 pt-6 border-t border-[var(--border)] flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            disabled={resetting}
+            onClick={() => void resetPassword()}
+            className="button-secondary text-xs inline-flex items-center gap-2"
+          >
+            <KeyRound className="h-3.5 w-3.5" />
+            <span>{resetting ? "Sending reset email..." : "Send password reset"}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => void signOut(firebaseAuth)}
+            className="button-danger text-xs inline-flex items-center gap-2"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            <span>Sign out</span>
+          </button>
+        </div>
+      </section>
+    </main>
+  );
 }
+

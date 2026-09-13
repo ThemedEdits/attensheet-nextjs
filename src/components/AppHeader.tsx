@@ -1,0 +1,280 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import { 
+  Menu, 
+  X, 
+  LogOut, 
+  LayoutDashboard, 
+  BookOpen, 
+  Clock, 
+  CheckCircle2, 
+  FileSpreadsheet, 
+  Settings, 
+  UserCheck, 
+  ShieldCheck, 
+  GraduationCap, 
+  User,
+  type LucideIcon 
+} from "lucide-react";
+import { firebaseAuth } from "@/lib/firebase";
+import { authHeaders } from "@/lib/client-auth";
+import { readApiResponse } from "@/lib/client-response";
+
+type Role = "cr" | "teacher" | "student";
+
+const publicPaths = ["/", "/login", "/signup", "/complete-profile"];
+
+export function AppHeader() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const [profile, setProfile] = useState<{ name?: string; role?: Role; email?: string } | null>(null);
+  const [pending, setPending] = useState(0);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [prevPathname, setPrevPathname] = useState(pathname);
+
+  if (prevPathname !== pathname) {
+    setPrevPathname(pathname);
+    setMobileMenuOpen(false);
+  }
+
+  useEffect(() => {
+    if (publicPaths.includes(pathname)) return;
+
+    const unsubscribe = onAuthStateChanged(firebaseAuth, async (user) => {
+      if (!user) {
+        setProfile(null);
+        return;
+      }
+      try {
+        const response = await fetch("/api/dashboard", { headers: await authHeaders() });
+        const result = await readApiResponse(response);
+        const userProfile = result.profile as { name?: string; role?: Role; email?: string } | undefined;
+        setProfile(userProfile ?? null);
+
+        if (userProfile?.role === "cr") {
+          const requests = await fetch("/api/requests", { headers: await authHeaders() });
+          const requestData = await readApiResponse(requests);
+          setPending(Array.isArray(requestData.requests) ? requestData.requests.length : 0);
+        }
+      } catch {
+        setProfile(null);
+      }
+    });
+
+    return unsubscribe;
+  }, [pathname]);
+
+  if (publicPaths.includes(pathname) || !profile) return null;
+
+  const roleLabels: Record<Role, { title: string; icon: LucideIcon; color: string }> = {
+    cr: { title: "Class Rep", icon: ShieldCheck, color: "text-[var(--accent)] border-[var(--accent-soft)] bg-[var(--accent-soft)]" },
+    teacher: { title: "Teacher", icon: GraduationCap, color: "text-blue-400 border-blue-500/20 bg-blue-500/10" },
+    student: { title: "Student", icon: User, color: "text-emerald-400 border-emerald-500/20 bg-emerald-500/10" },
+  };
+
+  const currentRole = profile.role ? roleLabels[profile.role] : null;
+  const RoleIcon = currentRole?.icon ?? User;
+
+  const getNavLinks = () => {
+    if (profile.role === "student") {
+      return [
+        { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+        { label: "Subjects", href: "/subjects", icon: BookOpen },
+        { label: "Attendance History", href: "/subjects?view=history", icon: Clock },
+        { label: "Settings", href: "/settings", icon: Settings },
+      ];
+    }
+    return [
+      { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+      { label: "Subjects", href: "/subjects", icon: BookOpen },
+      { 
+        label: profile.role === "cr" ? "Requests" : "Attendance", 
+        href: profile.role === "cr" ? "/cr/requests" : "/attendance", 
+        icon: profile.role === "cr" ? UserCheck : CheckCircle2,
+        badge: profile.role === "cr" && pending > 0 ? pending : undefined
+      },
+      ...(profile.role === "cr" ? [{ label: "Google Sheets", href: "/google", icon: FileSpreadsheet }] : []),
+      { label: "Settings", href: "/settings", icon: Settings },
+    ];
+  };
+
+  const navLinks = getNavLinks();
+
+  return (
+    <>
+      <header className="sticky top-0 z-30 w-full border-b border-[var(--border)] bg-[#07110D]/85 backdrop-blur-xl transition-all">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+          {/* Left: Brand Identity */}
+          <div className="flex items-center gap-6">
+            <Link 
+              href="/dashboard" 
+              className="group flex items-center gap-2.5 font-semibold tracking-tight transition-transform active:scale-95"
+            >
+              <div className="grid h-8 w-8 place-items-center rounded-lg bg-[var(--primary)] text-sm font-black text-[#07110D] shadow-[0_0_12px_rgba(22,166,106,0.35)] transition-shadow group-hover:shadow-[0_0_18px_rgba(53,217,138,0.5)]">
+                A
+              </div>
+              <span className="text-base font-bold tracking-tight text-[var(--text-primary)]">
+                Atten<span className="text-[var(--accent)]">Sheet</span>
+              </span>
+            </Link>
+
+            {/* Quick divider */}
+            <div className="hidden h-4 w-px bg-[var(--border)] sm:block" />
+
+            {/* Role indicator pill */}
+            {currentRole && (
+              <div className={`hidden items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium sm:inline-flex ${currentRole.color}`}>
+                <RoleIcon className="h-3.5 w-3.5" />
+                <span>{currentRole.title}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Right: User Profile & Actions (Desktop) */}
+          <div className="hidden items-center gap-3 md:flex">
+            {profile.role === "cr" && pending > 0 && (
+              <Link 
+                href="/cr/requests"
+                className="flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-300 hover:bg-amber-500/20"
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-ping" />
+                <span>{pending} {pending === 1 ? "request" : "requests"}</span>
+              </Link>
+            )}
+
+            <div className="flex items-center gap-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5">
+              <div className="grid h-7 w-7 place-items-center rounded-lg bg-[var(--surface-elevated)] text-xs font-semibold text-[var(--accent)] border border-[var(--border)]">
+                {profile.name ? profile.name.charAt(0).toUpperCase() : "U"}
+              </div>
+              <div className="text-left">
+                <p className="text-xs font-medium text-[var(--text-primary)] leading-tight max-w-[140px] truncate">
+                  {profile.name ?? "User"}
+                </p>
+                <p className="text-[10px] text-[var(--text-muted)] capitalize leading-tight">
+                  {profile.role}
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => signOut(firebaseAuth)}
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] transition-all hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-400"
+              title="Sign out"
+              aria-label="Sign out"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </div>
+
+          {/* Mobile Hamburger Button */}
+          <div className="flex items-center gap-2 md:hidden">
+            {currentRole && (
+              <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium ${currentRole.color}`}>
+                {currentRole.title}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen((curr) => !curr)}
+              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+              className="grid h-10 w-10 place-items-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text-primary)] transition hover:bg-[var(--surface-hover)]"
+            >
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Mobile Slide-Out Drawer */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity" 
+            onClick={() => setMobileMenuOpen(false)} 
+          />
+
+          {/* Drawer Content */}
+          <div className="fixed inset-y-0 right-0 w-full max-w-xs border-l border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl flex flex-col justify-between">
+            <div>
+              {/* Drawer Top */}
+              <div className="flex items-center justify-between pb-6 border-b border-[var(--border)]">
+                <div className="flex items-center gap-3">
+                  <div className="grid h-9 w-9 place-items-center rounded-xl bg-[var(--surface-elevated)] text-sm font-bold text-[var(--accent)] border border-[var(--border)]">
+                    {profile.name ? profile.name.charAt(0).toUpperCase() : "U"}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-[var(--text-primary)] leading-snug">
+                      {profile.name ?? "User"}
+                    </p>
+                    <p className="text-xs text-[var(--text-muted)] capitalize leading-snug">
+                      {profile.role}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="rounded-lg p-2 text-[var(--text-muted)] hover:text-white"
+                  aria-label="Close menu"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              {/* Navigation Links */}
+              <nav className="mt-6 space-y-1.5" aria-label="Mobile Navigation">
+                {navLinks.map((link) => {
+                  const Icon = link.icon;
+                  const isActive = pathname === link.href.split("?")[0];
+                  return (
+                    <button
+                      key={link.label}
+                      type="button"
+                      onClick={() => {
+                        router.push(link.href);
+                        setMobileMenuOpen(false);
+                      }}
+                      className={`flex w-full items-center justify-between rounded-xl px-3.5 py-3 text-sm font-medium transition-all ${
+                        isActive 
+                          ? "bg-[var(--primary)] text-[#07110D] font-semibold" 
+                          : "text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-white"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Icon className="h-4 w-4" />
+                        <span>{link.label}</span>
+                      </div>
+                      {link.badge !== undefined && link.badge > 0 && (
+                        <span className="rounded-full bg-red-500 px-2 py-0.5 text-xs font-bold text-white">
+                          {link.badge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
+
+            {/* Drawer Bottom: Sign Out */}
+            <div className="pt-6 border-t border-[var(--border)]">
+              <button
+                type="button"
+                onClick={() => signOut(firebaseAuth)}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-300 transition hover:bg-red-500/20"
+              >
+                <LogOut className="h-4 w-4" />
+                <span>Sign out</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
