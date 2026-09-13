@@ -35,10 +35,15 @@ export async function GET(request: Request) {
     .filter((item) => item.studentUid === user.uid)
     .map((item) => ({ date: String(item.date), present: Boolean(item.present) })) ?? [];
   const members = memberSnap.docs.filter((item) => item.data().status === "approved").map((item) => ({ uid: item.data().uid, fullName: item.data().fullName, role: item.data().role }));
+  const subjects = await Promise.all(subjectSnap.docs.filter((item) => item.data().active === true).map(async (item) => {
+    const data = item.data();
+    const teacher = data.teacherUid ? await db.collection("users").doc(String(data.teacherUid)).get() : null;
+    return { id: item.id, ...data, teacherName: teacher?.data()?.name ?? null };
+  }));
   return NextResponse.json({
     profile,
     class: { id: classId, ...classData },
-    subjects: subjectSnap.docs.filter((item) => item.data().active === true).map((item) => ({ id: item.id, ...item.data() })),
+    subjects,
     members,
     memberCount: memberSnap.docs.filter((item) => item.data().status === "approved" && item.data().role === "student").length,
     attendance,

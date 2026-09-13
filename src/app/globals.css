@@ -25,3 +25,4 @@ a { text-decoration: none; }
 .toast-enter { animation: toast-in .28s ease-out both; }
 .toast-exit { animation: toast-out .28s ease-in both; }
 .toast-progress { animation: toast-progress 4.2s linear both; }
+@utility skeleton { @apply animate-pulse rounded-md bg-white/[0.08]; }

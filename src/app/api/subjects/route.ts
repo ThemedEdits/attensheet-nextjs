@@ -10,7 +10,12 @@ export async function GET(request: Request) {
   const member = await db.collection("memberships").doc(`${classId}_${user.uid}`).get();
   if (cls.data()?.crUid !== user.uid && (!member.exists || member.data()?.status !== "approved")) return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   const snap = await db.collection("subjects").where("classId", "==", classId).get();
-  return NextResponse.json({ subjects: snap.docs.filter((d) => d.data().active === true).map((d) => ({ id: d.id, ...d.data() })) });
+  const subjects = await Promise.all(snap.docs.filter((d) => d.data().active === true).map(async (d) => {
+    const data = d.data();
+    const teacher = data.teacherUid ? await db.collection("users").doc(String(data.teacherUid)).get() : null;
+    return { id: d.id, ...data, teacherName: teacher?.data()?.name ?? null };
+  }));
+  return NextResponse.json({ subjects });
 }
 export async function POST(request: Request) {
   const user = await authenticated(request); if (!user) return unauthorized();

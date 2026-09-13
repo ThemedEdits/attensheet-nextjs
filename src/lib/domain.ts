@@ -12,7 +12,7 @@ export interface ClassRecord {
   spreadsheetId?: string; createdAt: string; updatedAt: string;
 }
 export interface SubjectRecord {
-  id: string; classId: string; name: string; teacherUid?: string;
+  id: string; classId: string; name: string; teacherUid?: string; teacherName?: string;
   googleSheetTabId?: number; active: boolean; createdAt: string; updatedAt: string;
 }
 export interface MembershipRecord { id: string; classId: string; uid: string; role: Role; status: MembershipStatus; fullName?: string; fatherName?: string; seatNumber?: string; createdAt: string; updatedAt: string; }

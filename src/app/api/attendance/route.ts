@@ -11,21 +11,22 @@ async function context(request: Request) {
 }
 export async function GET(request: Request) {
   const user = await authenticated(request); if (!user) return unauthorized();
-  const url = new URL(request.url); const classId = url.searchParams.get("classId"); const subjectId = url.searchParams.get("subjectId"); const date = url.searchParams.get("date");
+  const url = new URL(request.url); const classId = url.searchParams.get("classId"); const subjectId = url.searchParams.get("subjectId"); const date = url.searchParams.get("date"); const allDates = url.searchParams.get("all") === "true";
   if (!classId || !subjectId) return NextResponse.json({ error: "classId and subjectId are required." }, { status: 400 });
   const db = getAdminDb(); const membership = await db.collection("memberships").doc(`${classId}_${user.uid}`).get(); const cls = await db.collection("classes").doc(classId).get();
   if ((!membership.exists || membership.data()?.status !== "approved") && cls.data()?.crUid !== user.uid) return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   let query = db.collection("attendance").where("classId", "==", classId).where("subjectId", "==", subjectId);
-  if (date) query = query.where("date", "==", date) as typeof query;
+  if (date && !allDates) query = query.where("date", "==", date) as typeof query;
   const snap = await query.get();
   const students = await db.collection("memberships").where("classId", "==", classId).where("role", "==", "student").where("status", "==", "approved").get();
-  return NextResponse.json({ attendance: snap.docs.map((d) => ({ id: d.id, ...d.data() })), students: students.docs.map((d) => ({ uid: d.data().uid, fullName: d.data().fullName, seatNumber: d.data().seatNumber })), canEdit: cls.data()?.crUid === user.uid || (membership.data()?.role === "teacher" && (await db.collection("subjects").doc(subjectId).get()).data()?.teacherUid === user.uid) });
+  const subjectData = (await db.collection("subjects").doc(subjectId).get()).data() ?? {};
+  return NextResponse.json({ attendance: snap.docs.map((d) => ({ id: d.id, ...d.data() })), students: students.docs.map((d) => ({ uid: d.data().uid, fullName: d.data().fullName, fatherName: d.data().fatherName, seatNumber: d.data().seatNumber })), subject: { id: subjectId, name: subjectData.name }, class: cls.data(), canEdit: cls.data()?.crUid === user.uid || (membership.data()?.role === "teacher" && subjectData.teacherUid === user.uid) });
 }
 export async function POST(request: Request) {
   const result = await context(request); if (!result) return unauthorized();
   const { user, body, db } = result; const { classId, subjectId, date, records } = body;
   if (!classId || !subjectId || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !Array.isArray(records)) return NextResponse.json({ error: "Invalid attendance payload." }, { status: 400 });
-  if (attendanceDateIsLocked(date)) return NextResponse.json({ error: "Historical attendance is locked." }, { status: 409 });
+  if (date !== karachiDate()) return NextResponse.json({ error: attendanceDateIsLocked(date) ? "Historical attendance is locked permanently." : "Attendance can only be marked for today." }, { status: 409 });
   const cls = await db.collection("classes").doc(classId).get(); const subject = await db.collection("subjects").doc(subjectId).get();
   const member = await db.collection("memberships").doc(`${classId}_${user.uid}`).get();
   if (cls.data()?.crUid !== user.uid && (!member.exists || member.data()?.role !== "teacher" || subject.data()?.teacherUid !== user.uid)) return NextResponse.json({ error: "Only the assigned teacher can mark attendance." }, { status: 403 });
