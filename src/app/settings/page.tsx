@@ -11,22 +11,28 @@ import { ArrowLeft, User, Mail, Shield, KeyRound, LogOut, Sparkles } from "lucid
 
 export default function SettingsPage() {
   const [profile, setProfile] = useState<{ name?: string; email?: string; role?: string }>({});
+  const [loading, setLoading] = useState(true);
   const [resetting, setResetting] = useState(false);
   const toast = useToast();
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      void (async () => {
-        try {
-          const response = await fetch("/api/dashboard", { headers: await authHeaders() });
-          const result = await readApiResponse(response);
-          if (response.ok) setProfile((result.profile ?? {}) as typeof profile);
-        } catch {
-          // ignore
+    let mounted = true;
+    void (async () => {
+      try {
+        const response = await fetch("/api/dashboard", { headers: await authHeaders() });
+        const result = await readApiResponse(response);
+        if (response.ok && mounted) {
+          setProfile((result.profile ?? {}) as typeof profile);
         }
-      })();
-    }, 0);
-    return () => window.clearTimeout(timer);
+      } catch {
+        // ignore
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   async function resetPassword() {
@@ -41,6 +47,56 @@ export default function SettingsPage() {
     } finally {
       setResetting(false);
     }
+  }
+
+  if (loading) {
+    return (
+      <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+        {/* Back Link Skeleton */}
+        <div className="skeleton h-4 w-32 rounded-md" />
+
+        {/* Header Skeleton */}
+        <div className="mt-4 space-y-2">
+          <div className="skeleton h-4 w-24 rounded-full" />
+          <div className="skeleton h-8 w-56 rounded-xl" />
+          <div className="skeleton h-4 w-72 sm:w-96 rounded-md" />
+        </div>
+
+        {/* Profile Card Skeleton */}
+        <section className="mt-8 card p-6 sm:p-8">
+          {/* Profile Card Header Skeleton */}
+          <div className="flex items-center gap-4 pb-6 border-b border-[var(--border)]">
+            <div className="skeleton h-14 w-14 rounded-2xl" />
+            <div className="space-y-2">
+              <div className="skeleton h-5 w-40 rounded-md" />
+              <div className="skeleton h-3.5 w-48 rounded-md" />
+            </div>
+          </div>
+
+          {/* Profile Details Rows Skeleton */}
+          <div className="mt-6 divide-y divide-[var(--border)]">
+            {[1, 2, 3].map((row) => (
+              <div key={row} className="flex items-center justify-between py-4">
+                <div className="flex items-center gap-3">
+                  <div className="skeleton h-4 w-4 rounded" />
+                  <div className="space-y-1.5">
+                    <div className="skeleton h-3 w-16 rounded" />
+                    <div className="skeleton h-4 w-36 rounded-md" />
+                  </div>
+                </div>
+                {row === 3 && <div className="skeleton h-6 w-20 rounded-full" />}
+              </div>
+            ))}
+          </div>
+
+          {/* Actions Skeleton */}
+          <div className="mt-8 pt-6 border-t border-[var(--border)] flex flex-wrap items-center gap-3">
+            <div className="skeleton h-9 w-40 rounded-xl" />
+            <div className="skeleton h-9 w-28 rounded-xl" />
+          </div>
+        </section>
+      </main>
+    );
   }
 
   const email = profile.email ?? firebaseAuth.currentUser?.email ?? "Not available";
