@@ -59,7 +59,22 @@ export default function SubjectsPage() {
       {loading ? (
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3].map((item) => (
-            <div key={item} className="skeleton h-36" />
+            <div key={item} className="card p-6 flex flex-col justify-between h-[184px]">
+              <div>
+                <div className="flex items-start justify-between">
+                  <div className="skeleton h-11 w-11 rounded-xl" />
+                  <div className="skeleton h-5 w-14 rounded-full" />
+                </div>
+                <div className="mt-5 space-y-2">
+                  <div className="skeleton h-5 w-36 rounded-md" />
+                  <div className="skeleton h-3.5 w-44 rounded-md" />
+                </div>
+              </div>
+              <div className="mt-6 pt-3.5 border-t border-[var(--border)] flex items-center justify-between">
+                <div className="skeleton h-4 w-32 rounded-md" />
+                <div className="skeleton h-4 w-4 rounded-md" />
+              </div>
+            </div>
           ))}
         </div>
       ) : (

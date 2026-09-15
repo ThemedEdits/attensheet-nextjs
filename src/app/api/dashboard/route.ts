@@ -35,8 +35,26 @@ export async function GET(request: Request) {
       .map((item) => item.data())
       .filter((item) => item.studentUid === user.uid)
       .map((item) => ({ date: String(item.date), present: Boolean(item.present) })) ?? [];
-    const members = memberSnap.docs.filter((item) => item.data().status === "approved").map((item) => ({ uid: item.data().uid, fullName: item.data().fullName, role: item.data().role }));
-    const subjects = await Promise.all(subjectSnap.docs.filter((item) => item.data().active === true).map(async (item) => {
+    const members = await Promise.all(
+      memberSnap.docs
+        .filter((item) => item.data().status === "approved")
+        .map(async (item) => {
+          const d = item.data();
+          let fullName = d.fullName;
+          if (!fullName) {
+            const u = await db.collection("users").doc(d.uid).get();
+            fullName = u.data()?.name ?? u.data()?.email ?? d.uid;
+          }
+          return { uid: d.uid, fullName, role: d.role };
+        })
+    );
+
+    let subjectDocs = subjectSnap.docs.filter((item) => item.data().active === true);
+    if (profile.role === "teacher") {
+      subjectDocs = subjectDocs.filter((item) => item.data().teacherUid === user.uid);
+    }
+
+    const subjects = await Promise.all(subjectDocs.map(async (item) => {
       const data = item.data();
       const teacher = data.teacherUid ? await db.collection("users").doc(String(data.teacherUid)).get() : null;
       return { id: item.id, ...data, teacherName: teacher?.data()?.name ?? null };

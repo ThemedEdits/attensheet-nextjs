@@ -10,7 +10,11 @@ export async function GET(request: Request) {
   const member = await db.collection("memberships").doc(`${classId}_${user.uid}`).get();
   if (cls.data()?.crUid !== user.uid && (!member.exists || member.data()?.status !== "approved")) return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   const snap = await db.collection("subjects").where("classId", "==", classId).get();
-  const subjects = await Promise.all(snap.docs.filter((d) => d.data().active === true).map(async (d) => {
+  let subjectDocs = snap.docs.filter((d) => d.data().active === true);
+  if (cls.data()?.crUid !== user.uid && member.data()?.role === "teacher") {
+    subjectDocs = subjectDocs.filter((d) => d.data().teacherUid === user.uid);
+  }
+  const subjects = await Promise.all(subjectDocs.map(async (d) => {
     const data = d.data();
     const teacher = data.teacherUid ? await db.collection("users").doc(String(data.teacherUid)).get() : null;
     return { id: d.id, ...data, teacherName: teacher?.data()?.name ?? null };

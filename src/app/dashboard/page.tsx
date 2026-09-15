@@ -194,26 +194,72 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between">
+        {/* Header Skeleton */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-2">
-            <div className="skeleton h-4 w-32" />
-            <div className="skeleton h-8 w-64" />
+            <div className="skeleton h-4 w-36 rounded-full" />
+            <div className="skeleton h-8 w-64 rounded-xl" />
+            <div className="skeleton h-4 w-72 rounded-md" />
           </div>
-          <div className="skeleton h-10 w-36" />
-        </div>
-        <div className="mt-8 grid gap-4 sm:grid-cols-3">
-          <div className="skeleton h-28" />
-          <div className="skeleton h-28" />
-          <div className="skeleton h-28" />
-        </div>
-        <div className="mt-10 space-y-4">
-          <div className="skeleton h-6 w-40" />
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <div className="skeleton h-36" />
-            <div className="skeleton h-36" />
-            <div className="skeleton h-36" />
+          <div className="flex gap-2.5">
+            <div className="skeleton h-9 w-28 rounded-xl" />
+            <div className="skeleton h-9 w-24 rounded-xl" />
           </div>
         </div>
+
+        {/* 3 KPI Stat Cards Skeleton */}
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3].map((item) => (
+            <div key={item} className="card p-5 flex flex-col justify-between h-[126px]">
+              <div className="flex items-start justify-between">
+                <div className="skeleton h-10 w-10 rounded-xl" />
+                <div className="skeleton h-4 w-28 rounded-md" />
+              </div>
+              <div className="space-y-1">
+                <div className="skeleton h-8 w-16 rounded-lg" />
+                <div className="skeleton h-3.5 w-32 rounded-md" />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Subjects Section Skeleton */}
+        <section className="mt-10">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1.5">
+              <div className="skeleton h-6 w-44 rounded-lg" />
+              <div className="skeleton h-4 w-72 rounded-md" />
+            </div>
+            <div className="flex gap-2">
+              <div className="skeleton h-8 w-32 rounded-xl" />
+              <div className="skeleton h-8 w-44 rounded-xl" />
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3].map((item) => (
+              <div key={item} className="card p-5 flex flex-col justify-between h-[190px]">
+                <div>
+                  <div className="flex items-start justify-between">
+                    <div className="skeleton h-10 w-10 rounded-xl" />
+                    <div className="skeleton h-5 w-20 rounded-full" />
+                  </div>
+                  <div className="mt-4 space-y-2">
+                    <div className="skeleton h-5 w-36 rounded-md" />
+                    <div className="skeleton h-3.5 w-48 rounded-md" />
+                  </div>
+                </div>
+                <div className="mt-5 pt-3 border-t border-[var(--border)] flex items-center justify-between">
+                  <div className="skeleton h-4 w-28 rounded-md" />
+                  <div className="flex gap-1.5">
+                    <div className="skeleton h-7 w-7 rounded-lg" />
+                    <div className="skeleton h-7 w-7 rounded-lg" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
       </main>
     );
   }
@@ -495,6 +541,17 @@ export default function DashboardPage() {
 
                         {(profile?.role === "cr" || isAssignedToCurrentTeacher) && (
                           <div className="flex items-center gap-1.5">
+                            {classRecord?.spreadsheetId && (
+                              <a
+                                target="_blank"
+                                rel="noreferrer"
+                                href={`https://docs.google.com/spreadsheets/d/${classRecord.spreadsheetId}/edit#gid=${subject.googleSheetTabId ?? 0}`}
+                                className="rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--accent)] transition-colors"
+                                title="Open subject Google Sheet tab"
+                              >
+                                <FileSpreadsheet className="h-3.5 w-3.5" />
+                              </a>
+                            )}
                             <button
                               type="button"
                               onClick={() => {
@@ -522,12 +579,14 @@ export default function DashboardPage() {
                   );
                 })
               ) : (
-                <div className="sm:col-span-2 lg:col-span-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-8 text-center">
-                  <BookOpen className="mx-auto h-8 w-8 text-[var(--text-muted)]" />
-                  <p className="mt-3 text-sm font-semibold text-white">No subjects added yet</p>
+                <div className="col-span-full rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface)] p-8 text-center sm:p-12">
+                  <div className="mx-auto grid h-10 w-10 place-items-center rounded-xl bg-[var(--surface-elevated)] border border-[var(--border)] text-[var(--text-muted)]">
+                    <BookOpen className="h-5 w-5" />
+                  </div>
+                  <h3 className="mt-3 text-sm font-semibold text-white">No subjects added yet</h3>
                   <p className="mt-1 text-xs text-[var(--text-secondary)]">
                     {profile?.role === "cr"
-                      ? "Add your first subject using the input above to begin tracking attendance."
+                      ? "Create your first subject above to generate an attendance ledger in Google Sheets."
                       : "Your Class Representative has not created any subjects for this semester yet."}
                   </p>
                 </div>
@@ -565,9 +624,21 @@ export default function DashboardPage() {
               <CustomSelect
                 value={editTeacherUid}
                 placeholder="Select a teacher"
-                options={members
-                  .filter((member) => member.role === "teacher")
-                  .map((member) => ({ value: member.uid, label: member.fullName ?? member.uid }))}
+                options={[
+                  { value: "", label: "No Teacher Assigned" },
+                  ...members
+                    .filter((member) => member.role === "teacher")
+                    .map((member) => ({
+                      value: member.uid,
+                      label: member.fullName ? `Prof. ${member.fullName}` : `Teacher (${member.uid.substring(0, 6)}...)`,
+                    })),
+                  ...(editingSubject.teacherUid && !members.some((m) => m.uid === editingSubject.teacherUid)
+                    ? [{
+                        value: editingSubject.teacherUid,
+                        label: editingSubject.teacherName ? `Prof. ${editingSubject.teacherName}` : "Assigned Teacher",
+                      }]
+                    : []),
+                ]}
                 onChange={setEditTeacherUid}
               />
             </div>

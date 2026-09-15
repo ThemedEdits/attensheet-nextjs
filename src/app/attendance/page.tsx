@@ -46,13 +46,43 @@ function AttendanceContent() {
   const [authReady, setAuthReady] = useState(false);
   const toast = useToast();
   const params = useSearchParams();
-  const classId = params.get("classId");
-  const subjectId = params.get("subjectId");
+  const rawClassId = params.get("classId");
+  const rawSubjectId = params.get("subjectId");
+  const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null);
+  const classId = rawClassId || selectedClassId;
+  const subjectId = rawSubjectId || selectedSubjectId;
+  const [availableSubjects, setAvailableSubjects] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    if (!authReady) return;
+    if (classId && subjectId) return;
+
+    void (async () => {
+      try {
+        const response = await fetch("/api/dashboard", { headers: await authHeaders() });
+        const result = await readApiResponse(response);
+        if (response.ok && result.class) {
+          const cls = result.class as { id: string };
+          const subs = (result.subjects ?? []) as { id: string; name: string }[];
+          setAvailableSubjects(subs);
+          if (!classId) setSelectedClassId(cls.id);
+          if (!subjectId && subs.length > 0) {
+            setSelectedSubjectId(subs[0].id);
+          } else if (subs.length === 0) {
+            setMessage("No active subjects found. Ask your Class Representative to add or assign subjects.");
+            setLoading(false);
+          }
+        }
+      } catch (err) {
+        setMessage(err instanceof Error ? err.message : "Unable to load subjects.");
+        setLoading(false);
+      }
+    })();
+  }, [authReady, classId, subjectId]);
 
   const load = useCallback(async () => {
     if (!classId || !subjectId) {
-      setMessage("Choose a subject from your dashboard first.");
-      setLoading(false);
       return;
     }
     setLoading(true);
@@ -91,10 +121,10 @@ function AttendanceContent() {
   }, []);
 
   useEffect(() => {
-    if (!authReady) return;
+    if (!authReady || !classId || !subjectId) return;
     const timer = window.setTimeout(() => void load(), 0);
     return () => window.clearTimeout(timer);
-  }, [authReady, load]);
+  }, [authReady, classId, subjectId, load]);
 
   const filteredStudents = useMemo(() => {
     const needle = search.trim().toLowerCase();
@@ -212,8 +242,23 @@ function AttendanceContent() {
           </p>
         </div>
 
-        {/* Filters: Search & Date Picker */}
+        {/* Filters: Search & Date Picker & Subject Switcher */}
         <div className="flex flex-wrap items-center gap-2.5">
+          {availableSubjects.length > 1 && (
+            <select
+              value={subjectId ?? ""}
+              onChange={(e) => setSelectedSubjectId(e.target.value)}
+              className="field py-2 px-3 text-xs w-auto max-w-[180px] cursor-pointer"
+              title="Switch subject"
+            >
+              {availableSubjects.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          )}
+
           {/* Search Box */}
           <div className="relative flex-1 sm:w-60">
             <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--text-muted)]" />
@@ -332,8 +377,17 @@ function AttendanceContent() {
               {loading ? (
                 Array.from({ length: 6 }, (_, index) => (
                   <tr key={index}>
-                    <td colSpan={4} className="px-6 py-4">
-                      <div className="skeleton h-5 w-full" />
+                    <td className="px-6 py-4">
+                      <div className="skeleton h-5 w-20 rounded-md" />
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="skeleton h-4 w-24 rounded-md" />
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="skeleton h-4 w-40 rounded-md" />
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="skeleton h-4 w-32 rounded-md" />
                     </td>
                   </tr>
                 ))
@@ -392,9 +446,15 @@ function AttendanceContent() {
         <div className="block md:hidden divide-y divide-[var(--border)]">
           {loading ? (
             Array.from({ length: 5 }, (_, index) => (
-              <div key={index} className="p-4 space-y-2">
-                <div className="skeleton h-5 w-1/2" />
-                <div className="skeleton h-4 w-3/4" />
+              <div key={index} className="p-4 flex items-center justify-between gap-3">
+                <div className="space-y-1.5 flex-1">
+                  <div className="flex items-center gap-2">
+                    <div className="skeleton h-5 w-16 rounded" />
+                    <div className="skeleton h-4 w-32 rounded" />
+                  </div>
+                  <div className="skeleton h-3 w-24 rounded" />
+                </div>
+                <div className="skeleton h-9 w-24 rounded-xl" />
               </div>
             ))
           ) : filteredStudents.length ? (

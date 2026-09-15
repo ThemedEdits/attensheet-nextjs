@@ -57,19 +57,19 @@ export function AppBottomNav() {
         { label: "Settings", href: "/settings", icon: Settings },
       ];
     }
+    if (role === "teacher") {
+      return [
+        { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+        { label: "Subjects", href: "/subjects", icon: BookOpen },
+        { label: "Attendance", href: "/attendance", icon: CheckCircle2 },
+        { label: "Settings", href: "/settings", icon: Settings },
+      ];
+    }
     return [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
       { label: "Subjects", href: "/subjects", icon: BookOpen },
-      { 
-        label: role === "cr" ? "Requests" : "Attendance", 
-        href: role === "cr" ? "/cr/requests" : "/attendance", 
-        icon: role === "cr" ? UserCheck : CheckCircle2 
-      },
-      { 
-        label: role === "cr" ? "Sheets" : "Attendance", 
-        href: role === "cr" ? "/google" : "/attendance", 
-        icon: role === "cr" ? FileSpreadsheet : CheckCircle2 
-      },
+      { label: "Requests", href: "/cr/requests", icon: UserCheck },
+      { label: "Sheets", href: "/google", icon: FileSpreadsheet },
       { label: "Settings", href: "/settings", icon: Settings },
     ];
   }, [role]);
