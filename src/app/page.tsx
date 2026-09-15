@@ -41,9 +41,11 @@ export default function Home() {
       {/* Top Navbar */}
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-6 lg:px-8">
         <Link href="/" className="group flex items-center gap-2.5 font-bold tracking-tight">
-          <div className="grid h-9 w-9 place-items-center rounded-xl bg-[var(--primary)] text-sm font-black text-[#07110D] shadow-[0_0_16px_rgba(22,166,106,0.35)] transition group-hover:shadow-[0_0_24px_rgba(53,217,138,0.5)]">
-            A
-          </div>
+          <img 
+            src="/attensheetlogo.svg" 
+            alt="AttenSheet" 
+            className="h-9 w-auto object-contain" 
+          />
           <span className="text-lg text-white">
             Atten<span className="text-[var(--accent)]">Sheet</span>
           </span>

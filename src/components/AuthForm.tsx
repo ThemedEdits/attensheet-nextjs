@@ -170,9 +170,11 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
           <span>Back to home</span>
         </Link>
         <div className="flex items-center gap-1.5 font-bold tracking-tight text-sm">
-          <span className="grid h-6 w-6 place-items-center rounded bg-[var(--primary)] text-xs font-black text-[#07110D]">
-            A
-          </span>
+          <img 
+            src="/attensheetlogo.svg" 
+            alt="AttenSheet" 
+            className="h-6 w-auto object-contain" 
+          />
           <span className="text-[var(--text-primary)]">
             Atten<span className="text-[var(--accent)]">Sheet</span>
           </span>

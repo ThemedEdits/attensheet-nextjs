@@ -80,9 +80,11 @@ export default function CompleteProfilePage() {
     <main className="grid min-h-screen place-items-center px-4 py-12 sm:px-6">
       <div className="w-full max-w-2xl rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 sm:p-10 shadow-2xl shadow-black/50">
         <div className="flex items-center gap-2">
-          <div className="grid h-7 w-7 place-items-center rounded bg-[var(--primary)] text-xs font-black text-[#07110D]">
-            A
-          </div>
+          <img 
+            src="/attensheetlogo.svg" 
+            alt="AttenSheet" 
+            className="h-7 w-auto object-contain" 
+          />
           <span className="text-xs font-bold tracking-wider text-[var(--accent)] uppercase">
             AttenSheet Onboarding
           </span>

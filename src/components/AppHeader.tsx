@@ -114,9 +114,11 @@ export function AppHeader() {
               href="/dashboard" 
               className="group flex items-center gap-2.5 font-semibold tracking-tight transition-transform active:scale-95"
             >
-              <div className="grid h-8 w-8 place-items-center rounded-lg bg-[var(--primary)] text-sm font-black text-[#07110D] shadow-[0_0_12px_rgba(22,166,106,0.35)] transition-shadow group-hover:shadow-[0_0_18px_rgba(53,217,138,0.5)]">
-                A
-              </div>
+              <img 
+                src="/attensheetlogo.svg" 
+                alt="AttenSheet" 
+                className="h-8 w-auto object-contain" 
+              />
               <span className="text-base font-bold tracking-tight text-[var(--text-primary)]">
                 Atten<span className="text-[var(--accent)]">Sheet</span>
               </span>
@@ -191,90 +193,100 @@ export function AppHeader() {
       </header>
 
       {/* Mobile Slide-Out Drawer */}
-      {mobileMenuOpen && (
-        <div className="fixed inset-0 z-50 md:hidden">
-          {/* Backdrop */}
-          <div 
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity" 
-            onClick={() => setMobileMenuOpen(false)} 
-          />
+      <div 
+        className={`fixed inset-0 z-50 transition-all duration-300 md:hidden ${
+          mobileMenuOpen ? "pointer-events-auto visible" : "pointer-events-none invisible"
+        }`}
+      >
+        {/* Backdrop */}
+        <div 
+          className={`fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity duration-300 ease-out ${
+            mobileMenuOpen ? "opacity-100" : "opacity-0"
+          }`} 
+          onClick={() => setMobileMenuOpen(false)} 
+          aria-hidden={!mobileMenuOpen}
+        />
 
-          {/* Drawer Content */}
-          <div className="fixed inset-y-0 right-0 w-full max-w-xs border-l border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl flex flex-col justify-between">
-            <div>
-              {/* Drawer Top */}
-              <div className="flex items-center justify-between pb-6 border-b border-[var(--border)]">
-                <div className="flex items-center gap-3">
-                  <div className="grid h-9 w-9 place-items-center rounded-xl bg-[var(--surface-elevated)] text-sm font-bold text-[var(--accent)] border border-[var(--border)]">
-                    {profile.name ? profile.name.charAt(0).toUpperCase() : "U"}
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-[var(--text-primary)] leading-snug">
-                      {profile.name ?? "User"}
-                    </p>
-                    <p className="text-xs text-[var(--text-muted)] capitalize leading-snug">
-                      {profile.role}
-                    </p>
-                  </div>
+        {/* Drawer Content */}
+        <div 
+          className={`fixed inset-y-0 right-0 w-full max-w-xs border-l border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl flex flex-col justify-between transition-transform duration-300 ease-out ${
+            mobileMenuOpen ? "translate-x-0" : "translate-x-full"
+          }`}
+          aria-hidden={!mobileMenuOpen}
+        >
+          <div>
+            {/* Drawer Top */}
+            <div className="flex items-center justify-between pb-6 border-b border-[var(--border)]">
+              <div className="flex items-center gap-3">
+                <div className="grid h-9 w-9 place-items-center rounded-xl bg-[var(--surface-elevated)] text-sm font-bold text-[var(--accent)] border border-[var(--border)]">
+                  {profile.name ? profile.name.charAt(0).toUpperCase() : "U"}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="rounded-lg p-2 text-[var(--text-muted)] hover:text-white"
-                  aria-label="Close menu"
-                >
-                  <X className="h-5 w-5" />
-                </button>
+                <div>
+                  <p className="text-sm font-semibold text-[var(--text-primary)] leading-snug">
+                    {profile.name ?? "User"}
+                  </p>
+                  <p className="text-xs text-[var(--text-muted)] capitalize leading-snug">
+                    {profile.role}
+                  </p>
+                </div>
               </div>
-
-              {/* Navigation Links */}
-              <nav className="mt-6 space-y-1.5" aria-label="Mobile Navigation">
-                {navLinks.map((link) => {
-                  const Icon = link.icon;
-                  const isActive = pathname === link.href.split("?")[0];
-                  return (
-                    <button
-                      key={link.label}
-                      type="button"
-                      onClick={() => {
-                        router.push(link.href);
-                        setMobileMenuOpen(false);
-                      }}
-                      className={`flex w-full items-center justify-between rounded-xl px-3.5 py-3 text-sm font-medium transition-all ${
-                        isActive 
-                          ? "bg-[var(--primary)] text-[#07110D] font-semibold" 
-                          : "text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-white"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <Icon className="h-4 w-4" />
-                        <span>{link.label}</span>
-                      </div>
-                      {link.badge !== undefined && link.badge > 0 && (
-                        <span className="rounded-full bg-red-500 px-2 py-0.5 text-xs font-bold text-white">
-                          {link.badge}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </nav>
-            </div>
-
-            {/* Drawer Bottom: Sign Out */}
-            <div className="pt-6 border-t border-[var(--border)]">
               <button
                 type="button"
-                onClick={() => signOut(firebaseAuth)}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-300 transition hover:bg-red-500/20"
+                onClick={() => setMobileMenuOpen(false)}
+                className="rounded-lg p-2 text-[var(--text-muted)] hover:text-white"
+                aria-label="Close menu"
               >
-                <LogOut className="h-4 w-4" />
-                <span>Sign out</span>
+                <X className="h-5 w-5" />
               </button>
             </div>
+
+            {/* Navigation Links */}
+            <nav className="mt-6 space-y-1.5" aria-label="Mobile Navigation">
+              {navLinks.map((link) => {
+                const Icon = link.icon;
+                const isActive = pathname === link.href.split("?")[0];
+                return (
+                  <button
+                    key={link.label}
+                    type="button"
+                    onClick={() => {
+                      router.push(link.href);
+                      setMobileMenuOpen(false);
+                    }}
+                    className={`flex w-full items-center justify-between rounded-xl px-3.5 py-3 text-sm font-medium transition-all ${
+                      isActive 
+                        ? "bg-[var(--primary)] text-[#07110D] font-semibold" 
+                        : "text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-white"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icon className="h-4 w-4" />
+                      <span>{link.label}</span>
+                    </div>
+                    {link.badge !== undefined && link.badge > 0 && (
+                      <span className="rounded-full bg-red-500 px-2 py-0.5 text-xs font-bold text-white">
+                        {link.badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+
+          {/* Drawer Bottom: Sign Out */}
+          <div className="pt-6 border-t border-[var(--border)]">
+            <button
+              type="button"
+              onClick={() => signOut(firebaseAuth)}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-300 transition hover:bg-red-500/20"
+            >
+              <LogOut className="h-4 w-4" />
+              <span>Sign out</span>
+            </button>
           </div>
         </div>
-      )}
+      </div>
     </>
   );
 }
