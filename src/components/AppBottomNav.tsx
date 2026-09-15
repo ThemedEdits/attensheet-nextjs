@@ -97,7 +97,7 @@ export function AppBottomNav() {
               <span className="bottom-nav-icon">
                 <Icon className="h-4 w-4 stroke-[2.2]" />
               </span>
-              <span>{tab.label}</span>
+              <span className="bottom-nav-label">{tab.label}</span>
               {tab.label === "Requests" && pending > 0 && (
                 <b className="bottom-nav-badge">{pending > 9 ? "9+" : pending}</b>
               )}

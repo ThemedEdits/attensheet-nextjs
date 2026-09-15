@@ -346,3 +346,18 @@ body {
     scroll-behavior: auto !important;
   }
 }
+@media (max-width: 640px) {
+  .bottom-nav-label {
+    display: none;
+  }
+
+  .bottom-nav-item {
+    gap: 0;
+    padding: 0.65rem 0.25rem;
+  }
+
+  .bottom-nav-icon {
+    width: 2.35rem;
+    height: 2.35rem;
+  }
+}
