@@ -31,10 +31,16 @@ export async function GET(request: Request) {
       db.collection("memberships").where("classId", "==", classId).limit(500).get(),
       profile.role === "student" ? db.collection("attendance").where("classId", "==", classId).limit(1000).get() : Promise.resolve(null),
     ]);
+    const subjectMap = Object.fromEntries(subjectSnap.docs.map((s) => [s.id, s.data().name]));
     const attendance = attendanceSnap?.docs
       .map((item) => item.data())
       .filter((item) => item.studentUid === user.uid)
-      .map((item) => ({ date: String(item.date), present: Boolean(item.present) })) ?? [];
+      .map((item) => ({
+        date: String(item.date),
+        subjectId: String(item.subjectId),
+        subjectName: subjectMap[String(item.subjectId)] ?? "Subject",
+        present: Boolean(item.present),
+      })) ?? [];
     const members = await Promise.all(
       memberSnap.docs
         .filter((item) => item.data().status === "approved")

@@ -11,10 +11,80 @@ async function context(request: Request) {
 }
 export async function GET(request: Request) {
   const user = await authenticated(request); if (!user) return unauthorized();
-  const url = new URL(request.url); const classId = url.searchParams.get("classId"); const subjectId = url.searchParams.get("subjectId"); const date = url.searchParams.get("date"); const allDates = url.searchParams.get("all") === "true";
-  if (!classId || !subjectId) return NextResponse.json({ error: "classId and subjectId are required." }, { status: 400 });
-  const db = getAdminDb(); const membership = await db.collection("memberships").doc(`${classId}_${user.uid}`).get(); const cls = await db.collection("classes").doc(classId).get();
-  if ((!membership.exists || membership.data()?.status !== "approved") && cls.data()?.crUid !== user.uid) return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+  const url = new URL(request.url); 
+  const rawClassId = url.searchParams.get("classId"); 
+  const subjectId = url.searchParams.get("subjectId"); 
+  const date = url.searchParams.get("date"); 
+  const allDates = url.searchParams.get("all") === "true";
+  const db = getAdminDb();
+
+  let classId = rawClassId;
+  if (!classId) {
+    const memberships = await db.collection("memberships").where("uid", "==", user.uid).where("status", "==", "approved").limit(1).get();
+    if (!memberships.empty) {
+      classId = String(memberships.docs[0].data().classId);
+    }
+  }
+  if (!classId) return NextResponse.json({ error: "classId is required." }, { status: 400 });
+
+  const membership = await db.collection("memberships").doc(`${classId}_${user.uid}`).get();
+  const cls = await db.collection("classes").doc(classId).get();
+  if ((!membership.exists || membership.data()?.status !== "approved") && cls.data()?.crUid !== user.uid) {
+    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+  }
+
+  // If user is a student: return ONLY their personal attendance records
+  if (membership.data()?.role === "student") {
+    let query = db.collection("attendance").where("classId", "==", classId).where("studentUid", "==", user.uid);
+    if (subjectId) {
+      query = query.where("subjectId", "==", subjectId);
+    }
+    if (date && !allDates) {
+      query = query.where("date", "==", date);
+    }
+
+    const [snap, subjectsSnap] = await Promise.all([
+      query.get(),
+      db.collection("subjects").where("classId", "==", classId).get(),
+    ]);
+
+    const activeSubjects = subjectsSnap.docs.filter((s) => s.data().active !== false);
+    const subjectMap = Object.fromEntries(subjectsSnap.docs.map((s) => [s.id, { id: s.id, name: s.data().name }]));
+
+    const attendanceRecords = snap.docs.map((d) => {
+      const data = d.data();
+      return {
+        id: d.id,
+        date: String(data.date),
+        subjectId: String(data.subjectId),
+        subjectName: subjectMap[String(data.subjectId)]?.name ?? "Subject",
+        present: Boolean(data.present),
+      };
+    });
+
+    const total = attendanceRecords.length;
+    const present = attendanceRecords.filter((r) => r.present).length;
+    const absent = total - present;
+    const percentage = total > 0 ? Math.round((present / total) * 100) : 100;
+
+    return NextResponse.json({
+      isStudent: true,
+      attendance: attendanceRecords,
+      subjects: activeSubjects.map((s) => ({ id: s.id, name: s.data().name })),
+      summary: { total, present, absent, percentage },
+      student: {
+        uid: user.uid,
+        fullName: membership.data()?.fullName ?? user.displayName ?? "Student",
+        seatNumber: membership.data()?.seatNumber ?? "",
+      },
+      class: cls.data(),
+      canManage: false,
+      canEdit: false,
+    });
+  }
+
+  // Teacher or CR flow:
+  if (!subjectId) return NextResponse.json({ error: "subjectId is required." }, { status: 400 });
   let query = db.collection("attendance").where("classId", "==", classId).where("subjectId", "==", subjectId);
   if (date && !allDates) query = query.where("date", "==", date) as typeof query;
   const snap = await query.get();
@@ -23,7 +93,15 @@ export async function GET(request: Request) {
   const isManager = cls.data()?.crUid === user.uid || (membership.data()?.role === "teacher" && subjectData.teacherUid === user.uid);
   const selectedDateRecords = date ? snap.docs.filter((item) => item.data().date === date) : [];
   const canEditDate = date !== null && (date === karachiDate() || (date < karachiDate() && selectedDateRecords.length === 0));
-  return NextResponse.json({ attendance: snap.docs.map((d) => ({ id: d.id, ...d.data() })), students: students.docs.map((d) => ({ uid: d.data().uid, fullName: d.data().fullName, fatherName: d.data().fatherName, seatNumber: d.data().seatNumber })), subject: { id: subjectId, name: subjectData.name }, class: cls.data(), canManage: isManager, canEdit: isManager && canEditDate, dateLocked: isManager && !canEditDate });
+  return NextResponse.json({ 
+    attendance: snap.docs.map((d) => ({ id: d.id, ...d.data() })), 
+    students: students.docs.map((d) => ({ uid: d.data().uid, fullName: d.data().fullName, fatherName: d.data().fatherName, seatNumber: d.data().seatNumber })), 
+    subject: { id: subjectId, name: subjectData.name }, 
+    class: cls.data(), 
+    canManage: isManager, 
+    canEdit: isManager && canEditDate, 
+    dateLocked: isManager && !canEditDate 
+  });
 }
 export async function POST(request: Request) {
   const result = await context(request); if (!result) return unauthorized();

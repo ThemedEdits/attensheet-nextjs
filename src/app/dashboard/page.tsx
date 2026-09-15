@@ -406,7 +406,7 @@ export default function DashboardPage() {
                   <Clock className="h-4 w-4 text-[var(--accent)]" />
                   <h2 className="text-sm font-bold text-white">Recent Attendance Record</h2>
                 </div>
-                <Link href="/subjects?view=history" className="text-xs font-medium text-[var(--accent)] hover:underline">
+                <Link href="/history" className="text-xs font-medium text-[var(--accent)] hover:underline">
                   View full history →
                 </Link>
               </div>
@@ -492,7 +492,9 @@ export default function DashboardPage() {
                   const isAssignedToCurrentTeacher = subject.teacherUid === firebaseAuth.currentUser?.uid;
                   const canAccessAttendance =
                     profile?.role === "cr" || profile?.role === "student" || isAssignedToCurrentTeacher;
-                  const attendanceHref = `/attendance?classId=${classRecord.id}&subjectId=${subject.id}`;
+                  const attendanceHref = profile?.role === "student"
+                    ? `/history?subjectId=${subject.id}`
+                    : `/attendance?classId=${classRecord.id}&subjectId=${subject.id}`;
                   const assignedTeacherName = subject.teacherName ?? members.find((m) => m.uid === subject.teacherUid)?.fullName;
 
                   return (
@@ -532,7 +534,7 @@ export default function DashboardPage() {
                             href={attendanceHref}
                             className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--accent)] hover:text-[var(--primary-hover)]"
                           >
-                            <span>Open Attendance</span>
+                            <span>{profile?.role === "student" ? "View My Attendance" : "Open Attendance"}</span>
                             <ArrowRight className="h-3 w-3" />
                           </Link>
                         ) : (

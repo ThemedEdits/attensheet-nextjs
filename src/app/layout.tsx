@@ -12,8 +12,12 @@ const fontSans = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "AttenSheet — University Attendance Management SaaS",
-  description: "Modern dark-themed attendance management for university classes, CRs, teachers, and students.",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://attensheet.vercel.app"),
+  title: {
+    default: "AttenSheet | University Attendance Management SaaS",
+    template: "%s | AttenSheet",
+  },
+  description: "Modern attendance management system for university classes, CRs, teachers, and students with Google Sheets integration.",
   icons: {
     icon: [
       { url: "/favicon-96x96.png", sizes: "96x96", type: "image/png" },
@@ -26,7 +30,33 @@ export const metadata: Metadata = {
   },
   manifest: "/site.webmanifest",
   appleWebApp: {
-    title: "Attensheet",
+    title: "AttenSheet",
+    statusBarStyle: "black-translucent",
+  },
+  openGraph: {
+    title: "AttenSheet | University Attendance Management",
+    description: "Manage university classes, record attendance, and sync registers directly with Google Sheets.",
+    url: "/",
+    siteName: "AttenSheet",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "AttenSheet University Attendance Platform",
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "AttenSheet | University Attendance Management",
+    description: "Manage university classes, record attendance, and sync registers directly with Google Sheets.",
+    images: ["/og-image.png"],
+  },
+  alternates: {
+    canonical: "/",
   },
 };
 

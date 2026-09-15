@@ -43,7 +43,7 @@ export default function SettingsPage() {
     }
   }
 
-  const email = profile.email ?? firebaseAuth.currentUser?.email ?? "—";
+  const email = profile.email ?? firebaseAuth.currentUser?.email ?? "Not available";
   const initials = profile.name ? profile.name.charAt(0).toUpperCase() : "U";
 
   return (
@@ -93,7 +93,7 @@ export default function SettingsPage() {
               <User className="h-4 w-4 text-[var(--text-muted)]" />
               <div>
                 <p className="text-xs font-medium text-[var(--text-secondary)]">Full Name</p>
-                <p className="text-sm font-semibold text-white mt-0.5">{profile.name ?? "—"}</p>
+                <p className="text-sm font-semibold text-white mt-0.5">{profile.name ?? "Not provided"}</p>
               </div>
             </div>
           </div>
@@ -113,7 +113,7 @@ export default function SettingsPage() {
               <Shield className="h-4 w-4 text-[var(--text-muted)]" />
               <div>
                 <p className="text-xs font-medium text-[var(--text-secondary)]">Assigned Role</p>
-                <p className="text-sm font-semibold text-white capitalize mt-0.5">{profile.role ?? "—"}</p>
+                <p className="text-sm font-semibold text-white capitalize mt-0.5">{profile.role ?? "Student"}</p>
               </div>
             </div>
             <span className="badge-present text-xs capitalize">

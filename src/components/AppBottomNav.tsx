@@ -64,7 +64,7 @@ export function AppBottomNav() {
       return [
         { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
         { label: "Subjects", href: "/subjects", icon: BookOpen },
-        { label: "History", href: "/subjects?view=history", icon: Clock },
+        { label: "History", href: "/history", icon: Clock },
         { label: "Settings", href: "/settings", icon: Settings },
       ];
     }

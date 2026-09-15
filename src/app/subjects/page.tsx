@@ -10,6 +10,7 @@ import { ArrowLeft, BookOpen, GraduationCap, ArrowRight, Sparkles } from "lucide
 export default function SubjectsPage() {
   const [subjects, setSubjects] = useState<SubjectRecord[]>([]);
   const [classRecord, setClassRecord] = useState<ClassRecord | null>(null);
+  const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -21,6 +22,7 @@ export default function SubjectsPage() {
           if (response.ok) {
             setSubjects((result.subjects ?? []) as SubjectRecord[]);
             setClassRecord(result.class as ClassRecord | null);
+            setRole((result.profile as { role?: string } | undefined)?.role ?? null);
           }
         } finally {
           setLoading(false);
@@ -82,7 +84,9 @@ export default function SubjectsPage() {
           {subjects.length ? (
             subjects.map((subject) => {
               const classId = classRecord?.id ?? subject.classId;
-              const href = `/attendance?classId=${classId}&subjectId=${subject.id}`;
+              const href = role === "student" 
+                ? `/history?subjectId=${subject.id}` 
+                : `/attendance?classId=${classId}&subjectId=${subject.id}`;
               const teacherDisplay = subject.teacherName ?? (subject.teacherUid ? "Teacher assigned" : "Awaiting teacher");
 
               return (
@@ -112,7 +116,7 @@ export default function SubjectsPage() {
                   </div>
 
                   <div className="mt-6 pt-3.5 border-t border-[var(--border)] flex items-center justify-between text-xs font-semibold text-[var(--accent)]">
-                    <span>View Attendance Register</span>
+                    <span>{role === "student" ? "View My Attendance" : "View Attendance Register"}</span>
                     <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
                   </div>
                 </Link>

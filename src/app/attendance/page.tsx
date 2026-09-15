@@ -2,7 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { firebaseAuth } from "@/lib/firebase";
 import { authHeaders } from "@/lib/client-auth";
@@ -29,6 +29,7 @@ type Attendance = { studentUid: string; date: string; present: boolean };
 type ClassData = { university?: string; department?: string; className?: string; section?: string; semester?: string };
 
 function AttendanceContent() {
+  const router = useRouter();
   const [date, setDate] = useState(karachiDate());
   const [students, setStudents] = useState<Student[]>([]);
   const [attendance, setAttendance] = useState<Attendance[]>([]);
@@ -56,12 +57,18 @@ function AttendanceContent() {
 
   useEffect(() => {
     if (!authReady) return;
-    if (classId && subjectId) return;
 
     void (async () => {
       try {
         const response = await fetch("/api/dashboard", { headers: await authHeaders() });
         const result = await readApiResponse(response);
+        if (response.ok && result.profile) {
+          const prof = result.profile as { role?: string };
+          if (prof.role === "student") {
+            router.replace(`/history${rawSubjectId ? `?subjectId=${encodeURIComponent(rawSubjectId)}` : ""}`);
+            return;
+          }
+        }
         if (response.ok && result.class) {
           const cls = result.class as { id: string };
           const subs = (result.subjects ?? []) as { id: string; name: string }[];
@@ -79,7 +86,7 @@ function AttendanceContent() {
         setLoading(false);
       }
     })();
-  }, [authReady, classId, subjectId]);
+  }, [authReady, classId, subjectId, rawSubjectId, router]);
 
   const load = useCallback(async () => {
     if (!classId || !subjectId) {
@@ -93,6 +100,10 @@ function AttendanceContent() {
       );
       const result = await readApiResponse(response);
       if (!response.ok) throw new Error(String(result.error ?? "Unable to load attendance."));
+      if (result.isStudent === true) {
+        router.replace(`/history${subjectId ? `?subjectId=${encodeURIComponent(subjectId)}` : ""}`);
+        return;
+      }
       const nextAttendance = (result.attendance ?? []) as Attendance[];
       setStudents((result.students ?? []) as Student[]);
       setAttendance(nextAttendance);
@@ -113,7 +124,7 @@ function AttendanceContent() {
     } finally {
       setLoading(false);
     }
-  }, [classId, subjectId, date, toast]);
+  }, [classId, subjectId, date, toast, router]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => setAuthReady(Boolean(user)));
@@ -420,13 +431,13 @@ function AttendanceContent() {
                         </label>
                       </td>
                       <td className="px-6 py-3.5 font-mono text-xs font-bold text-white">
-                        {student.seatNumber ?? "—"}
+                        {student.seatNumber ?? "-"}
                       </td>
                       <td className="px-6 py-3.5 font-medium text-[var(--text-primary)]">
                         {student.fullName ?? "Unnamed student"}
                       </td>
                       <td className="px-6 py-3.5 text-xs text-[var(--text-secondary)]">
-                        {student.fatherName ?? "—"}
+                        {student.fatherName ?? "-"}
                       </td>
                     </tr>
                   );
@@ -470,7 +481,7 @@ function AttendanceContent() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <span className="rounded bg-[var(--surface-elevated)] border border-[var(--border)] px-1.5 py-0.5 font-mono text-[11px] font-bold text-white">
-                        {student.seatNumber ?? "—"}
+                        {student.seatNumber ?? "-"}
                       </span>
                       <p className="text-sm font-semibold text-white truncate">
                         {student.fullName ?? "Unnamed student"}
@@ -605,13 +616,13 @@ function AttendanceContent() {
                 {matrix.map(({ student, statuses, present, marked }) => (
                   <tr key={student.uid} className="hover:bg-[var(--surface-hover)]">
                     <td className="px-4 py-2.5 font-mono text-[11px] text-white">
-                      {student.seatNumber ?? "—"}
+                      {student.seatNumber ?? "-"}
                     </td>
                     <td className="px-4 py-2.5 font-medium text-[var(--text-primary)] whitespace-nowrap">
-                      {student.fullName ?? "—"}
+                      {student.fullName ?? "Unnamed"}
                     </td>
                     <td className="px-4 py-2.5 text-[var(--text-secondary)] whitespace-nowrap">
-                      {student.fatherName ?? "—"}
+                      {student.fatherName ?? "-"}
                     </td>
                     {statuses.map((item, index) => (
                       <td key={`${student.uid}-${index}`} className="px-3 py-2.5 text-center">
@@ -622,7 +633,7 @@ function AttendanceContent() {
                             <span className="inline-block h-2 w-2 rounded-full bg-red-400" title="Absent" />
                           )
                         ) : (
-                          <span className="text-[var(--text-muted)]">—</span>
+                          <span className="text-[var(--text-muted)]">-</span>
                         )}
                       </td>
                     ))}
