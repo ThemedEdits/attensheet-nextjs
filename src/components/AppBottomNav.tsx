@@ -107,7 +107,7 @@ export function AppBottomNav() {
         <span
           className="bottom-nav-pill"
           style={{
-            left: `${(activeIndex + 0.5) * (100 / tabs.length)}%`,
+            left: `${((activeIndex + 0.5) / tabs.length) * 100}%`,
           }}
         />
       </div>
