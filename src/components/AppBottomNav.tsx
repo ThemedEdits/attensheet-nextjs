@@ -3,15 +3,15 @@
 import { onAuthStateChanged } from "firebase/auth";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { 
-  BookOpen, 
-  Clock, 
-  LayoutDashboard, 
-  Settings, 
-  UserCheck, 
-  CheckCircle2, 
+import {
+  BookOpen,
+  Clock,
+  LayoutDashboard,
+  Settings,
+  UserCheck,
+  CheckCircle2,
   FileSpreadsheet,
-  type LucideIcon 
+  type LucideIcon
 } from "lucide-react";
 import { firebaseAuth } from "@/lib/firebase";
 import { authHeaders } from "@/lib/client-auth";
@@ -76,7 +76,7 @@ export function AppBottomNav() {
 
   if (publicPaths.includes(pathname) || !visible || !role) return null;
   const activeIndex = Math.max(
-    0, 
+    0,
     tabs.findIndex((tab) => pathname === tab.href.split("?")[0] || (tab.label === "Dashboard" && pathname === "/dashboard"))
   );
 
@@ -107,8 +107,7 @@ export function AppBottomNav() {
         <span
           className="bottom-nav-pill"
           style={{
-            width: `${100 / tabs.length}%`,
-            transform: `translateX(${activeIndex * 100}%)`,
+            left: `${(activeIndex + 0.5) * (100 / tabs.length)}%`,
           }}
         />
       </div>

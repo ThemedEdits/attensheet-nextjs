@@ -234,9 +234,9 @@ body {
   position: fixed;
   z-index: 40;
   right: 0;
-  bottom: 1.25rem;
+  bottom: 0;
   left: 0;
-  padding: 0 1rem;
+  padding: 0;
   pointer-events: none;
 }
 .bottom-nav-track {
@@ -291,13 +291,14 @@ body {
 }
 .bottom-nav-pill {
   position: absolute;
-  bottom: 0.25rem;
-  left: 0;
+  bottom: 0.2rem;
+  width: 35px;
   height: 2px;
   border-radius: 9999px;
   background: var(--accent);
   box-shadow: 0 0 8px var(--accent);
-  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  transform: translateX(-50%);
+  transition: left 0.25s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .bottom-nav-badge {
   position: absolute;
