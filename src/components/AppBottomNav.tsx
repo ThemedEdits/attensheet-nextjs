@@ -28,22 +28,33 @@ export function AppBottomNav() {
   const [role, setRole] = useState<Role | null>(null);
   const [pending, setPending] = useState(0);
   const [visible, setVisible] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (publicPaths.includes(pathname)) return;
+
     const unsubscribe = onAuthStateChanged(firebaseAuth, async (user) => {
-      if (!user) { setVisible(false); return; }
+      if (!user) {
+        setVisible(false);
+        setLoading(false);
+        return;
+      }
       setVisible(true);
       try {
         const response = await fetch("/api/dashboard", { headers: await authHeaders() });
         const result = await readApiResponse(response);
-        setRole((result.profile as { role?: Role } | undefined)?.role ?? null);
-        if ((result.profile as { role?: Role } | undefined)?.role === "cr") {
+        const userRole = (result.profile as { role?: Role } | undefined)?.role ?? null;
+        setRole(userRole);
+        if (userRole === "cr") {
           const requests = await fetch("/api/requests", { headers: await authHeaders() });
           const requestData = await readApiResponse(requests);
           setPending(Array.isArray(requestData.requests) ? requestData.requests.length : 0);
         }
-      } catch { setRole(null); }
+      } catch {
+        setRole(null);
+      } finally {
+        setLoading(false);
+      }
     });
     return unsubscribe;
   }, [pathname]);
@@ -74,7 +85,14 @@ export function AppBottomNav() {
     ];
   }, [role]);
 
-  if (publicPaths.includes(pathname) || !visible || !role) return null;
+  if (publicPaths.includes(pathname)) return null;
+
+  if (loading) {
+    return <BottomNavSkeleton />;
+  }
+
+  if (!visible || !role) return null;
+
   const activeIndex = Math.max(
     0,
     tabs.findIndex((tab) => pathname === tab.href.split("?")[0] || (tab.label === "Dashboard" && pathname === "/dashboard"))
@@ -91,7 +109,7 @@ export function AppBottomNav() {
               key={`${tab.label}-${index}`}
               type="button"
               onClick={() => router.push(tab.href)}
-              className={`bottom-nav-item ${active ? "is-active" : ""}`}
+              className={`bottom-nav-item relative ${active ? "is-active" : ""}`}
               aria-current={active ? "page" : undefined}
             >
               <span className="bottom-nav-icon">
@@ -101,15 +119,30 @@ export function AppBottomNav() {
               {tab.label === "Requests" && pending > 0 && (
                 <b className="bottom-nav-badge">{pending > 9 ? "9+" : pending}</b>
               )}
+              {active && (
+                <span
+                  className="absolute bottom-0.5 left-1/2 -translate-x-1/2 h-[2.5px] w-7 rounded-full bg-[var(--accent)] shadow-[0_0_8px_var(--accent)]"
+                  aria-hidden="true"
+                />
+              )}
             </button>
           );
         })}
-        <span
-          className="bottom-nav-pill"
-          style={{
-            left: `${((activeIndex + 0.5) / tabs.length) * 100}%`,
-          }}
-        />
+      </div>
+    </nav>
+  );
+}
+
+function BottomNavSkeleton() {
+  return (
+    <nav className="bottom-nav" aria-label="Loading navigation">
+      <div className="bottom-nav-track">
+        {[1, 2, 3, 4, 5].map((item) => (
+          <div key={item} className="bottom-nav-item animate-pulse">
+            <div className="h-8 w-8 rounded-xl bg-[var(--surface-elevated)]" />
+            <div className="h-2 w-10 rounded bg-[var(--surface-elevated)] hidden sm:block mt-1" />
+          </div>
+        ))}
       </div>
     </nav>
   );

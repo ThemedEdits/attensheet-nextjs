@@ -278,22 +278,31 @@ body {
   right: 0;
   bottom: 0;
   left: 0;
+  width: 100%;
+  margin: 0;
   padding: 0;
-  pointer-events: none;
+  pointer-events: auto;
+  border-top: 1px solid var(--border);
+  background: rgba(7, 17, 13, 0.96);
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
 .bottom-nav-track {
   pointer-events: auto;
   position: relative;
   display: flex;
-  width: min(42rem, 100%);
-  margin: auto;
-  padding: 0.35rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  background: rgba(11, 24, 19, 0.88);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(53, 217, 138, 0.08);
-  backdrop-filter: blur(20px);
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 0.25rem 0.5rem;
+  align-items: center;
+  justify-content: space-around;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .bottom-nav-item {
@@ -304,6 +313,7 @@ body {
   min-width: 0;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 0.25rem;
   padding: 0.55rem 0.25rem;
   border: 0;
@@ -336,18 +346,6 @@ body {
   place-items: center;
   border-radius: var(--radius-md);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.bottom-nav-pill {
-  position: absolute;
-  bottom: 0.2rem;
-  width: 35px;
-  height: 2px;
-  border-radius: 9999px;
-  background: var(--accent);
-  box-shadow: 0 0 8px var(--accent);
-  transform: translateX(-50%);
-  transition: left 0.25s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .bottom-nav-badge {

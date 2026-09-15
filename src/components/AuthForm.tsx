@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { 
   GoogleAuthProvider, 
   createUserWithEmailAndPassword, 
@@ -20,7 +20,11 @@ import { ArrowLeft, Eye, EyeOff, AlertCircle, Loader2, Mail, CheckCircle2 } from
 export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [touched, setTouched] = useState<{ email?: boolean; password?: boolean; confirmPassword?: boolean }>({});
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string; confirmPassword?: string }>({});
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -31,6 +35,67 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const [verifying, setVerifying] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
   const [verificationSuccess, setVerificationSuccess] = useState(false);
+
+  // Live password requirements checklist
+  const passwordRequirements = useMemo(() => {
+    return [
+      { id: "length", label: "At least 8 characters", met: password.length >= 8 },
+      { id: "upper", label: "At least one uppercase letter (A-Z)", met: /[A-Z]/.test(password) },
+      { id: "lower", label: "At least one lowercase letter (a-z)", met: /[a-z]/.test(password) },
+      { id: "number", label: "At least one number (0-9)", met: /[0-9]/.test(password) },
+      { id: "special", label: "At least one special symbol (!@#$...)", met: /[!@#$%^&*(),.?":{}|<>_\-+=[\]\\/`~]/.test(password) },
+    ];
+  }, [password]);
+
+  const metCount = useMemo(() => passwordRequirements.filter((r) => r.met).length, [passwordRequirements]);
+
+  const passwordStrength = useMemo(() => {
+    if (!password) return { label: "", color: "", barCount: 0, textClass: "" };
+    if (metCount <= 2) {
+      return { label: "Weak", color: "bg-red-500", barCount: 1, textClass: "text-red-400" };
+    }
+    if (metCount === 3) {
+      return { label: "Fair", color: "bg-amber-500", barCount: 2, textClass: "text-amber-400" };
+    }
+    if (metCount === 4) {
+      return { label: "Good", color: "bg-sky-400", barCount: 3, textClass: "text-sky-400" };
+    }
+    return { label: "Strong", color: "bg-emerald-400", barCount: 4, textClass: "text-emerald-400" };
+  }, [password, metCount]);
+
+  const validateField = (field: "email" | "password" | "confirmPassword", val: string, pwdVal?: string) => {
+    const nextErrors = { ...fieldErrors };
+    if (field === "email") {
+      if (!val.trim()) {
+        nextErrors.email = "Email address is required.";
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim())) {
+        nextErrors.email = "Please enter a valid email address.";
+      } else {
+        delete nextErrors.email;
+      }
+    } else if (field === "password") {
+      if (!val) {
+        nextErrors.password = "Password is required.";
+      } else if (mode === "signup" && passwordRequirements.some((r) => !r.met)) {
+        nextErrors.password = "Password must meet all 5 requirements.";
+      } else {
+        delete nextErrors.password;
+      }
+    } else if (field === "confirmPassword") {
+      if (mode === "signup") {
+        const targetPwd = pwdVal !== undefined ? pwdVal : password;
+        if (!val) {
+          nextErrors.confirmPassword = "Confirm password is required.";
+        } else if (val !== targetPwd) {
+          nextErrors.confirmPassword = "Passwords do not match.";
+        } else {
+          delete nextErrors.confirmPassword;
+        }
+      }
+    }
+    setFieldErrors(nextErrors);
+    return nextErrors;
+  };
 
   useEffect(() => {
     return onAuthStateChanged(firebaseAuth, (user) => {
@@ -54,8 +119,45 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
-    setBusy(true);
     setError("");
+
+    setTouched({ email: true, password: true, confirmPassword: true });
+
+    let hasError = false;
+    const errors: { email?: string; password?: string; confirmPassword?: string } = {};
+
+    if (!email.trim()) {
+      errors.email = "Email address is required.";
+      hasError = true;
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      errors.email = "Please enter a valid email address.";
+      hasError = true;
+    }
+
+    if (!reset) {
+      if (!password) {
+        errors.password = "Password is required.";
+        hasError = true;
+      } else if (mode === "signup" && metCount < 5) {
+        errors.password = "Password must meet all 5 security requirements.";
+        hasError = true;
+      }
+
+      if (mode === "signup") {
+        if (!confirmPassword) {
+          errors.confirmPassword = "Confirm password is required.";
+          hasError = true;
+        } else if (confirmPassword !== password) {
+          errors.confirmPassword = "Passwords do not match.";
+          hasError = true;
+        }
+      }
+    }
+
+    setFieldErrors(errors);
+    if (hasError) return;
+
+    setBusy(true);
     try {
       if (reset) {
         await sendPasswordResetEmail(firebaseAuth, email);
@@ -312,7 +414,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
             </div>
           )}
 
-          <form onSubmit={submit} className="mt-6 space-y-4">
+          <form onSubmit={submit} className="mt-6 space-y-4" noValidate>
             <div>
               <label className="block text-xs font-medium text-[var(--text-secondary)]">
                 Email address
@@ -321,10 +423,27 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
                 required
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="field mt-1.5"
+                onBlur={() => {
+                  setTouched((prev) => ({ ...prev, email: true }));
+                  validateField("email", email);
+                }}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (touched.email) validateField("email", e.target.value);
+                }}
+                className={`field mt-1.5 transition-all ${
+                  touched.email && fieldErrors.email 
+                    ? "border-red-500/70 ring-1 ring-red-500/20 bg-red-500/[0.02]" 
+                    : ""
+                }`}
                 placeholder="name@university.edu"
               />
+              {touched.email && fieldErrors.email && (
+                <p className="mt-1.5 flex items-center gap-1.5 text-xs text-red-400 animate-in fade-in">
+                  <AlertCircle className="h-3.5 w-3.5 flex-none text-red-400" />
+                  <span>{fieldErrors.email}</span>
+                </p>
+              )}
             </div>
 
             {!reset && (
@@ -346,11 +465,24 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
                 <div className="relative mt-1.5">
                   <input
                     required
-                    minLength={6}
                     type={showPassword ? "text" : "password"}
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="field pr-10"
+                    onBlur={() => {
+                      setTouched((prev) => ({ ...prev, password: true }));
+                      validateField("password", password);
+                    }}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      if (touched.password) validateField("password", e.target.value);
+                      if (touched.confirmPassword && confirmPassword) {
+                        validateField("confirmPassword", confirmPassword, e.target.value);
+                      }
+                    }}
+                    className={`field pr-10 transition-all ${
+                      touched.password && fieldErrors.password 
+                        ? "border-red-500/70 ring-1 ring-red-500/20 bg-red-500/[0.02]" 
+                        : ""
+                    }`}
                     placeholder="••••••••"
                   />
                   <button
@@ -362,6 +494,112 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
+                {touched.password && fieldErrors.password && (
+                  <p className="mt-1.5 flex items-center gap-1.5 text-xs text-red-400 animate-in fade-in">
+                    <AlertCircle className="h-3.5 w-3.5 flex-none text-red-400" />
+                    <span>{fieldErrors.password}</span>
+                  </p>
+                )}
+
+                {/* Password Strength Meter & Live Requirements (Signup Mode) */}
+                {mode === "signup" && password.length > 0 && (
+                  <div className="mt-3 space-y-2.5 rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-3.5 animate-in fade-in slide-in-from-top-1 duration-200">
+                    {/* Strength bar & label */}
+                    <div>
+                      <div className="flex items-center justify-between text-xs mb-1.5">
+                        <span className="text-[var(--text-secondary)] font-medium">Password strength</span>
+                        <span className={`font-semibold ${passwordStrength.textClass}`}>
+                          {passwordStrength.label}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-4 gap-1.5">
+                        {[1, 2, 3, 4].map((barIndex) => (
+                          <div
+                            key={barIndex}
+                            className={`h-1.5 rounded-full transition-colors duration-300 ${
+                              barIndex <= passwordStrength.barCount
+                                ? passwordStrength.color
+                                : "bg-[var(--surface-elevated)]"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Requirements checklist */}
+                    <div className="pt-2 border-t border-[var(--border)] space-y-1.5">
+                      <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">
+                        Security Requirements
+                      </p>
+                      <div className="grid gap-1.5 sm:grid-cols-2">
+                        {passwordRequirements.map((req) => (
+                          <div key={req.id} className="flex items-center gap-1.5 text-[11px]">
+                            {req.met ? (
+                              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 flex-none" />
+                            ) : (
+                              <span className="h-3.5 w-3.5 rounded-full border border-[var(--text-muted)] flex-none" />
+                            )}
+                            <span className={req.met ? "text-emerald-300 font-medium" : "text-[var(--text-muted)]"}>
+                              {req.label}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Confirm Password Field (Signup Mode Only) */}
+            {mode === "signup" && !reset && (
+              <div>
+                <label className="block text-xs font-medium text-[var(--text-secondary)]">
+                  Confirm password
+                </label>
+                <div className="relative mt-1.5">
+                  <input
+                    required
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onBlur={() => {
+                      setTouched((prev) => ({ ...prev, confirmPassword: true }));
+                      validateField("confirmPassword", confirmPassword);
+                    }}
+                    onChange={(e) => {
+                      setConfirmPassword(e.target.value);
+                      if (touched.confirmPassword) validateField("confirmPassword", e.target.value);
+                    }}
+                    className={`field pr-10 transition-all ${
+                      touched.confirmPassword && fieldErrors.confirmPassword 
+                        ? "border-red-500/70 ring-1 ring-red-500/20 bg-red-500/[0.02]" 
+                        : confirmPassword && confirmPassword === password
+                        ? "border-emerald-500/50"
+                        : ""
+                    }`}
+                    placeholder="••••••••"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword((curr) => !curr)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-white"
+                    aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                  >
+                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                {touched.confirmPassword && fieldErrors.confirmPassword && (
+                  <p className="mt-1.5 flex items-center gap-1.5 text-xs text-red-400 animate-in fade-in">
+                    <AlertCircle className="h-3.5 w-3.5 flex-none text-red-400" />
+                    <span>{fieldErrors.confirmPassword}</span>
+                  </p>
+                )}
+                {confirmPassword && confirmPassword === password && !fieldErrors.confirmPassword && (
+                  <p className="mt-1.5 flex items-center gap-1.5 text-xs text-emerald-400 animate-in fade-in">
+                    <CheckCircle2 className="h-3.5 w-3.5 flex-none" />
+                    <span>Passwords match</span>
+                  </p>
+                )}
               </div>
             )}
 

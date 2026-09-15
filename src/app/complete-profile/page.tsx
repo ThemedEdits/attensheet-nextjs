@@ -5,7 +5,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { firebaseAuth, firestore } from "@/lib/firebase";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ShieldCheck, GraduationCap, User, ArrowRight, Check, Loader2 } from "lucide-react";
+import { ShieldCheck, GraduationCap, User, ArrowRight, Check, Loader2, AlertCircle } from "lucide-react";
 import type { Role } from "@/lib/domain";
 
 const roles: { 
@@ -38,6 +38,7 @@ export default function CompleteProfilePage() {
   const router = useRouter();
   const [uid, setUid] = useState("");
   const [name, setName] = useState("");
+  const [nameTouched, setNameTouched] = useState(false);
   const [role, setRole] = useState<Role>("student");
   const [busy, setBusy] = useState(false);
 
@@ -106,10 +107,19 @@ export default function CompleteProfilePage() {
               required
               minLength={2}
               value={name}
+              onBlur={() => setNameTouched(true)}
               onChange={(e) => setName(e.target.value)}
-              className="field mt-1.5"
+              className={`field mt-1.5 transition-all ${
+                nameTouched && !name.trim() ? "border-red-500/70 ring-1 ring-red-500/20 bg-red-500/[0.02]" : ""
+              }`}
               placeholder="e.g. Hammad Ahmed"
             />
+            {nameTouched && !name.trim() && (
+              <p className="mt-1.5 flex items-center gap-1.5 text-xs text-red-400">
+                <AlertCircle className="h-3.5 w-3.5 flex-none text-red-400" />
+                <span>Please enter your full name.</span>
+              </p>
+            )}
           </div>
 
           <div>

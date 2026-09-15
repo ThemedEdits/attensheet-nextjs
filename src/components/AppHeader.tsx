@@ -35,10 +35,18 @@ export function AppHeader() {
   const [pending, setPending] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [prevPathname, setPrevPathname] = useState(pathname);
+  const [loading, setLoading] = useState(true);
+
+  const closeMenu = () => {
+    if (typeof document !== "undefined" && document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    setMobileMenuOpen(false);
+  };
 
   if (prevPathname !== pathname) {
     setPrevPathname(pathname);
-    setMobileMenuOpen(false);
+    closeMenu();
   }
 
   useEffect(() => {
@@ -47,6 +55,7 @@ export function AppHeader() {
     const unsubscribe = onAuthStateChanged(firebaseAuth, async (user) => {
       if (!user) {
         setProfile(null);
+        setLoading(false);
         return;
       }
       try {
@@ -62,13 +71,21 @@ export function AppHeader() {
         }
       } catch {
         setProfile(null);
+      } finally {
+        setLoading(false);
       }
     });
 
     return unsubscribe;
   }, [pathname]);
 
-  if (publicPaths.includes(pathname) || !profile) return null;
+  if (publicPaths.includes(pathname)) return null;
+
+  if (loading) {
+    return <HeaderSkeleton />;
+  }
+
+  if (!profile) return null;
 
   const roleLabels: Record<Role, { title: string; icon: LucideIcon; color: string }> = {
     cr: { title: "Class Rep", icon: ShieldCheck, color: "text-[var(--accent)] border-[var(--accent-soft)] bg-[var(--accent-soft)]" },
@@ -203,16 +220,15 @@ export function AppHeader() {
           className={`fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity duration-300 ease-out ${
             mobileMenuOpen ? "opacity-100" : "opacity-0"
           }`} 
-          onClick={() => setMobileMenuOpen(false)} 
-          aria-hidden={!mobileMenuOpen}
+          onClick={closeMenu} 
         />
 
         {/* Drawer Content */}
         <div 
+          inert={!mobileMenuOpen ? true : undefined}
           className={`fixed inset-y-0 right-0 w-full max-w-xs border-l border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl flex flex-col justify-between transition-transform duration-300 ease-out ${
             mobileMenuOpen ? "translate-x-0" : "translate-x-full"
           }`}
-          aria-hidden={!mobileMenuOpen}
         >
           <div>
             {/* Drawer Top */}
@@ -232,7 +248,7 @@ export function AppHeader() {
               </div>
               <button
                 type="button"
-                onClick={() => setMobileMenuOpen(false)}
+                onClick={closeMenu}
                 className="rounded-lg p-2 text-[var(--text-muted)] hover:text-white"
                 aria-label="Close menu"
               >
@@ -250,8 +266,8 @@ export function AppHeader() {
                     key={link.label}
                     type="button"
                     onClick={() => {
+                      closeMenu();
                       router.push(link.href);
-                      setMobileMenuOpen(false);
                     }}
                     className={`flex w-full items-center justify-between rounded-xl px-3.5 py-3 text-sm font-medium transition-all ${
                       isActive 
@@ -278,7 +294,10 @@ export function AppHeader() {
           <div className="pt-6 border-t border-[var(--border)]">
             <button
               type="button"
-              onClick={() => signOut(firebaseAuth)}
+              onClick={() => {
+                closeMenu();
+                signOut(firebaseAuth);
+              }}
               className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-300 transition hover:bg-red-500/20"
             >
               <LogOut className="h-4 w-4" />
@@ -288,5 +307,47 @@ export function AppHeader() {
         </div>
       </div>
     </>
+  );
+}
+
+function HeaderSkeleton() {
+  return (
+    <header className="sticky top-0 z-30 w-full border-b border-[var(--border)] bg-[#07110D]/85 backdrop-blur-xl">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        {/* Left: Brand Identity */}
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2.5">
+            <img 
+              src="/attensheetlogo.svg" 
+              alt="AttenSheet" 
+              className="h-8 w-auto object-contain opacity-70" 
+            />
+            <span className="text-base font-bold tracking-tight text-[var(--text-primary)]">
+              Atten<span className="text-[var(--accent)]">Sheet</span>
+            </span>
+          </div>
+          <div className="hidden h-4 w-px bg-[var(--border)] sm:block" />
+          <div className="hidden h-5 w-20 rounded-full bg-[var(--surface-elevated)] animate-pulse sm:block" />
+        </div>
+
+        {/* Right: Actions Skeleton (Desktop) */}
+        <div className="hidden items-center gap-3 md:flex">
+          <div className="flex items-center gap-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 animate-pulse">
+            <div className="h-7 w-7 rounded-lg bg-[var(--surface-elevated)]" />
+            <div className="space-y-1">
+              <div className="h-2.5 w-16 rounded bg-[var(--surface-elevated)]" />
+              <div className="h-2 w-10 rounded bg-[var(--surface-elevated)]" />
+            </div>
+          </div>
+          <div className="h-9 w-9 rounded-xl border border-[var(--border)] bg-[var(--surface)] animate-pulse" />
+        </div>
+
+        {/* Right: Hamburger Skeleton (Mobile) */}
+        <div className="flex items-center gap-2 md:hidden">
+          <div className="h-5 w-16 rounded-full bg-[var(--surface-elevated)] animate-pulse" />
+          <div className="h-10 w-10 rounded-xl border border-[var(--border)] bg-[var(--surface)] animate-pulse" />
+        </div>
+      </div>
+    </header>
   );
 }

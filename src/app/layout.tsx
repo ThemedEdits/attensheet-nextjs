@@ -40,6 +40,28 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
         <meta name="apple-mobile-web-app-title" content="Attensheet" />
         <link rel="manifest" href="/site.webmanifest" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                if (typeof window !== 'undefined') {
+                  window.addEventListener('error', function(e) {
+                    if (e && e.message && e.message.indexOf("startTime") !== -1) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }
+                  }, true);
+                  window.addEventListener('unhandledrejection', function(e) {
+                    if (e && e.reason && e.reason.message && e.reason.message.indexOf("startTime") !== -1) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }
+                  }, true);
+                }
+              })();
+            `,
+          }}
+        />
       </head>
       <body className="antialiased min-h-screen text-[var(--text-primary)]">
         <ToastProvider>
