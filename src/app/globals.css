@@ -338,6 +338,7 @@ textarea:focus {
   content: "";
   position: absolute;
   z-index: 1;
+  opacity: 0.01; 
   top: 50%;
   left: 0.5rem; /* matches track horizontal padding */
   width: calc((100% - 1rem) / var(--count, 5));
