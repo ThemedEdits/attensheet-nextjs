@@ -145,7 +145,11 @@ export function AppBottomNav() {
 
   return (
     <nav className="bottom-nav" aria-label="Primary navigation">
-      <div className="bottom-nav-track">
+      <div
+        className="bottom-nav-track"
+        data-active-index={activeIndex}
+        data-count={tabs.length}
+      >
         {tabs.map((tab, index) => {
           const active = index === activeIndex;
           const Icon = tab.icon;
@@ -164,7 +168,6 @@ export function AppBottomNav() {
               {tab.label === "Requests" && pending > 0 && (
                 <b className="bottom-nav-badge">{pending > 9 ? "9+" : pending}</b>
               )}
-              {active && <span className="bottom-nav-dot" aria-hidden="true" />}
             </button>
           );
         })}
@@ -176,7 +179,7 @@ export function AppBottomNav() {
 function BottomNavSkeleton({ count }: { count: number }) {
   return (
     <nav className="bottom-nav" aria-label="Loading navigation">
-      <div className="bottom-nav-track">
+      <div className="bottom-nav-track" data-count={count} data-active-index={-1}>
         {Array.from({ length: count }, (_, i) => i + 1).map((item) => (
           <div key={item} className="bottom-nav-item animate-pulse">
             <div className="h-8 w-8 rounded-xl bg-[var(--surface-elevated)]" />

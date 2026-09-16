@@ -291,7 +291,7 @@ textarea:focus {
 }
 
 /* ============================================================
-   Bottom Navigation — Floating Pill with Lifted Active Item
+   Bottom Navigation — Floating Pill with Sliding Active Pill
    ============================================================ */
 
 .bottom-nav {
@@ -302,8 +302,8 @@ textarea:focus {
   left: 0;
   width: 100%;
   margin: 0;
-  padding: 0 0 1rem; /* space below the pill */
-  pointer-events: none; /* let the pill handle clicks */
+  padding: 0 0 1rem;
+  pointer-events: none;
   border-top: 0;
   background: transparent;
   box-shadow: none;
@@ -316,8 +316,8 @@ textarea:focus {
   position: relative;
   display: flex;
   width: calc(100% - 2rem);
-  max-width: 26rem; /* pill width cap */
-  margin: 0 auto;
+  max-width: 26rem;
+  margin: 1.75rem auto 0;
   padding: 0.35rem 0.5rem;
   align-items: center;
   justify-content: space-around;
@@ -330,10 +330,35 @@ textarea:focus {
     inset 0 1px 0 rgba(255, 255, 255, 0.04);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
-  /* extra top room so the lifted active item doesn't clip */
-  margin-top: 1.75rem;
+  isolation: isolate;
 }
 
+/* Sliding pill — position derived from data-active-index + data-count */
+.bottom-nav-track::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: 0.5rem; /* matches track horizontal padding */
+  width: calc((100% - 1rem) / var(--count, 5));
+  height: calc(100% - 0.7rem);
+  transform: translateY(-50%);
+  border-radius: 9999px;
+  background: var(--primary);
+  box-shadow:
+    0 6px 18px rgba(22, 166, 106, 0.45),
+    0 0 0 1px rgba(255, 255, 255, 0.06) inset;
+  transition:
+    transform 0.42s cubic-bezier(0.34, 1.4, 0.64, 1),
+    width 0.3s ease;
+  transform-origin: center;
+  /* translate by active index * item width */
+  --index: 0;
+  transform: translateY(-50%) translateX(calc(var(--index) * 100%));
+  pointer-events: none;
+}
+
+/* Active item lifts above the pill */
 .bottom-nav-item {
   position: relative;
   z-index: 2;
@@ -351,7 +376,9 @@ textarea:focus {
   font-size: 0.68rem;
   font-weight: 500;
   cursor: pointer;
-  transition: color 0.18s, transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition:
+    color 0.18s ease,
+    transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .bottom-nav-item:hover {
@@ -359,18 +386,17 @@ textarea:focus {
 }
 
 .bottom-nav-item.is-active {
-  color: var(--accent);
-  transform: translateY(-1.6rem); /* lift above the pill */
+  color: #07110D; /* dark on the accent pill */
+  transform: translateY(-1.4rem);
 }
 
-/* Active icon sits inside the circular/elliptical accent badge */
 .bottom-nav-icon {
   display: grid;
   width: 2.1rem;
   height: 2.1rem;
   place-items: center;
   border-radius: 9999px;
-  transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
   background: transparent;
   color: inherit;
 }
@@ -381,8 +407,8 @@ textarea:focus {
   background: var(--primary);
   color: #07110D;
   box-shadow:
-    0 8px 20px rgba(22, 166, 106, 0.45),
-    0 0 0 6px rgba(7, 17, 13, 0.95); /* "offset" halo that separates from pill */
+    0 8px 20px rgba(22, 166, 106, 0.5),
+    0 0 0 6px rgba(7, 17, 13, 0.95);
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
@@ -398,19 +424,7 @@ textarea:focus {
   font-weight: 600;
 }
 
-/* Small dot below the active item */
-.bottom-nav-dot {
-  position: absolute;
-  bottom: -0.35rem;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 5px;
-  height: 5px;
-  border-radius: 9999px;
-  background: var(--accent);
-  box-shadow: 0 0 8px var(--accent);
-}
-
+/* Badge stays visible above the pill */
 .bottom-nav-badge {
   position: absolute;
   top: 0.1rem;
@@ -427,36 +441,39 @@ textarea:focus {
   z-index: 3;
 }
 
+/* ---------- Sliding-pill index wiring ---------- */
+/* Set --count on the track for width math */
+.bottom-nav-track[data-count] {
+  --count: attr(data-count number, 5);
+}
+
+/* Per-index translation using attribute selectors (no JS hooks needed) */
+.bottom-nav-track[data-active-index="0"]::before { --index: 0; }
+.bottom-nav-track[data-active-index="1"]::before { --index: 1; }
+.bottom-nav-track[data-active-index="2"]::before { --index: 2; }
+.bottom-nav-track[data-active-index="3"]::before { --index: 3; }
+.bottom-nav-track[data-active-index="4"]::before { --index: 4; }
+.bottom-nav-track[data-active-index="5"]::before { --index: 5; }
+.bottom-nav-track[data-active-index="6"]::before { --index: 6; }
+
+/* Hide pill during skeleton/loading (active index -1) */
+.bottom-nav-track[data-active-index="-1"]::before,
+.bottom-nav-track:not([data-active-index])::before {
+  opacity: 0;
+  transform: translateY(-50%) translateX(0);
+  transition: opacity 0.2s ease;
+}
+
 /* Page shell padding to prevent bottom nav overlap */
 .page-shell {
   width: 100%;
   max-width: 100vw;
   min-height: 100vh;
-  padding-bottom: 8.5rem; /* a bit more room for the lifted item */
-}
-
-/* Custom Scrollbar for rich data tables */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--bg-secondary);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--border-hover);
+  padding-bottom: 8.5rem;
 }
 
 /* Reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
-
   *,
   ::before,
   ::after {
@@ -482,13 +499,19 @@ textarea:focus {
     padding: 0.3rem 0.4rem;
   }
 
+  .bottom-nav-track::before {
+    left: 0.4rem;
+    width: calc((100% - 0.8rem) / var(--count, 5));
+    height: calc(100% - 0.6rem);
+  }
+
   .bottom-nav-item {
     gap: 0;
     padding: 0.5rem 0.2rem;
   }
 
   .bottom-nav-item.is-active {
-    transform: translateY(-1.4rem);
+    transform: translateY(-1.25rem);
   }
 
   .bottom-nav-icon {
@@ -500,7 +523,7 @@ textarea:focus {
     width: 2.9rem;
     height: 2.9rem;
     box-shadow:
-      0 8px 18px rgba(22, 166, 106, 0.45),
+      0 8px 18px rgba(22, 166, 106, 0.5),
       0 0 0 5px rgba(7, 17, 13, 0.95);
   }
 }
