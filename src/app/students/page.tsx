@@ -402,12 +402,17 @@ export default function StudentsPage() {
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {loading ? (
           Array.from({ length: 3 }, (_, i) => (
-            <div key={i} className="card p-5 h-24 flex flex-col justify-between">
-              <div className="flex items-center justify-between">
-                <div className="skeleton h-4 w-28 rounded" />
-                <div className="skeleton h-8 w-8 rounded-lg" />
+            <div key={i} className="card p-5 flex flex-col justify-between">
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="skeleton h-3.5 w-24 rounded" />
+                  <div className="skeleton mt-1.5 h-7 w-20 rounded-lg" />
+                </div>
+                <div className="skeleton h-10 w-10 rounded-xl flex-none" />
               </div>
-              <div className="skeleton h-6 w-16 rounded" />
+              <div className="mt-3 pt-2.5 border-t border-[var(--border)]">
+                <div className="skeleton h-3 w-36 rounded" />
+              </div>
             </div>
           ))
         ) : (
@@ -495,7 +500,7 @@ export default function StudentsPage() {
         {/* Filter Pills & Sort Selector */}
         <div className="flex flex-wrap items-center gap-2">
           {/* Role Filter Pills */}
-          <div className="flex items-center rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 text-xs">
+          <div className="flex max-w-full items-center overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 text-xs">
             <button
               type="button"
               onClick={() => setRoleFilter("all")}
@@ -543,7 +548,7 @@ export default function StudentsPage() {
           </div>
 
           {/* Sort Dropdown */}
-          <div className="w-48 sm:w-52">
+          <div className="w-full sm:w-52">
             <CustomSelect
               value={sortBy}
               options={[
@@ -577,25 +582,25 @@ export default function StudentsPage() {
               {loading ? (
                 Array.from({ length: 6 }, (_, index) => (
                   <tr key={index}>
-                    <td className="px-5 py-4">
+                    <td className="px-5 py-3.5">
                       <div className="skeleton h-4 w-16 rounded" />
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-5 py-3.5">
                       <div className="flex items-center gap-3">
                         <div className="skeleton h-8 w-8 rounded-full flex-none" />
                         <div className="skeleton h-4 w-32 rounded" />
                       </div>
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-5 py-3.5">
                       <div className="skeleton h-4 w-28 rounded" />
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-5 py-3.5">
                       <div className="skeleton h-4 w-40 rounded" />
                     </td>
-                    <td className="px-5 py-4 text-center">
+                    <td className="px-5 py-3.5 text-center">
                       <div className="skeleton mx-auto h-5 w-20 rounded-full" />
                     </td>
-                    <td className="px-5 py-4 text-right">
+                    <td className="px-5 py-3.5 text-right">
                       <div className="skeleton ml-auto h-7 w-7 rounded-lg" />
                     </td>
                   </tr>

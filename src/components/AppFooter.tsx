@@ -9,8 +9,8 @@ export function AppFooter() {
 
   return (
     <footer
-      className={`w-full text-center text-xs text-[var(--text-muted)] border-t border-[var(--border)]/40 ${
-        isAuthPage ? "py-6 mt-8" : "mt-auto py-8 px-4"
+      className={`w-full max-w-full overflow-hidden text-center text-xs text-[var(--text-muted)] border-t border-[var(--border)]/40 ${
+        isAuthPage ? "py-6 mt-8" : "mt-12 mb-2 py-6 px-4"
       }`}
     >
       <div className="mx-auto max-w-7xl flex flex-col items-center justify-center gap-1">
@@ -26,6 +26,14 @@ export function AppFooter() {
             <ExternalLink className="h-3 w-3" />
           </a>
         </p>
+        <a
+          href="https://themededits.vercel.app/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[11px] font-mono text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors"
+        >
+          https://themededits.vercel.app/
+        </a>
       </div>
     </footer>
   );

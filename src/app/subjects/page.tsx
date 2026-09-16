@@ -61,7 +61,7 @@ export default function SubjectsPage() {
       {loading ? (
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3].map((item) => (
-            <div key={item} className="card p-6 flex flex-col justify-between h-[184px]">
+            <div key={item} className="card p-6 flex flex-col justify-between">
               <div>
                 <div className="flex items-start justify-between">
                   <div className="skeleton h-11 w-11 rounded-xl" />

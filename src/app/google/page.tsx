@@ -54,9 +54,28 @@ export default function GooglePage() {
 
       <section className="mt-8 card p-6 sm:p-8">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-12 text-[var(--text-secondary)]">
-            <Loader2 className="h-7 w-7 animate-spin text-[var(--primary)]" />
-            <p className="mt-3 text-xs">Checking Google Sheets connection...</p>
+          <div>
+            <div className="flex items-start gap-4">
+              <div className="skeleton h-12 w-12 flex-none rounded-2xl" />
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <div className="skeleton h-2.5 w-2.5 rounded-full" />
+                  <div className="skeleton h-5 w-48 rounded" />
+                </div>
+                <div className="mt-2.5 skeleton h-3.5 w-full max-w-md rounded" />
+                <div className="mt-1.5 skeleton h-3.5 w-3/4 rounded" />
+              </div>
+            </div>
+
+            <div className="mt-6 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border)] p-4">
+              <div className="skeleton h-3 w-28 rounded" />
+              <div className="mt-2 skeleton h-4 w-64 rounded" />
+            </div>
+
+            <div className="mt-8 pt-6 border-t border-[var(--border)] flex flex-wrap items-center gap-3">
+              <div className="skeleton h-9 w-56 rounded-xl" />
+              <div className="skeleton h-9 w-32 rounded-xl" />
+            </div>
           </div>
         ) : (
           <>

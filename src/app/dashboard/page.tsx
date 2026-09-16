@@ -230,28 +230,34 @@ export default function DashboardPage() {
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Header Skeleton */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div className="space-y-2">
-            <div className="skeleton h-4 w-36 rounded-full" />
-            <div className="skeleton h-8 w-64 rounded-xl" />
-            <div className="skeleton h-4 w-72 rounded-md" />
+          <div>
+            <div className="flex items-center gap-2">
+              <div className="skeleton h-3.5 w-3.5 rounded-full" />
+              <div className="skeleton h-3.5 w-36 rounded-md" />
+            </div>
+            <div className="mt-1 skeleton h-8 sm:h-9 w-64 sm:w-72 rounded-xl" />
+            <div className="mt-1 skeleton h-4 w-72 sm:w-80 rounded-md" />
           </div>
-          <div className="flex gap-2.5">
-            <div className="skeleton h-9 w-28 rounded-xl" />
-            <div className="skeleton h-9 w-24 rounded-xl" />
+          <div className="flex flex-wrap gap-2.5">
+            <div className="skeleton h-[38px] w-32 rounded-xl" />
+            <div className="skeleton h-[38px] w-24 rounded-xl" />
           </div>
         </div>
 
-        {/* 3 KPI Stat Cards Skeleton */}
+        {/* 3 KPI Stat Cards Skeleton (Identical to StatCard component) */}
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3].map((item) => (
-            <div key={item} className="card p-5 flex flex-col justify-between h-[126px]">
+            <div key={item} className="card p-5 relative overflow-hidden flex flex-col justify-between">
               <div className="flex items-start justify-between">
-                <div className="skeleton h-10 w-10 rounded-xl" />
-                <div className="skeleton h-4 w-28 rounded-md" />
+                <div>
+                  <div className="skeleton h-3.5 w-28 rounded" />
+                  <div className="skeleton mt-2 h-9 w-20 rounded-lg" />
+                </div>
+                <div className="skeleton h-10 w-10 rounded-xl flex-none" />
               </div>
-              <div className="space-y-1">
-                <div className="skeleton h-8 w-16 rounded-lg" />
-                <div className="skeleton h-3.5 w-32 rounded-md" />
+              <div className="mt-4 pt-3 border-t border-[var(--border)] flex items-center justify-between">
+                <div className="skeleton h-3.5 w-36 rounded" />
+                {item === 3 && <div className="skeleton h-6 w-14 rounded-lg" />}
               </div>
             </div>
           ))}
@@ -260,32 +266,40 @@ export default function DashboardPage() {
         {/* Subjects Section Skeleton */}
         <section className="mt-10">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="space-y-1.5">
+            <div>
               <div className="skeleton h-6 w-44 rounded-lg" />
-              <div className="skeleton h-4 w-72 rounded-md" />
+              <div className="mt-1 skeleton h-4 w-72 rounded-md" />
             </div>
-            <div className="flex gap-2">
-              <div className="skeleton h-8 w-32 rounded-xl" />
-              <div className="skeleton h-8 w-44 rounded-xl" />
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="skeleton h-8 w-28 rounded-xl" />
+              <div className="skeleton h-8 w-28 rounded-xl" />
+              <div className="flex items-center gap-1.5">
+                <div className="skeleton h-8 w-44 rounded-xl" />
+                <div className="skeleton h-8 w-14 rounded-xl" />
+              </div>
             </div>
           </div>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3].map((item) => (
-              <div key={item} className="card p-5 flex flex-col justify-between h-[190px]">
+              <div key={item} className="card p-5 flex flex-col justify-between">
                 <div>
                   <div className="flex items-start justify-between">
                     <div className="skeleton h-10 w-10 rounded-xl" />
-                    <div className="skeleton h-5 w-20 rounded-full" />
+                    {item === 1 && <div className="skeleton h-5 w-20 rounded-full" />}
                   </div>
-                  <div className="mt-4 space-y-2">
-                    <div className="skeleton h-5 w-36 rounded-md" />
-                    <div className="skeleton h-3.5 w-48 rounded-md" />
+                  <div className="mt-4 block">
+                    <div className="skeleton h-5 w-40 rounded" />
+                    <div className="mt-2 flex items-center gap-1.5">
+                      <div className="skeleton h-3.5 w-3.5 rounded-full" />
+                      <div className="skeleton h-3.5 w-36 rounded" />
+                    </div>
                   </div>
                 </div>
                 <div className="mt-5 pt-3 border-t border-[var(--border)] flex items-center justify-between">
                   <div className="skeleton h-4 w-28 rounded-md" />
-                  <div className="flex gap-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <div className="skeleton h-7 w-7 rounded-lg" />
                     <div className="skeleton h-7 w-7 rounded-lg" />
                     <div className="skeleton h-7 w-7 rounded-lg" />
                   </div>
