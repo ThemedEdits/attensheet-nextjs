@@ -26,14 +26,6 @@ export function AppFooter() {
             <ExternalLink className="h-3 w-3" />
           </a>
         </p>
-        <a
-          href="https://themededits.vercel.app/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-[11px] font-mono text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors"
-        >
-          https://themededits.vercel.app/
-        </a>
       </div>
     </footer>
   );
