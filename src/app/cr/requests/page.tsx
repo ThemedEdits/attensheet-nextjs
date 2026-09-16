@@ -6,6 +6,7 @@ import { authHeaders } from "@/lib/client-auth";
 import { readApiResponse } from "@/lib/client-response";
 import { useToast } from "@/components/ToastProvider";
 import { updatePendingCount } from "@/lib/session-cache";
+import { ActionModal } from "@/components/ActionModal";
 import { 
   ArrowLeft, 
   UserCheck, 
@@ -13,6 +14,7 @@ import {
   User, 
   Check, 
   X, 
+  CheckCheck,
   AlertCircle, 
   Sparkles,
   Loader2 
@@ -26,7 +28,30 @@ export default function RequestsPage() {
   const [counts, setCounts] = useState({ students: 0, teachers: 0 });
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [confirmBulk, setConfirmBulk] = useState<"approve_all" | "reject_all" | null>(null);
   const toast = useToast();
+
+  async function handleBulkAction(action: "approve_all" | "reject_all") {
+    setBulkBusy(true);
+    try {
+      const response = await fetch("/api/requests", {
+        method: "PATCH",
+        headers: await authHeaders(true),
+        body: JSON.stringify({ action }),
+      });
+      const result = await readApiResponse(response);
+      if (!response.ok) throw new Error(String(result.error ?? "Failed to process bulk requests."));
+      await load();
+      updatePendingCount(0);
+      toast(String(result.message ?? "Requests processed successfully."), "success");
+      setConfirmBulk(null);
+    } catch (error) {
+      toast(error instanceof Error ? error.message : "Failed to process bulk requests.", "error");
+    } finally {
+      setBulkBusy(false);
+    }
+  }
 
   async function load() {
     try {
@@ -104,8 +129,42 @@ export default function RequestsPage() {
           </p>
         </div>
 
-        {/* Counter Badges */}
-        <div className="flex items-center gap-2">
+        {/* Action Controls & Counter Badges */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          {items.length > 0 && (
+            <div className="flex items-center gap-2 mr-1">
+              <button
+                type="button"
+                disabled={bulkBusy}
+                onClick={() => setConfirmBulk("approve_all")}
+                className="button-primary text-xs py-2 px-3.5 inline-flex items-center gap-1.5"
+                title="Approve all pending requests"
+              >
+                {bulkBusy && confirmBulk === "approve_all" ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <CheckCheck className="h-4 w-4" />
+                )}
+                <span>Approve all</span>
+              </button>
+
+              <button
+                type="button"
+                disabled={bulkBusy}
+                onClick={() => setConfirmBulk("reject_all")}
+                className="button-secondary text-xs py-2 px-3.5 inline-flex items-center gap-1.5 text-red-400 hover:text-red-300 hover:border-red-500/30"
+                title="Reject all pending requests"
+              >
+                {bulkBusy && confirmBulk === "reject_all" ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <X className="h-4 w-4" />
+                )}
+                <span>Reject all</span>
+              </button>
+            </div>
+          )}
+
           <span className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)]">
             Students: <strong className="text-white font-semibold">{counts.students}</strong>
           </span>
@@ -114,6 +173,24 @@ export default function RequestsPage() {
           </span>
         </div>
       </div>
+
+      {confirmBulk && (
+        <ActionModal
+          title={confirmBulk === "approve_all" ? "Approve All Requests?" : "Reject All Requests?"}
+          description={
+            confirmBulk === "approve_all"
+              ? `Are you sure you want to approve all ${items.length} pending request(s)? Any approved students will be enrolled into the class roster and synchronized with Google Sheets.`
+              : `Are you sure you want to reject all ${items.length} pending request(s)? This will decline access for all students and teachers currently awaiting approval.`
+          }
+          confirmLabel={confirmBulk === "approve_all" ? "Approve All" : "Reject All"}
+          danger={confirmBulk === "reject_all"}
+          disabled={bulkBusy}
+          onConfirm={() => void handleBulkAction(confirmBulk)}
+          onClose={() => {
+            if (!bulkBusy) setConfirmBulk(null);
+          }}
+        />
+      )}
 
       {message && (
         <div className="mt-6 flex items-start gap-2.5 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-xs sm:text-sm text-red-200">

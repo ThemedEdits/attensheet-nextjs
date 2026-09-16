@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ShieldCheck, GraduationCap, User, ArrowRight, Check, Loader2, AlertCircle } from "lucide-react";
 import type { Role } from "@/lib/domain";
+import { toTitleCase } from "@/lib/title-case";
 
 const roles: { 
   value: Role; 
@@ -56,13 +57,14 @@ export default function CompleteProfilePage() {
   async function save(event: React.FormEvent) {
     event.preventDefault();
     setBusy(true);
+    const formattedName = toTitleCase(name);
     try {
       await setDoc(
         doc(firestore, "users", uid),
         {
           uid,
           email: firebaseAuth.currentUser?.email,
-          name,
+          name: formattedName,
           role,
           profileCompleted: true,
           photoURL: firebaseAuth.currentUser?.photoURL ?? "",
@@ -107,7 +109,10 @@ export default function CompleteProfilePage() {
               required
               minLength={2}
               value={name}
-              onBlur={() => setNameTouched(true)}
+              onBlur={() => {
+                setNameTouched(true);
+                if (name.trim()) setName(toTitleCase(name));
+              }}
               onChange={(e) => setName(e.target.value)}
               className={`field mt-1.5 transition-all ${
                 nameTouched && !name.trim() ? "border-red-500/70 ring-1 ring-red-500/20 bg-red-500/[0.02]" : ""

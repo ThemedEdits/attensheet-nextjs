@@ -10,6 +10,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { authHeaders } from "@/lib/client-auth";
 import { readApiResponse } from "@/lib/client-response";
 import { useToast } from "@/components/ToastProvider";
+import { toTitleCase } from "@/lib/title-case";
 import { ArrowLeft, Sparkles, Building2, BookOpen, Layers, Calendar, GraduationCap, Hash, AlertCircle, Loader2, ArrowRight, CheckCircle2 } from "lucide-react";
 
 function ClassSetupForm() {
@@ -135,9 +136,9 @@ function ClassSetupForm() {
           status: "approved",
           isPrimaryCr: true,
           isSecondaryCr: false,
-          fullName: user.displayName || "Class Representative",
+          fullName: toTitleCase(user.displayName || "Class Representative"),
           seatNumber: selfSeatNumber.trim(),
-          fatherName: selfFatherName.trim(),
+          fatherName: toTitleCase(selfFatherName),
           email: user.email || "",
           approvedAt: serverTimestamp(),
           createdAt: serverTimestamp(),

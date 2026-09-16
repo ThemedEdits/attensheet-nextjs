@@ -22,7 +22,52 @@ export async function GET(request: Request) {
       const membership = memberships.docs.find((item) => item.data().status === "approved");
       classSnap = membership ? await db.collection("classes").doc(String(membership.data().classId)).get() : undefined;
     }
-    if (!classSnap?.exists) return NextResponse.json({ profile, class: null, subjects: [], memberCount: 0, attendance: [] });
+    if (!classSnap?.exists) {
+      let pendingRequest = null;
+      if (profile.role === "student" || profile.role === "teacher") {
+        const collection = profile.role === "student" ? "studentRequests" : "teacherRequests";
+        const identityField = profile.role === "student" ? "studentUid" : "teacherUid";
+        const reqSnap = await db
+          .collection(collection)
+          .where(identityField, "==", user.uid)
+          .where("status", "==", "pending")
+          .limit(1)
+          .get();
+        if (!reqSnap.empty) {
+          const reqDoc = reqSnap.docs[0];
+          const reqData = reqDoc.data();
+          const targetClassDoc = await db.collection("classes").doc(String(reqData.classId)).get();
+          if (targetClassDoc.exists) {
+            const tcData = targetClassDoc.data()!;
+            const crSnap = await db.collection("users").doc(tcData.crUid).get();
+            pendingRequest = {
+              id: reqDoc.id,
+              classId: targetClassDoc.id,
+              className: tcData.className || "Class",
+              department: tcData.department || "",
+              university: tcData.university || "",
+              section: tcData.section || "",
+              semester: tcData.semester || "",
+              classCode: tcData.classCode || reqData.classCode || "",
+              crName: crSnap.data()?.name || "Class Representative",
+              seatNumber: reqData.seatNumber || "",
+              fullName: reqData.fullName || profile.name || "",
+              fatherName: reqData.fatherName || "",
+              status: "pending",
+              createdAt: reqData.createdAt?.toDate ? reqData.createdAt.toDate().toISOString() : null,
+            };
+          }
+        }
+      }
+      return NextResponse.json({
+        profile,
+        class: null,
+        pendingRequest,
+        subjects: [],
+        memberCount: 0,
+        attendance: [],
+      });
+    }
 
     const classData = classSnap.data() ?? {};
     const classId = classSnap.id;

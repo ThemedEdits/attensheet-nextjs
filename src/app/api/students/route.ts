@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { authenticated, unauthorized } from "@/lib/server-auth";
 import { getAdminDb } from "@/lib/firebase-admin";
+import { toTitleCase } from "@/lib/title-case";
 
 export const runtime = "nodejs";
 
@@ -155,8 +156,8 @@ export async function PATCH(request: Request) {
       }
 
       await memRef.update({
-        fullName: String(fullName).trim(),
-        fatherName: String(fatherName ?? "").trim(),
+        fullName: toTitleCase(String(fullName)),
+        fatherName: toTitleCase(String(fatherName ?? "")),
         seatNumber: String(seatNumber).trim(),
         updatedAt: FieldValue.serverTimestamp(),
       });
@@ -169,8 +170,8 @@ export async function PATCH(request: Request) {
         .get();
       if (!reqSnap.empty) {
         await reqSnap.docs[0].ref.update({
-          fullName: String(fullName).trim(),
-          fatherName: String(fatherName ?? "").trim(),
+          fullName: toTitleCase(String(fullName)),
+          fatherName: toTitleCase(String(fatherName ?? "")),
           seatNumber: String(seatNumber).trim(),
           updatedAt: FieldValue.serverTimestamp(),
         });
@@ -299,7 +300,8 @@ export async function PATCH(request: Request) {
 
       const crUserSnap = await db.collection("users").doc(user.uid).get();
       const crUserData = crUserSnap.data() || {};
-      const resolvedName = (fullName || crUserData.name || user.displayName || "Class Representative").trim();
+      const resolvedName = toTitleCase(fullName || crUserData.name || user.displayName || "Class Representative");
+      const formattedFatherName = toTitleCase(fatherName);
 
       const crMemRef = db.collection("memberships").doc(`${classId}_${user.uid}`);
       await crMemRef.set({
@@ -310,7 +312,7 @@ export async function PATCH(request: Request) {
         isPrimaryCr: true,
         isSecondaryCr: false,
         fullName: resolvedName,
-        fatherName: String(fatherName ?? "").trim(),
+        fatherName: formattedFatherName,
         seatNumber: String(seatNumber).trim(),
         email: crUserData.email || user.email || "",
         approvedAt: FieldValue.serverTimestamp(),
@@ -327,7 +329,7 @@ export async function PATCH(request: Request) {
           await addStudentToAttendanceTabs(user.uid, clsData.spreadsheetId, tabNames, {
             uid: user.uid,
             fullName: resolvedName,
-            fatherName: String(fatherName ?? "").trim(),
+            fatherName: formattedFatherName,
             seatNumber: String(seatNumber).trim(),
           });
         } catch (syncErr) {

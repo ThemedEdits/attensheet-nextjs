@@ -41,8 +41,53 @@ export async function POST(request: Request) {
       const seatPending = existing.docs.some((item) => item.data().classId === cls.id && item.data().status === "pending" && String(item.data().seatNumber).toLowerCase() === values.seatNumber.toLowerCase());
       if (seatTaken || seatPending) return NextResponse.json({ error: "That seat number is already in use or awaiting approval." }, { status: 409 });
     }
-    const id = await repositories.createRequest(collection, { classId: cls.id, classCode: String(cls.classCode), ...(profile.role === "student" ? { studentUid: user.uid, fullName: values.fullName, fatherName: values.fatherName, seatNumber: values.seatNumber } : { teacherUid: user.uid, fullName: profile.name, email: profile.email }) });
-    return NextResponse.json({ id, status: "pending" }, { status: 201 });
+    const { toTitleCase } = await import("@/lib/title-case");
+    const id = await repositories.createRequest(collection, {
+      classId: cls.id,
+      classCode: String(cls.classCode),
+      ...(profile.role === "student"
+        ? {
+            studentUid: user.uid,
+            fullName: toTitleCase(typeof values.fullName === "string" ? values.fullName : ""),
+            fatherName: toTitleCase(typeof values.fatherName === "string" ? values.fatherName : ""),
+            seatNumber: String(values.seatNumber ?? "").trim(),
+          }
+        : {
+            teacherUid: user.uid,
+            fullName: toTitleCase(typeof profile.name === "string" ? profile.name : ""),
+            email: profile.email,
+          }),
+    });
+    const crUid = typeof cls.crUid === "string" ? cls.crUid : String(cls.crUid ?? "");
+    const crSnap = crUid ? await db.collection("users").doc(crUid).get() : null;
+    return NextResponse.json(
+      {
+        id,
+        status: "pending",
+        pendingRequest: {
+          id,
+          classId: cls.id,
+          className: cls.className || "Class",
+          department: cls.department || "",
+          university: cls.university || "",
+          section: cls.section || "",
+          semester: cls.semester || "",
+          classCode: String(cls.classCode),
+          crName: crSnap?.data()?.name || "Class Representative",
+          seatNumber: values.seatNumber || "",
+          fullName: toTitleCase(
+            typeof values.fullName === "string"
+              ? values.fullName
+              : typeof profile.name === "string"
+              ? profile.name
+              : ""
+          ),
+          fatherName: toTitleCase(typeof values.fatherName === "string" ? values.fatherName : ""),
+          status: "pending",
+        },
+      },
+      { status: 201 }
+    );
   } catch (error) {
     console.error("Class join failed", error);
     return NextResponse.json({ error: "Unable to process class join request. Please try again." }, { status: 500 });

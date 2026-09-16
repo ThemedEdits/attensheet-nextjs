@@ -1,32 +1,81 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { authHeaders } from "@/lib/client-auth";
 import { readApiResponse } from "@/lib/client-response";
+import { toTitleCase } from "@/lib/title-case";
+import { PendingRequestCard, type PendingClassRequest } from "@/components/PendingRequestCard";
 import { ArrowLeft, KeyRound, AlertCircle, CheckCircle2, Loader2, ArrowRight } from "lucide-react";
 
 export default function JoinPage() {
   const [code, setCode] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [fatherName, setFatherName] = useState("");
+  const [seatNumber, setSeatNumber] = useState("");
   const [message, setMessage] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [checkingExisting, setCheckingExisting] = useState(true);
+  const [pendingRequest, setPendingRequest] = useState<PendingClassRequest | null>(null);
+
+  const checkPendingStatus = async () => {
+    try {
+      const response = await fetch("/api/dashboard", { headers: await authHeaders() });
+      const result = await readApiResponse(response);
+      if (response.ok && result.pendingRequest) {
+        setPendingRequest(result.pendingRequest as PendingClassRequest);
+      } else {
+        setPendingRequest(null);
+      }
+    } catch {
+      // Ignore initial background check error
+    } finally {
+      setCheckingExisting(false);
+    }
+  };
+
+  useEffect(() => {
+    void checkPendingStatus();
+  }, []);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
     setMessage("");
     setIsSuccess(false);
+
+    const formattedFullName = toTitleCase(fullName);
+    const formattedFatherName = toTitleCase(fatherName);
+
     try {
-      const data = Object.fromEntries(new FormData(event.currentTarget));
       const response = await fetch("/api/class/join", {
         method: "POST",
         headers: await authHeaders(true),
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          classCode: code.trim(),
+          fullName: formattedFullName,
+          fatherName: formattedFatherName,
+          seatNumber: seatNumber.trim(),
+        }),
       });
       const result = await readApiResponse(response);
       if (response.ok) {
         setIsSuccess(true);
+        if (result.pendingRequest) {
+          setPendingRequest(result.pendingRequest as PendingClassRequest);
+        } else {
+          setPendingRequest({
+            id: String(result.id ?? "pending"),
+            classId: "",
+            className: "Class Workspace",
+            classCode: code.trim(),
+            fullName: formattedFullName,
+            fatherName: formattedFatherName,
+            seatNumber: seatNumber.trim(),
+            status: "pending",
+          });
+        }
         setMessage("Request submitted! Your Class Representative must approve it before you can view subjects.");
       } else {
         setMessage(String(result.error ?? "Unable to join class. Please verify the code."));
@@ -55,10 +104,12 @@ export default function JoinPage() {
           <span>Class Enrollment</span>
         </div>
         <h1 className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-3xl">
-          Enter Your Class Code
+          {pendingRequest ? "Your Enrollment Request" : "Enter Your Class Code"}
         </h1>
         <p className="mt-1 text-xs sm:text-sm text-[var(--text-secondary)]">
-          Ask your Class Representative for the 8-character class code to request membership.
+          {pendingRequest 
+            ? "You have already submitted a join request. Here are your class and application details."
+            : "Ask your Class Representative for the 8-character class code to request membership."}
         </p>
       </div>
 
@@ -77,76 +128,101 @@ export default function JoinPage() {
         </div>
       )}
 
-      <form onSubmit={submit} className="mt-8 card p-6 sm:p-8 space-y-4">
-        <div>
-          <label className="block text-xs font-medium text-[var(--text-secondary)]">
-            Class Access Code
-          </label>
-          <input
-            name="classCode"
-            required
-            value={code}
-            onChange={(event) => setCode(event.target.value.toUpperCase())}
-            className="field mt-1.5 text-center font-mono text-lg font-bold tracking-widest uppercase"
-            placeholder="ABCD-2345"
-            maxLength={9}
+      {checkingExisting ? (
+        <div className="mt-8 card p-8 text-center animate-pulse">
+          <div className="h-6 w-48 mx-auto rounded bg-[var(--surface-elevated)]" />
+          <div className="mt-3 h-4 w-64 mx-auto rounded bg-[var(--surface-elevated)]" />
+        </div>
+      ) : pendingRequest ? (
+        <div className="mt-8">
+          <PendingRequestCard 
+            request={pendingRequest}
+            onRefresh={checkPendingStatus}
           />
         </div>
-
-        <div>
-          <label className="block text-xs font-medium text-[var(--text-secondary)]">
-            Your Full Name
-          </label>
-          <input
-            name="fullName"
-            required
-            className="field mt-1.5"
-            placeholder="e.g. Hammad Ahmed"
-          />
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
+      ) : (
+        <form onSubmit={submit} className="mt-8 card p-6 sm:p-8 space-y-4">
           <div>
             <label className="block text-xs font-medium text-[var(--text-secondary)]">
-              Father Name <span className="text-[var(--text-muted)]">(for students)</span>
+              Class Access Code
             </label>
             <input
-              name="fatherName"
+              name="classCode"
+              required
+              value={code}
+              onChange={(event) => setCode(event.target.value.toUpperCase())}
+              className="field mt-1.5 text-center font-mono text-lg font-bold tracking-widest uppercase"
+              placeholder="ABCD-2345"
+              maxLength={9}
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-[var(--text-secondary)]">
+              Your Full Name
+            </label>
+            <input
+              name="fullName"
+              required
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              onBlur={() => {
+                if (fullName.trim()) setFullName(toTitleCase(fullName));
+              }}
               className="field mt-1.5"
-              placeholder="e.g. Tariq Ahmed"
+              placeholder="e.g. Hammad Ahmed"
             />
           </div>
 
-          <div>
-            <label className="block text-xs font-medium text-[var(--text-secondary)]">
-              Seat Number <span className="text-[var(--text-muted)]">(for students)</span>
-            </label>
-            <input
-              name="seatNumber"
-              className="field mt-1.5 font-mono"
-              placeholder="e.g. EP1950001"
-            />
-          </div>
-        </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="block text-xs font-medium text-[var(--text-secondary)]">
+                Father Name <span className="text-[var(--text-muted)]">(for students)</span>
+              </label>
+              <input
+                name="fatherName"
+                value={fatherName}
+                onChange={(e) => setFatherName(e.target.value)}
+                onBlur={() => {
+                  if (fatherName.trim()) setFatherName(toTitleCase(fatherName));
+                }}
+                className="field mt-1.5"
+                placeholder="e.g. Tariq Ahmed"
+              />
+            </div>
 
-        <button
-          disabled={busy || !code.trim()}
-          className="button-primary w-full mt-4 py-3"
-        >
-          {busy ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Submitting request...</span>
-            </>
-          ) : (
-            <>
-              <span>Request to Join Class</span>
-              <ArrowRight className="h-4 w-4" />
-            </>
-          )}
-        </button>
-      </form>
+            <div>
+              <label className="block text-xs font-medium text-[var(--text-secondary)]">
+                Seat Number <span className="text-[var(--text-muted)]">(for students)</span>
+              </label>
+              <input
+                name="seatNumber"
+                value={seatNumber}
+                onChange={(e) => setSeatNumber(e.target.value)}
+                className="field mt-1.5 font-mono"
+                placeholder="e.g. EP1950001"
+              />
+            </div>
+          </div>
+
+          <button
+            disabled={busy || !code.trim()}
+            className="button-primary w-full mt-4 py-3"
+          >
+            {busy ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Submitting request...</span>
+              </>
+            ) : (
+              <>
+                <span>Request to Join Class</span>
+                <ArrowRight className="h-4 w-4" />
+              </>
+            )}
+          </button>
+        </form>
+      )}
     </main>
   );
 }
-
