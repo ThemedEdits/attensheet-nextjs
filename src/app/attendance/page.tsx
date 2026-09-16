@@ -55,10 +55,30 @@ function AttendanceContent() {
   const rawClassId = params.get("classId");
   const rawSubjectId = params.get("subjectId");
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
-  const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null);
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(rawSubjectId);
   const classId = rawClassId || selectedClassId;
-  const subjectId = rawSubjectId || selectedSubjectId;
+  const subjectId = selectedSubjectId || rawSubjectId;
   const [availableSubjects, setAvailableSubjects] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    if (rawSubjectId) {
+      setSelectedSubjectId(rawSubjectId);
+    }
+  }, [rawSubjectId]);
+
+  const handleSubjectChange = (newSubjectId: string) => {
+    if (newSubjectId === subjectId) return;
+    setSelectedSubjectId(newSubjectId);
+    setSearch("");
+    const targetClassId = classId || "";
+    if (targetClassId) {
+      router.replace(
+        `/attendance?classId=${encodeURIComponent(targetClassId)}&subjectId=${encodeURIComponent(newSubjectId)}`
+      );
+    } else {
+      router.replace(`/attendance?subjectId=${encodeURIComponent(newSubjectId)}`);
+    }
+  };
 
   useEffect(() => {
     if (!authReady) return;
@@ -91,7 +111,7 @@ function AttendanceContent() {
         setLoading(false);
       }
     })();
-  }, [authReady, classId, subjectId, rawSubjectId, router]);
+  }, [authReady, router]);
 
   const load = useCallback(async () => {
     if (!classId || !subjectId) {
@@ -288,7 +308,7 @@ function AttendanceContent() {
                 value={subjectId ?? ""}
                 options={availableSubjects.map((s) => ({ value: s.id, label: s.name }))}
                 placeholder="Switch subject"
-                onChange={(val) => setSelectedSubjectId(val)}
+                onChange={handleSubjectChange}
               />
             </div>
           )}

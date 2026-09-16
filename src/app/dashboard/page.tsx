@@ -342,15 +342,17 @@ export default function DashboardPage() {
               ? "Set up your department, semester, and subjects. Google Sheets will synchronize automatically."
               : "Ask your Class Representative for your 8-digit class code to access daily subjects and attendance."}
           </p>
-          <div className="mt-6">
-            <Link
-              href={profile?.role === "cr" ? "/cr/setup" : "/join"}
-              className="button-primary"
-            >
-              <span>{profile?.role === "cr" ? "Set up class" : "Enter class code"}</span>
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
+          {profile?.role === "cr" && (
+            <div className="mt-6">
+              <Link
+                href="/cr/setup"
+                className="button-primary"
+              >
+                <span>Set up class</span>
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+          )}
         </div>
       ) : (
         <>
