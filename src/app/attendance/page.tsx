@@ -9,6 +9,7 @@ import { authHeaders } from "@/lib/client-auth";
 import { readApiResponse } from "@/lib/client-response";
 import { karachiDate } from "@/lib/domain";
 import { ActionModal } from "@/components/ActionModal";
+import { CustomSelect } from "@/components/CustomSelect";
 import { useToast } from "@/components/ToastProvider";
 import { 
   ArrowLeft, 
@@ -180,8 +181,11 @@ function AttendanceContent() {
   };
 
   // Quick-mark student when pressing Enter on single search match
-  const handleSearchEnter = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
+  const handleSearchEnter = (e?: React.SyntheticEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     if (!canEdit) return;
     if (filteredStudents.length === 1) {
       const student = filteredStudents[0];
@@ -191,10 +195,6 @@ function AttendanceContent() {
       }));
       setSearch("");
       searchInputRef.current?.focus();
-      toast(
-        `Marked ${student.seatNumber ? `#${student.seatNumber} ` : ""}${student.fullName ?? "Student"} Present`,
-        "success"
-      );
     }
   };
 
@@ -267,7 +267,7 @@ function AttendanceContent() {
       </div>
 
       {/* Header Section */}
-      <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
             {subjectName} Roll Call
@@ -277,78 +277,20 @@ function AttendanceContent() {
           </p>
         </div>
 
-        {/* Filters: Search & Date Picker & Subject Switcher */}
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-3">
           {availableSubjects.length > 1 && (
-            <select
-              value={subjectId ?? ""}
-              onChange={(e) => setSelectedSubjectId(e.target.value)}
-              className="field py-2 px-3 text-xs w-auto max-w-[180px] cursor-pointer"
-              title="Switch subject"
-            >
-              {availableSubjects.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          )}
-
-          {/* Search Box with Quick-Mark Enter */}
-          <form
-            onSubmit={handleSearchEnter}
-            className="relative flex-1 sm:w-60"
-          >
-            <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--text-muted)]" />
-            <input
-              ref={searchInputRef}
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  handleSearchEnter();
-                }
-              }}
-              enterKeyHint="go"
-              className="field pl-9 pr-7 py-2 text-xs"
-              placeholder="Search student or seat #"
-            />
-            {search && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSearch("");
-                  searchInputRef.current?.focus();
-                }}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-white"
-              >
-                <X className="h-3 w-3" />
-              </button>
-            )}
-          </form>
-
-          {/* Date Picker & Today Shortcut */}
-          <div className="flex items-center gap-1.5">
-            <div className="relative">
-              <input
-                type="date"
-                value={date}
-                max={today}
-                onChange={(event) => setDate(event.target.value)}
-                className="field py-1.5 px-3 text-xs w-36 cursor-pointer"
+            <div className="w-48">
+              <CustomSelect
+                value={subjectId ?? ""}
+                options={availableSubjects.map((s) => ({ value: s.id, label: s.name }))}
+                placeholder="Switch subject"
+                onChange={(val) => setSelectedSubjectId(val)}
               />
             </div>
-            {!isToday && (
-              <button
-                type="button"
-                onClick={() => setDate(today)}
-                className="button-secondary text-xs py-2 px-2.5 whitespace-nowrap"
-                title="Jump to today"
-              >
-                Today
-              </button>
-            )}
+          )}
+          <div className="flex items-center gap-2 text-xs font-semibold">
+            <span className="badge-present">{presentCount} Present</span>
+            <span className="badge-absent">{students.length - presentCount} Absent</span>
           </div>
         </div>
       </div>
@@ -380,17 +322,11 @@ function AttendanceContent() {
               : "This date has already been committed to the master register and cannot be altered."}
           </p>
         </div>
-
-        {/* Live Counters */}
-        <div className="hidden sm:flex items-center gap-3 text-xs font-semibold">
-          <span className="badge-present">{presentCount} Present</span>
-          <span className="badge-absent">{students.length - presentCount} Absent</span>
-        </div>
       </div>
 
       {message && <p className="mt-4 text-xs text-[var(--text-secondary)]">{message}</p>}
 
-      {/* Roll Call Quick Actions for Teachers */}
+      {/* Roll Call Quick Actions (Mark all / Clear all) */}
       {canEdit && (
         <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
           <div className="flex items-center gap-2">
@@ -418,8 +354,66 @@ function AttendanceContent() {
         </div>
       )}
 
+      {/* Search Bar Box & Date Selector (Positioned right above table headers and below Mark all/Clear all) */}
+      <div className="mt-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        {/* Search Box with Quick-Mark Enter */}
+        <div className="relative flex-1 sm:max-w-md">
+          <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--text-muted)]" />
+          <input
+            ref={searchInputRef}
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                event.stopPropagation();
+                handleSearchEnter(event);
+              }
+            }}
+            enterKeyHint="go"
+            className="field pl-9 pr-7 py-2 text-xs"
+            placeholder="Search student or seat # (Enter to mark)"
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearch("");
+                searchInputRef.current?.focus();
+              }}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-white"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          )}
+        </div>
+
+        {/* Date Selector & Today Shortcut */}
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <div className="relative">
+            <input
+              type="date"
+              value={date}
+              max={today}
+              onChange={(event) => setDate(event.target.value)}
+              className="field py-1.5 px-3 text-xs w-36 cursor-pointer font-mono"
+            />
+          </div>
+          {!isToday && (
+            <button
+              type="button"
+              onClick={() => setDate(today)}
+              className="button-secondary text-xs py-1.5 px-3 whitespace-nowrap"
+              title="Jump to today"
+            >
+              Today
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Main Student Attendance List / Table */}
-      <section className="mt-6 card overflow-hidden">
+      <section className="mt-4 card overflow-hidden">
         {/* Desktop Table View (hidden on small mobile screens) */}
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-sm">

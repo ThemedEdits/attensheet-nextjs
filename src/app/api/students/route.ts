@@ -198,13 +198,13 @@ export async function PATCH(request: Request) {
               ["Seat number", "Student name", "Father name", ...dates, "Total"],
               ...allMembers.docs.sort((a, b) => String(a.data().seatNumber ?? "").localeCompare(String(b.data().seatNumber ?? ""), undefined, { numeric: true })).map((d) => {
                 const s = d.data();
-                const statuses = dates.map((date) => byStudent.get(`${s.uid}_${date}`)?.present ? "Present" : byStudent.has(`${s.uid}_${date}`) ? "Absent" : "");
+                const statuses = dates.map((date) => byStudent.get(`${s.uid}_${date}`)?.present ? "1" : byStudent.has(`${s.uid}_${date}`) ? "0" : "");
                 return [
                   String(s.seatNumber ?? ""),
                   String(s.fullName ?? ""),
                   String(s.fatherName ?? ""),
                   ...statuses,
-                  `${statuses.filter((st) => st === "Present").length}/${statuses.filter(Boolean).length}`
+                  `${statuses.filter((st) => st === "1").length}/${statuses.filter(Boolean).length}`
                 ];
               })
             ];
@@ -440,13 +440,13 @@ export async function DELETE(request: Request) {
             ["Seat number", "Student name", "Father name", ...dates, "Total"],
             ...remainingMembers.docs.sort((a, b) => String(a.data().seatNumber ?? "").localeCompare(String(b.data().seatNumber ?? ""), undefined, { numeric: true })).map((d) => {
               const s = d.data();
-              const statuses = dates.map((date) => byStudent.get(`${s.uid}_${date}`)?.present ? "Present" : byStudent.has(`${s.uid}_${date}`) ? "Absent" : "");
+              const statuses = dates.map((date) => byStudent.get(`${s.uid}_${date}`)?.present ? "1" : byStudent.has(`${s.uid}_${date}`) ? "0" : "");
               return [
                 String(s.seatNumber ?? ""),
                 String(s.fullName ?? ""),
                 String(s.fatherName ?? ""),
                 ...statuses,
-                `${statuses.filter((st) => st === "Present").length}/${statuses.filter(Boolean).length}`
+                `${statuses.filter((st) => st === "1").length}/${statuses.filter(Boolean).length}`
               ];
             })
           ];

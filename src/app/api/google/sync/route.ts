@@ -21,8 +21,8 @@ export async function POST(request: Request) {
     ["Seat number", "Student name", "Father name", ...dates, "Total"],
     ...members.docs.filter((d) => d.data().role === "student" && d.data().status === "approved").sort((a, b) => String(a.data().seatNumber ?? "").localeCompare(String(b.data().seatNumber ?? ""))).map((d) => {
       const student = d.data();
-      const statuses = dates.map((date) => byStudent.get(`${student.uid}_${date}`)?.present ? "Present" : byStudent.has(`${student.uid}_${date}`) ? "Absent" : "");
-      return [String(student.seatNumber ?? ""), String(student.fullName ?? ""), String(student.fatherName ?? ""), ...statuses, `${statuses.filter((status) => status === "Present").length}/${statuses.filter(Boolean).length}`];
+      const statuses = dates.map((date) => byStudent.get(`${student.uid}_${date}`)?.present ? "1" : byStudent.has(`${student.uid}_${date}`) ? "0" : "");
+      return [String(student.seatNumber ?? ""), String(student.fullName ?? ""), String(student.fatherName ?? ""), ...statuses, `${statuses.filter((status) => status === "1").length}/${statuses.filter(Boolean).length}`];
     }),
   ];
   await syncAttendanceMatrix(user.uid, spreadsheetId, subject.data()?.name ?? "Attendance", values);

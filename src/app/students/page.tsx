@@ -9,6 +9,7 @@ import { authHeaders } from "@/lib/client-auth";
 import { readApiResponse } from "@/lib/client-response";
 import { useToast } from "@/components/ToastProvider";
 import { ActionModal } from "@/components/ActionModal";
+import { CustomSelect } from "@/components/CustomSelect";
 import {
   ArrowLeft,
   Search,
@@ -542,18 +543,18 @@ export default function StudentsPage() {
           </div>
 
           {/* Sort Dropdown */}
-          <div className="relative">
-            <select
+          <div className="w-48 sm:w-52">
+            <CustomSelect
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as SortOption)}
-              className="field py-1.5 px-3 text-xs w-auto cursor-pointer"
-              title="Sort order"
-            >
-              <option value="seat_asc">Seat # (Lowest First)</option>
-              <option value="seat_desc">Seat # (Highest First)</option>
-              <option value="name_asc">Name (A-Z)</option>
-              <option value="name_desc">Name (Z-A)</option>
-            </select>
+              options={[
+                { value: "seat_asc", label: "Seat # (Lowest First)" },
+                { value: "seat_desc", label: "Seat # (Highest First)" },
+                { value: "name_asc", label: "Name (A-Z)" },
+                { value: "name_desc", label: "Name (Z-A)" },
+              ]}
+              placeholder="Sort order"
+              onChange={(val) => setSortBy(val as SortOption)}
+            />
           </div>
         </div>
       </div>
@@ -702,44 +703,47 @@ export default function StudentsPage() {
 
       {/* Action Modal for Selected Student */}
       {selectedStudent && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/75 p-4 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="w-full max-w-lg rounded-2xl border border-[var(--border-hover)] bg-[var(--surface)] p-6 shadow-2xl relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-150">
+          <div className="w-full max-w-md my-auto rounded-2xl border border-[var(--border-hover)] bg-[var(--surface)] p-4 sm:p-6 shadow-2xl relative flex flex-col max-h-[90vh] overflow-hidden">
             {/* Close Button */}
             <button
               type="button"
               onClick={closeActionModal}
-              className="absolute right-4 top-4 rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-white transition-colors"
+              className="absolute right-3.5 top-3.5 z-10 grid h-8 w-8 place-items-center rounded-xl text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-white transition-colors"
+              aria-label="Close modal"
             >
               <X className="h-4 w-4" />
             </button>
 
             {/* Student Header Monogram & Name */}
-            <div className="flex items-center gap-3.5 pb-4 border-b border-[var(--border)]">
-              <div className="grid h-11 w-11 flex-none place-items-center rounded-xl bg-[var(--surface-elevated)] border border-[var(--border)] text-sm font-bold text-[var(--accent)]">
+            <div className="flex items-center gap-3 pr-8 pb-4 border-b border-[var(--border)] flex-none">
+              <div className="grid h-10 w-10 sm:h-11 sm:w-11 flex-none place-items-center rounded-xl bg-[var(--surface-elevated)] border border-[var(--border)] text-sm font-bold text-[var(--accent)]">
                 {selectedStudent.fullName.charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-base font-bold text-white truncate">{selectedStudent.fullName}</h3>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-sm sm:text-base font-bold text-white truncate max-w-[160px] sm:max-w-[200px]">
+                    {selectedStudent.fullName}
+                  </h3>
                   {selectedStudent.isPrimaryCr ? (
-                    <span className="badge-present text-[10px]">Class Rep</span>
+                    <span className="badge-present text-[10px] py-0 px-2">CR</span>
                   ) : selectedStudent.isSecondaryCr ? (
                     <span className="rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2 py-0.5 text-[10px] font-semibold">
                       2nd CR
                     </span>
                   ) : (
-                    <span className="badge-neutral text-[10px]">Student</span>
+                    <span className="badge-neutral text-[10px] py-0 px-2">Student</span>
                   )}
                 </div>
-                <p className="text-xs text-[var(--text-secondary)] font-mono truncate">
-                  Seat #{selectedStudent.seatNumber || "Unassigned"} · {selectedStudent.email}
+                <p className="text-xs text-[var(--text-secondary)] font-mono truncate mt-0.5">
+                  Seat #{selectedStudent.seatNumber || "—"} · <span className="text-[var(--text-muted)]">{selectedStudent.email}</span>
                 </p>
               </div>
             </div>
 
             {/* Modal Body: Option Menu View */}
             {actionTab === "menu" && (
-              <div className="mt-5 space-y-2.5">
+              <div className="overflow-y-auto flex-1 mt-4 space-y-2.5 pr-0.5">
                 <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
                   Available Student Actions
                 </p>
@@ -748,20 +752,18 @@ export default function StudentsPage() {
                 <button
                   type="button"
                   onClick={() => setActionTab("edit")}
-                  className="w-full flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-3.5 text-left transition hover:border-[var(--border-hover)] hover:bg-[var(--surface-hover)] group"
+                  className="w-full flex items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-3 text-left transition hover:border-[var(--border-hover)] hover:bg-[var(--surface-hover)] group"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="grid h-9 w-9 place-items-center rounded-lg bg-[var(--surface-elevated)] text-[var(--accent)] border border-[var(--border)]">
-                      <Edit3 className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-white group-hover:text-[var(--accent)] transition-colors">
-                        Edit Student Details
-                      </p>
-                      <p className="text-xs text-[var(--text-muted)]">
-                        Modify name, seat number, or father name (email is protected).
-                      </p>
-                    </div>
+                  <div className="grid h-9 w-9 flex-none place-items-center rounded-lg bg-[var(--surface-elevated)] text-[var(--accent)] border border-[var(--border)] mt-0.5">
+                    <Edit3 className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-white group-hover:text-[var(--accent)] transition-colors leading-tight">
+                      Edit Student Details
+                    </p>
+                    <p className="text-xs text-[var(--text-muted)] break-words leading-snug mt-1">
+                      Modify name, seat number, or father name (email is protected).
+                    </p>
                   </div>
                 </button>
 
@@ -771,40 +773,36 @@ export default function StudentsPage() {
                     <button
                       type="button"
                       onClick={() => setActionTab("revoke_cr")}
-                      className="w-full flex items-center justify-between rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 text-left transition hover:bg-amber-500/20 group"
+                      className="w-full flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-left transition hover:bg-amber-500/20 group"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="grid h-9 w-9 place-items-center rounded-lg bg-amber-500/20 text-amber-300">
-                          <UserMinus className="h-4 w-4" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-amber-200">
-                            Revoke 2nd CR Role
-                          </p>
-                          <p className="text-xs text-amber-300/80">
-                            Demote to normal student (removes roll-call attendance marking rights).
-                          </p>
-                        </div>
+                      <div className="grid h-9 w-9 flex-none place-items-center rounded-lg bg-amber-500/20 text-amber-300 mt-0.5">
+                        <UserMinus className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-amber-200 leading-tight">
+                          Revoke 2nd CR Role
+                        </p>
+                        <p className="text-xs text-amber-300/80 break-words leading-snug mt-1">
+                          Demote to normal student (removes roll-call attendance marking rights).
+                        </p>
                       </div>
                     </button>
                   ) : (
                     <button
                       type="button"
                       onClick={() => setActionTab("assign_cr")}
-                      className="w-full flex items-center justify-between rounded-xl border border-blue-500/30 bg-blue-500/10 p-3.5 text-left transition hover:bg-blue-500/20 group"
+                      className="w-full flex items-start gap-3 rounded-xl border border-blue-500/30 bg-blue-500/10 p-3 text-left transition hover:bg-blue-500/20 group"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="grid h-9 w-9 place-items-center rounded-lg bg-blue-500/20 text-blue-300">
-                          <UserCheck className="h-4 w-4" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-blue-200">
-                            Appoint as Secondary CR
-                          </p>
-                          <p className="text-xs text-blue-300/80">
-                            Allows this student to take roll-call attendance for all subjects (no sheets access).
-                          </p>
-                        </div>
+                      <div className="grid h-9 w-9 flex-none place-items-center rounded-lg bg-blue-500/20 text-blue-300 mt-0.5">
+                        <UserCheck className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-blue-200 leading-tight">
+                          Appoint as Secondary CR
+                        </p>
+                        <p className="text-xs text-blue-300/80 break-words leading-snug mt-1">
+                          Allows this student to take roll-call attendance for all subjects (no sheets access).
+                        </p>
                       </div>
                     </button>
                   )
@@ -815,20 +813,18 @@ export default function StudentsPage() {
                   <button
                     type="button"
                     onClick={() => setActionTab("remove")}
-                    className="w-full flex items-center justify-between rounded-xl border border-red-500/30 bg-red-500/10 p-3.5 text-left transition hover:bg-red-500/20 group"
+                    className="w-full flex items-start gap-3 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-left transition hover:bg-red-500/20 group"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="grid h-9 w-9 place-items-center rounded-lg bg-red-500/20 text-red-400">
-                        <Trash2 className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-red-200">
-                          Remove Student Completely
-                        </p>
-                        <p className="text-xs text-red-300/80">
-                          Deletes membership, attendance history, and row from Google Sheets.
-                        </p>
-                      </div>
+                    <div className="grid h-9 w-9 flex-none place-items-center rounded-lg bg-red-500/20 text-red-400 mt-0.5">
+                      <Trash2 className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-red-200 leading-tight">
+                        Remove Student Completely
+                      </p>
+                      <p className="text-xs text-red-300/80 break-words leading-snug mt-1">
+                        Deletes membership, attendance history, and row from Google Sheets.
+                      </p>
                     </div>
                   </button>
                 ) : (
@@ -842,7 +838,7 @@ export default function StudentsPage() {
 
             {/* Modal Body: Edit Form View */}
             {actionTab === "edit" && (
-              <form onSubmit={handleEditSubmit} className="mt-5 space-y-4">
+              <form onSubmit={handleEditSubmit} className="overflow-y-auto flex-1 mt-4 space-y-4 pr-0.5">
                 <div className="flex items-center justify-between">
                   <h4 className="text-sm font-bold text-white">Edit Student Details</h4>
                   <button
@@ -934,7 +930,7 @@ export default function StudentsPage() {
 
             {/* Modal Body: Assign 2nd CR Confirmation */}
             {actionTab === "assign_cr" && (
-              <div className="mt-5 space-y-4">
+              <div className="overflow-y-auto flex-1 mt-4 space-y-4 pr-0.5">
                 <div className="flex items-start gap-3 rounded-xl border border-blue-500/30 bg-blue-500/10 p-4 text-xs text-blue-200">
                   <UserCheck className="h-5 w-5 text-blue-400 flex-none mt-0.5" />
                   <div>
@@ -981,7 +977,7 @@ export default function StudentsPage() {
 
             {/* Modal Body: Revoke 2nd CR Confirmation */}
             {actionTab === "revoke_cr" && (
-              <div className="mt-5 space-y-4">
+              <div className="overflow-y-auto flex-1 mt-4 space-y-4 pr-0.5">
                 <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-xs text-amber-200">
                   <AlertCircle className="h-5 w-5 text-amber-400 flex-none mt-0.5" />
                   <div>
@@ -1021,7 +1017,7 @@ export default function StudentsPage() {
 
             {/* Modal Body: Remove Student Confirmation */}
             {actionTab === "remove" && (
-              <div className="mt-5 space-y-4">
+              <div className="overflow-y-auto flex-1 mt-4 space-y-4 pr-0.5">
                 <div className="flex items-start gap-3 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-xs text-red-200">
                   <Trash2 className="h-5 w-5 text-red-400 flex-none mt-0.5" />
                   <div>
@@ -1073,17 +1069,17 @@ export default function StudentsPage() {
 
       {/* CR Self-Enrollment Dialog Modal */}
       {showSelfEnrollModal && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/75 p-4 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="w-full max-w-md rounded-2xl border border-[var(--border-hover)] bg-[var(--surface)] p-6 shadow-2xl relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-150">
+          <div className="w-full max-w-md my-auto rounded-2xl border border-[var(--border-hover)] bg-[var(--surface)] p-4 sm:p-6 shadow-2xl relative flex flex-col max-h-[90vh] overflow-hidden">
             <button
               type="button"
               onClick={() => setShowSelfEnrollModal(false)}
-              className="absolute right-4 top-4 rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-white"
+              className="absolute right-3.5 top-3.5 z-10 grid h-8 w-8 place-items-center rounded-xl text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-white"
             >
               <X className="h-4 w-4" />
             </button>
 
-            <div className="flex items-center gap-3 pb-4 border-b border-[var(--border)]">
+            <div className="flex items-center gap-3 pr-8 pb-4 border-b border-[var(--border)] flex-none">
               <div className="grid h-10 w-10 place-items-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)] border border-[var(--border)]">
                 <GraduationCap className="h-5 w-5" />
               </div>
@@ -1093,7 +1089,7 @@ export default function StudentsPage() {
               </div>
             </div>
 
-            <form onSubmit={handleSelfEnroll} className="mt-5 space-y-4">
+            <form onSubmit={handleSelfEnroll} className="overflow-y-auto flex-1 mt-4 space-y-4 pr-0.5">
               <div>
                 <label className="block text-xs font-medium text-[var(--text-secondary)]">
                   My Seat Number <span className="text-red-400">*</span>

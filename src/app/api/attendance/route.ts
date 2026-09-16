@@ -144,8 +144,8 @@ export async function POST(request: Request) {
         ...members.docs.filter((item) => item.data().role === "student" && item.data().status === "approved").sort((a, b) => String(a.data().seatNumber ?? "").localeCompare(String(b.data().seatNumber ?? ""))).map((item) => {
           const student = item.data();
           const studentRows = attendance.docs.filter((record) => record.data().studentUid === student.uid);
-          const statuses = dates.map((day) => studentRows.find((record) => record.data().date === day)?.data().present === true ? "Present" : studentRows.some((record) => record.data().date === day) ? "Absent" : "");
-          return [String(student.seatNumber ?? ""), String(student.fullName ?? ""), String(student.fatherName ?? ""), ...statuses, `${statuses.filter((status) => status === "Present").length}/${statuses.filter(Boolean).length}`];
+          const statuses = dates.map((day) => studentRows.find((record) => record.data().date === day)?.data().present === true ? "1" : studentRows.some((record) => record.data().date === day) ? "0" : "");
+          return [String(student.seatNumber ?? ""), String(student.fullName ?? ""), String(student.fatherName ?? ""), ...statuses, `${statuses.filter((status) => status === "1").length}/${statuses.filter(Boolean).length}`];
         }),
       ];
       await syncAttendanceMatrix(cls.data()!.crUid, cls.data()!.spreadsheetId, subject.data()?.name ?? "Attendance", values);

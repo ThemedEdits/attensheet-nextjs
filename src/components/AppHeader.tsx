@@ -177,33 +177,6 @@ export function AppHeader() {
             )}
           </div>
 
-          {/* Center: Desktop Navigation Links */}
-          <nav className="hidden lg:flex items-center gap-1" aria-label="Desktop Navigation">
-            {navLinks.map((link) => {
-              const Icon = link.icon;
-              const isActive = pathname === link.href.split("?")[0];
-              return (
-                <Link
-                  key={link.label}
-                  href={link.href}
-                  className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all ${
-                    isActive
-                      ? "bg-[var(--accent)]/15 text-[var(--accent)] font-semibold"
-                      : "text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-white"
-                  }`}
-                >
-                  <Icon className="h-3.5 w-3.5" />
-                  <span>{link.label}</span>
-                  {link.badge !== undefined && link.badge > 0 && (
-                    <span className="rounded-full bg-red-500 px-1.5 py-0.2 text-[10px] font-bold text-white leading-tight">
-                      {link.badge}
-                    </span>
-                  )}
-                </Link>
-              );
-            })}
-          </nav>
-
           {/* Right: User Profile & Actions (Desktop) */}
           <div className="hidden items-center gap-3 md:flex">
             {profile.role === "cr" && pending > 0 && (
