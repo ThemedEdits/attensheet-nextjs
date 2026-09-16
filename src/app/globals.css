@@ -338,11 +338,11 @@ textarea:focus {
   content: "";
   position: absolute;
   z-index: 1;
-  opacity: 0.01; 
   top: 50%;
-  left: 0.5rem; /* matches track horizontal padding */
+  left: 0.5rem;
+  /* matches track horizontal padding */
   width: calc((100% - 1rem) / var(--count, 5));
-  height: calc(100% - 0.7rem);
+  height: calc(100% - 0.5rem);
   transform: translateY(-50%);
   border-radius: 9999px;
   background: var(--primary);
@@ -387,8 +387,9 @@ textarea:focus {
 }
 
 .bottom-nav-item.is-active {
-  color: #07110D; /* dark on the accent pill */
-  transform: translateY(-1.4rem);
+  color: #07110D;
+  transform: translateY(0);
+  /* was -1.4rem */
 }
 
 .bottom-nav-icon {
@@ -402,15 +403,23 @@ textarea:focus {
   color: inherit;
 }
 
-.bottom-nav-item.is-active .bottom-nav-icon {
-  width: 3rem;
-  height: 3rem;
-  background: var(--primary);
+/* Remove the per-item lift */
+.bottom-nav-item.is-active {
   color: #07110D;
-  box-shadow:
-    0 8px 20px rgba(22, 166, 106, 0.5),
-    0 0 0 6px rgba(7, 17, 13, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  transform: translateY(0);
+  /* was -1.4rem */
+}
+
+/* Make the active icon transparent — the sliding pill is the bg */
+.bottom-nav-item.is-active .bottom-nav-icon {
+  width: 2.6rem;
+  height: 2.6rem;
+  background: transparent;
+  /* was var(--primary) */
+  color: #07110D;
+  box-shadow: none;
+  /* was the big halo */
+  border: 0;
 }
 
 .bottom-nav-label {
@@ -449,13 +458,33 @@ textarea:focus {
 }
 
 /* Per-index translation using attribute selectors (no JS hooks needed) */
-.bottom-nav-track[data-active-index="0"]::before { --index: 0; }
-.bottom-nav-track[data-active-index="1"]::before { --index: 1; }
-.bottom-nav-track[data-active-index="2"]::before { --index: 2; }
-.bottom-nav-track[data-active-index="3"]::before { --index: 3; }
-.bottom-nav-track[data-active-index="4"]::before { --index: 4; }
-.bottom-nav-track[data-active-index="5"]::before { --index: 5; }
-.bottom-nav-track[data-active-index="6"]::before { --index: 6; }
+.bottom-nav-track[data-active-index="0"]::before {
+  --index: 0;
+}
+
+.bottom-nav-track[data-active-index="1"]::before {
+  --index: 1;
+}
+
+.bottom-nav-track[data-active-index="2"]::before {
+  --index: 2;
+}
+
+.bottom-nav-track[data-active-index="3"]::before {
+  --index: 3;
+}
+
+.bottom-nav-track[data-active-index="4"]::before {
+  --index: 4;
+}
+
+.bottom-nav-track[data-active-index="5"]::before {
+  --index: 5;
+}
+
+.bottom-nav-track[data-active-index="6"]::before {
+  --index: 6;
+}
 
 /* Hide pill during skeleton/loading (active index -1) */
 .bottom-nav-track[data-active-index="-1"]::before,
@@ -475,6 +504,7 @@ textarea:focus {
 
 /* Reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
+
   *,
   ::before,
   ::after {
@@ -512,7 +542,7 @@ textarea:focus {
   }
 
   .bottom-nav-item.is-active {
-    transform: translateY(-1.25rem);
+    transform: translateY(0);
   }
 
   .bottom-nav-icon {
@@ -521,11 +551,9 @@ textarea:focus {
   }
 
   .bottom-nav-item.is-active .bottom-nav-icon {
-    width: 2.9rem;
-    height: 2.9rem;
-    box-shadow:
-      0 8px 18px rgba(22, 166, 106, 0.5),
-      0 0 0 5px rgba(7, 17, 13, 0.95);
+    width: 2.4rem;
+    height: 2.4rem;
+    box-shadow: none;
   }
 }
 
