@@ -165,28 +165,6 @@ export function AppBottomNav() {
   return (
     <nav className="bottom-nav" aria-label="Primary navigation">
       <div className="bottom-nav-track">
-        {/* Curved Track Cutout that smoothly tracks the active nav item */}
-        <div
-          className="bottom-nav-cutout"
-          style={{ left: `${activePercent}%` }}
-          aria-hidden="true"
-        >
-          <svg width="86" height="34" viewBox="0 0 86 34" fill="none" xmlns="http://www.w3.org/2000/svg">
-            {/* Cutout fill that masks out track background/border */}
-            <path
-              d="M 0 0 C 12 0 16 8 21 17 C 26 26 34 31 43 31 C 52 31 60 26 65 17 C 70 8 74 0 86 0 L 86 -4 L 0 -4 Z"
-              fill="var(--bg-primary)"
-            />
-            {/* Curved scoop track border */}
-            <path
-              d="M 0 0 C 12 0 16 8 21 17 C 26 26 34 31 43 31 C 52 31 60 26 65 17 C 70 8 74 0 86 0"
-              stroke="var(--border)"
-              strokeWidth="1.2"
-              fill="none"
-            />
-          </svg>
-        </div>
-
         {/* Elevated circular sliding active pill */}
         <div
           className="bottom-nav-pill"
@@ -196,7 +174,7 @@ export function AppBottomNav() {
           <ActiveIcon className="h-5 w-5 stroke-[2.4] text-[#07110D] transition-transform duration-200" />
         </div>
 
-        {/* Active indicator dot under active nav item */}
+        {/* Active indicator dot under active nav item (mobile only) */}
         <div
           className="bottom-nav-active-dot"
           style={{ left: `${activePercent}%` }}
