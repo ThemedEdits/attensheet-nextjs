@@ -2,7 +2,7 @@
 
 import { onAuthStateChanged } from "firebase/auth";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BookOpen,
   Clock,
@@ -152,14 +152,29 @@ export function AppBottomNav() {
     return <BottomNavSkeleton count={skeletonCount} />;
   }
 
-  if (!visible || (!role && !cachedRole)) return null;
+  const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const [pillLeft, setPillLeft] = useState<number | null>(null);
 
   const activeIndex = Math.max(
     0,
     tabs.findIndex((tab) => pathname === tab.href.split("?")[0] || (tab.label === "Dashboard" && pathname === "/dashboard"))
   );
 
+  useEffect(() => {
+    const updatePosition = () => {
+      const activeEl = itemRefs.current[activeIndex];
+      if (activeEl) {
+        setPillLeft(activeEl.offsetLeft + activeEl.offsetWidth / 2);
+      }
+    };
+
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    return () => window.removeEventListener("resize", updatePosition);
+  }, [activeIndex, tabs.length]);
+
   const activePercent = tabs.length > 0 ? ((activeIndex + 0.5) / tabs.length) * 100 : 50;
+  const leftPosition = pillLeft !== null ? `${pillLeft}px` : `${activePercent}%`;
   const ActiveIcon = tabs[activeIndex]?.icon ?? LayoutDashboard;
 
   return (
@@ -168,7 +183,7 @@ export function AppBottomNav() {
         {/* Elevated circular sliding active pill */}
         <div
           className="bottom-nav-pill"
-          style={{ left: `${activePercent}%` }}
+          style={{ left: leftPosition }}
           aria-hidden="true"
         >
           <ActiveIcon className="h-5 w-5 stroke-[2.4] text-[#07110D] transition-transform duration-200" />
@@ -177,7 +192,7 @@ export function AppBottomNav() {
         {/* Active indicator dot under active nav item (mobile only) */}
         <div
           className="bottom-nav-active-dot"
-          style={{ left: `${activePercent}%` }}
+          style={{ left: leftPosition }}
           aria-hidden="true"
         />
 
@@ -188,6 +203,9 @@ export function AppBottomNav() {
           return (
             <button
               key={`${tab.label}-${index}`}
+              ref={(el) => {
+                itemRefs.current[index] = el;
+              }}
               type="button"
               onClick={() => router.push(tab.href)}
               className={`bottom-nav-item ${active ? "is-active" : ""}`}

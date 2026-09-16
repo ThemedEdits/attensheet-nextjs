@@ -311,7 +311,7 @@ textarea:focus {
   width: 100%;
   height: 60px;
   margin: 0;
-  padding: 0 0.5rem;
+  padding: 0;
   align-items: center;
   justify-content: space-around;
   border-radius: 9999px;
@@ -362,14 +362,15 @@ textarea:focus {
   position: relative;
   z-index: 3;
   display: flex;
-  flex: 1;
+  flex: 1 1 0;
+  width: 0;
   min-width: 0;
   height: 100%;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 0.15rem;
-  padding: 0.25rem 0.2rem;
+  padding: 0.25rem 0.1rem;
   border: 0;
   background: transparent;
   color: var(--text-muted);
@@ -378,6 +379,17 @@ textarea:focus {
   cursor: pointer;
   transition: color 0.2s, transform 0.2s;
   user-select: none;
+  text-align: center;
+}
+
+.bottom-nav-label {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .bottom-nav-item:hover {
