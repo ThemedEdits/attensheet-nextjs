@@ -26,8 +26,20 @@ const publicPaths = ["/", "/login", "/signup", "/complete-profile"];
 export function AppBottomNav() {
   const pathname = usePathname();
   const router = useRouter();
-  const [role, setRole] = useState<Role | null>(null);
-  const [isSecondaryCr, setIsSecondaryCr] = useState(false);
+  const [cachedRole, setCachedRole] = useState<Role | null>(() => {
+    if (typeof window !== "undefined") {
+      return (localStorage.getItem("attensheet_role") as Role) || null;
+    }
+    return null;
+  });
+  const [cachedSecondaryCr, setCachedSecondaryCr] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("attensheet_secondary_cr") === "true";
+    }
+    return false;
+  });
+  const [role, setRole] = useState<Role | null>(cachedRole);
+  const [isSecondaryCr, setIsSecondaryCr] = useState(cachedSecondaryCr);
   const [pending, setPending] = useState(0);
   const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -50,8 +62,15 @@ export function AppBottomNav() {
         const result = await readApiResponse(response);
         if (mounted && response.ok) {
           const userRole = (result.profile as { role?: Role } | undefined)?.role ?? null;
+          const isSec = Boolean(result.isSecondaryCr);
           setRole(userRole);
-          setIsSecondaryCr(Boolean(result.isSecondaryCr));
+          setIsSecondaryCr(isSec);
+          if (typeof window !== "undefined" && userRole) {
+            localStorage.setItem("attensheet_role", userRole);
+            localStorage.setItem("attensheet_secondary_cr", String(isSec));
+            setCachedRole(userRole);
+            setCachedSecondaryCr(isSec);
+          }
           if (userRole === "cr") {
             const requests = await fetch("/api/requests", { headers: await authHeaders() });
             const requestData = await readApiResponse(requests);
@@ -101,10 +120,20 @@ export function AppBottomNav() {
     ];
   }, [role, isSecondaryCr]);
 
+  const skeletonCount = useMemo(() => {
+    const activeRole = role ?? cachedRole;
+    const isSec = isSecondaryCr || cachedSecondaryCr;
+    if (activeRole === "cr") return 6;
+    if (activeRole === "teacher") return 5;
+    if (activeRole === "student") return isSec ? 5 : 4;
+    if (pathname.startsWith("/cr")) return 6;
+    return 6;
+  }, [role, cachedRole, isSecondaryCr, cachedSecondaryCr, pathname]);
+
   if (publicPaths.includes(pathname)) return null;
 
   if (loading) {
-    return <BottomNavSkeleton />;
+    return <BottomNavSkeleton count={skeletonCount} />;
   }
 
   if (!visible || !role) return null;
@@ -149,11 +178,11 @@ export function AppBottomNav() {
   );
 }
 
-function BottomNavSkeleton() {
+function BottomNavSkeleton({ count }: { count: number }) {
   return (
     <nav className="bottom-nav" aria-label="Loading navigation">
       <div className="bottom-nav-track">
-        {[1, 2, 3, 4, 5].map((item) => (
+        {Array.from({ length: count }, (_, i) => i + 1).map((item) => (
           <div key={item} className="bottom-nav-item animate-pulse">
             <div className="h-8 w-8 rounded-xl bg-[var(--surface-elevated)]" />
             <div className="h-2 w-10 rounded bg-[var(--surface-elevated)] hidden sm:block mt-1" />

@@ -1,6 +1,6 @@
 "use client";
 
-import { sendPasswordResetEmail, signOut } from "firebase/auth";
+import { onAuthStateChanged, sendPasswordResetEmail, signOut } from "firebase/auth";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { firebaseAuth } from "@/lib/firebase";
@@ -14,6 +14,27 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [resetting, setResetting] = useState(false);
   const toast = useToast();
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
+      if (!user) {
+        window.location.href = "/login";
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  async function handleSignOut() {
+    try {
+      await signOut(firebaseAuth);
+    } finally {
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("attensheet_role");
+        localStorage.removeItem("attensheet_secondary_cr");
+        window.location.href = "/login";
+      }
+    }
+  }
 
   useEffect(() => {
     let mounted = true;
@@ -192,7 +213,7 @@ export default function SettingsPage() {
 
           <button
             type="button"
-            onClick={() => void signOut(firebaseAuth)}
+            onClick={() => void handleSignOut()}
             className="button-danger text-xs inline-flex items-center gap-2"
           >
             <LogOut className="h-3.5 w-3.5" />

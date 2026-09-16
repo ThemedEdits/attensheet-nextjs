@@ -39,6 +39,19 @@ export function AppHeader() {
   const [prevPathname, setPrevPathname] = useState(pathname);
   const [loading, setLoading] = useState(true);
 
+  const handleSignOut = async () => {
+    closeMenu();
+    try {
+      await signOut(firebaseAuth);
+    } finally {
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("attensheet_role");
+        localStorage.removeItem("attensheet_secondary_cr");
+        window.location.href = "/login";
+      }
+    }
+  };
+
   const closeMenu = () => {
     if (typeof document !== "undefined" && document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
@@ -205,7 +218,7 @@ export function AppHeader() {
 
             <button
               type="button"
-              onClick={() => signOut(firebaseAuth)}
+              onClick={() => void handleSignOut()}
               className="flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] transition-all hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-400"
               title="Sign out"
               aria-label="Sign out"
@@ -318,10 +331,7 @@ export function AppHeader() {
           <div className="pt-6 border-t border-[var(--border)]">
             <button
               type="button"
-              onClick={() => {
-                closeMenu();
-                signOut(firebaseAuth);
-              }}
+              onClick={() => void handleSignOut()}
               className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-300 transition hover:bg-red-500/20"
             >
               <LogOut className="h-4 w-4" />

@@ -251,6 +251,10 @@ function AttendanceContent() {
   const isToday = date === today;
   const headerSubtitle = `${classData.university ?? ""} · ${classData.department ?? ""} · ${classData.className ?? ""} · Section ${classData.section ?? ""} · ${classData.semester ?? ""}`;
 
+  if (loading) {
+    return <AttendanceSkeleton />;
+  }
+
   return (
     <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Top Breadcrumb & Navigation */}
@@ -426,24 +430,7 @@ function AttendanceContent() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border)]">
-              {loading ? (
-                Array.from({ length: 6 }, (_, index) => (
-                  <tr key={index}>
-                    <td className="px-6 py-4">
-                      <div className="skeleton h-5 w-20 rounded-md" />
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="skeleton h-4 w-24 rounded-md" />
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="skeleton h-4 w-40 rounded-md" />
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="skeleton h-4 w-32 rounded-md" />
-                    </td>
-                  </tr>
-                ))
-              ) : filteredStudents.length ? (
+              {filteredStudents.length ? (
                 filteredStudents.map((student) => {
                   const isPresent = records[student.uid] === true;
                   return (
@@ -508,20 +495,7 @@ function AttendanceContent() {
 
         {/* Mobile-First Card View (visible on < md) */}
         <div className="block md:hidden divide-y divide-[var(--border)]">
-          {loading ? (
-            Array.from({ length: 5 }, (_, index) => (
-              <div key={index} className="p-4 flex items-center justify-between gap-3">
-                <div className="space-y-1.5 flex-1">
-                  <div className="flex items-center gap-2">
-                    <div className="skeleton h-5 w-16 rounded" />
-                    <div className="skeleton h-4 w-32 rounded" />
-                  </div>
-                  <div className="skeleton h-3 w-24 rounded" />
-                </div>
-                <div className="skeleton h-9 w-24 rounded-xl" />
-              </div>
-            ))
-          ) : filteredStudents.length ? (
+          {filteredStudents.length ? (
             filteredStudents.map((student) => {
               const isPresent = records[student.uid] === true;
               return (
@@ -727,18 +701,60 @@ function AttendanceContent() {
   );
 }
 
+function AttendanceSkeleton() {
+  return (
+    <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      {/* Top Breadcrumb Skeleton */}
+      <div className="flex items-center gap-2">
+        <div className="skeleton h-3.5 w-16 rounded" />
+        <span className="text-[var(--text-muted)] text-xs">/</span>
+        <div className="skeleton h-3.5 w-24 rounded" />
+      </div>
+
+      {/* Header Section Skeleton */}
+      <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-2">
+          <div className="skeleton h-8 w-56 sm:w-72 rounded-lg" />
+          <div className="skeleton h-3.5 w-48 sm:w-80 rounded" />
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="skeleton h-9 w-36 sm:w-44 rounded-xl" />
+          <div className="skeleton h-6 w-20 rounded-full" />
+          <div className="skeleton h-6 w-20 rounded-full" />
+        </div>
+      </div>
+
+      {/* Status Banner Skeleton */}
+      <div className="mt-6 skeleton h-16 w-full rounded-xl" />
+
+      {/* Roll Call Quick Actions Skeleton */}
+      <div className="mt-6 skeleton h-12 w-full rounded-xl" />
+
+      {/* Search Bar & Date Selector Skeleton */}
+      <div className="mt-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div className="skeleton h-9 w-full sm:max-w-md rounded-xl" />
+        <div className="skeleton h-9 w-36 sm:w-48 rounded-xl" />
+      </div>
+
+      {/* Table Skeleton */}
+      <section className="mt-4 card overflow-hidden p-4 sm:p-6 space-y-3">
+        <div className="skeleton h-10 w-full rounded-lg" />
+        {Array.from({ length: 6 }, (_, index) => (
+          <div key={index} className="flex items-center justify-between gap-4 py-3 border-b border-[var(--border)]">
+            <div className="skeleton h-6 w-16 rounded-md" />
+            <div className="skeleton h-4 w-28 rounded" />
+            <div className="skeleton h-4 w-40 rounded" />
+            <div className="skeleton h-4 w-32 rounded" />
+          </div>
+        ))}
+      </section>
+    </main>
+  );
+}
+
 export default function AttendancePage() {
   return (
-    <Suspense
-      fallback={
-        <main className="grid min-h-screen place-items-center text-xs text-[var(--text-muted)]">
-          <div className="flex items-center gap-2">
-            <Loader2 className="h-4 w-4 animate-spin text-[var(--accent)]" />
-            <span>Loading attendance register...</span>
-          </div>
-        </main>
-      }
-    >
+    <Suspense fallback={<AttendanceSkeleton />}>
       <AttendanceContent />
     </Suspense>
   );
