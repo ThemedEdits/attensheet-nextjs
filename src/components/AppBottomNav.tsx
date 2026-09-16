@@ -59,23 +59,23 @@ export function AppBottomNav() {
   useEffect(() => {
     if (publicPaths.includes(pathname)) return;
 
-    let mounted = true;
+    let isSubscribed = true;
     const unsubscribe = onAuthStateChanged(firebaseAuth, async (user) => {
       if (!user) {
-        if (mounted) {
+        if (isSubscribed) {
           setVisible(false);
           setLoading(false);
           setRole(null);
         }
         return;
       }
-      if (mounted) setVisible(true);
+      if (isSubscribed) setVisible(true);
 
       // Background revalidation (stale-while-revalidate pattern)
       try {
         const response = await fetch("/api/dashboard", { headers: await authHeaders() });
         const result = await readApiResponse(response);
-        if (mounted && response.ok) {
+        if (isSubscribed && response.ok) {
           const userRole = (result.profile as { role?: Role } | undefined)?.role ?? null;
           const isSec = Boolean(result.isSecondaryCr);
           setRole(userRole);
@@ -91,7 +91,7 @@ export function AppBottomNav() {
             void fetch("/api/requests", { headers: await authHeaders() })
               .then(readApiResponse)
               .then((requestData) => {
-                if (mounted && Array.isArray(requestData.requests)) {
+                if (isSubscribed && Array.isArray(requestData.requests)) {
                   setPending(requestData.requests.length);
                 }
               })
@@ -99,14 +99,14 @@ export function AppBottomNav() {
           }
         }
       } catch {
-        if (mounted && !cachedRole) setRole(null);
+        if (isSubscribed && !cachedRole) setRole(null);
       } finally {
-        if (mounted) setLoading(false);
+        if (isSubscribed) setLoading(false);
       }
     });
 
     return () => {
-      mounted = false;
+      isSubscribed = false;
       unsubscribe();
     };
   }, [pathname, cachedRole]);
@@ -152,12 +152,6 @@ export function AppBottomNav() {
     return 6;
   }, [role, cachedRole, isSecondaryCr, cachedSecondaryCr, pathname]);
 
-  if (publicPaths.includes(pathname)) return null;
-
-  if (!mounted || loading) {
-    return <BottomNavSkeleton count={skeletonCount} />;
-  }
-
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [pillLeft, setPillLeft] = useState<number | null>(null);
 
@@ -167,6 +161,8 @@ export function AppBottomNav() {
   );
 
   useEffect(() => {
+    if (!mounted || loading || isPublic) return;
+
     const updatePosition = () => {
       const activeEl = itemRefs.current[activeIndex];
       if (activeEl) {
@@ -177,7 +173,13 @@ export function AppBottomNav() {
     updatePosition();
     window.addEventListener("resize", updatePosition);
     return () => window.removeEventListener("resize", updatePosition);
-  }, [activeIndex, tabs.length]);
+  }, [activeIndex, tabs.length, mounted, loading, isPublic]);
+
+  if (isPublic) return null;
+
+  if (!mounted || loading) {
+    return <BottomNavSkeleton count={skeletonCount} />;
+  }
 
   const activePercent = tabs.length > 0 ? ((activeIndex + 0.5) / tabs.length) * 100 : 50;
   const leftPosition = pillLeft !== null ? `${pillLeft}px` : `${activePercent}%`;
