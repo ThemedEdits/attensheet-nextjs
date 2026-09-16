@@ -339,28 +339,22 @@ textarea:focus {
   z-index: 1;
   top: 50%;
   left: 0;
-  /* --size controls circle diameter; matches the inner track height */
-  --size: calc(100% - 0.5rem);
+  /* Fixed circle diameter — never stretches */
+  --size: 2.6rem;
+  --slot: calc(100% / var(--count, 5));
   width: var(--size);
   height: var(--size);
-  aspect-ratio: 1 / 1;
-  /* Center the circle inside the first slot, then translate by slot width */
-  transform:
-    translateY(-50%)
-    translateX(
-      calc(
-        (100% / var(--count, 5)) * var(--index, 0)
-        + (100% / var(--count, 5)) / 2
-        - var(--size) / 2
-      )
-    );
   border-radius: 9999px;
   background: var(--primary);
   box-shadow:
     0 6px 18px rgba(22, 166, 106, 0.45),
     0 0 0 1px rgba(255, 255, 255, 0.06) inset;
-  transition:
-    transform 0.42s cubic-bezier(0.34, 1.4, 0.64, 1);
+  /* Center of slot N, minus half the circle */
+  transform: translate(
+    calc(var(--slot) * var(--index, 0) + (var(--slot) / 2) - (var(--size) / 2)),
+    -50%
+  );
+  transition: transform 0.42s cubic-bezier(0.34, 1.4, 0.64, 1);
   pointer-events: none;
 }
 

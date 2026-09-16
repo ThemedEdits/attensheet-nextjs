@@ -3,6 +3,7 @@
 import { onAuthStateChanged } from "firebase/auth";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import type React from "react";
 import {
   BookOpen,
   Clock,
@@ -147,8 +148,12 @@ export function AppBottomNav() {
     <nav className="bottom-nav" aria-label="Primary navigation">
       <div
         className="bottom-nav-track"
-        data-active-index={activeIndex}
-        data-count={tabs.length}
+        style={
+          {
+            "--count": tabs.length,
+            "--index": activeIndex,
+          } as React.CSSProperties
+        }
       >
         {tabs.map((tab, index) => {
           const active = index === activeIndex;
@@ -179,7 +184,15 @@ export function AppBottomNav() {
 function BottomNavSkeleton({ count }: { count: number }) {
   return (
     <nav className="bottom-nav" aria-label="Loading navigation">
-      <div className="bottom-nav-track" data-count={count} data-active-index={-1}>
+      <div
+        className="bottom-nav-track"
+        style={
+          {
+            "--count": count,
+            "--index": 0,
+          } as React.CSSProperties
+        }
+      >
         {Array.from({ length: count }, (_, i) => i + 1).map((item) => (
           <div key={item} className="bottom-nav-item animate-pulse">
             <div className="h-8 w-8 rounded-xl bg-[var(--surface-elevated)]" />
