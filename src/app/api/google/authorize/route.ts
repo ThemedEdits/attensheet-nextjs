@@ -46,7 +46,6 @@ export async function POST(request: Request) {
     return response;
   } catch (error) {
     console.error("Google authorization setup failed", error);
-    const detail = error instanceof Error ? error.message : "unknown server error";
-    return NextResponse.json({ error: `Google authorization failed: ${detail}` }, { status: 500 });
+    return NextResponse.json({ error: "Google authorization setup failed. Please check credentials and try again." }, { status: 500 });
   }
 }

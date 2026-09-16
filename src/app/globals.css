@@ -378,10 +378,13 @@ textarea:focus {
   text-align: center;
 }
 
-/* Page shell padding to prevent bottom nav overlap */
+/* Page shell layout and padding to prevent bottom nav overlap and position footer */
 .page-shell {
   min-height: 100vh;
-  padding-bottom: 7rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding-bottom: 6.5rem;
 }
 
 /* Custom Scrollbar for rich data tables */

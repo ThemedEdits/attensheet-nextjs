@@ -4,6 +4,7 @@ import "./globals.css";
 import { ToastProvider } from "@/components/ToastProvider";
 import { AppBottomNav } from "@/components/AppBottomNav";
 import { AppHeader } from "@/components/AppHeader";
+import { AppFooter } from "@/components/AppFooter";
 
 const fontSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -98,6 +99,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <AppHeader />
           <div className="page-shell">
             {children}
+            <AppFooter />
           </div>
           <AppBottomNav />
         </ToastProvider>

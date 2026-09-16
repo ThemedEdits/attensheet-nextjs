@@ -69,7 +69,7 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error("Request list failed", error);
-    return NextResponse.json({ error: error instanceof Error ? `Request list failed: ${error.message}` : "Request list failed." }, { status: 500 });
+    return NextResponse.json({ error: "Failed to retrieve pending requests." }, { status: 500 });
   }
 }
 export async function PATCH(request: Request) {
@@ -113,6 +113,6 @@ export async function PATCH(request: Request) {
   return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("Request decision failed", error);
-    return NextResponse.json({ error: error instanceof Error ? `Request update failed: ${error.message}` : "Request update failed." }, { status: 500 });
+    return NextResponse.json({ error: "Failed to update request decision. Please try again." }, { status: 500 });
   }
 }
