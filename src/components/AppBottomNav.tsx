@@ -11,6 +11,7 @@ import {
   UserCheck,
   CheckCircle2,
   FileSpreadsheet,
+  Users,
   type LucideIcon
 } from "lucide-react";
 import { firebaseAuth } from "@/lib/firebase";
@@ -26,6 +27,7 @@ export function AppBottomNav() {
   const pathname = usePathname();
   const router = useRouter();
   const [role, setRole] = useState<Role | null>(null);
+  const [isSecondaryCr, setIsSecondaryCr] = useState(false);
   const [pending, setPending] = useState(0);
   const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -33,36 +35,48 @@ export function AppBottomNav() {
   useEffect(() => {
     if (publicPaths.includes(pathname)) return;
 
+    let mounted = true;
     const unsubscribe = onAuthStateChanged(firebaseAuth, async (user) => {
       if (!user) {
-        setVisible(false);
-        setLoading(false);
+        if (mounted) {
+          setVisible(false);
+          setLoading(false);
+        }
         return;
       }
-      setVisible(true);
+      if (mounted) setVisible(true);
       try {
         const response = await fetch("/api/dashboard", { headers: await authHeaders() });
         const result = await readApiResponse(response);
-        const userRole = (result.profile as { role?: Role } | undefined)?.role ?? null;
-        setRole(userRole);
-        if (userRole === "cr") {
-          const requests = await fetch("/api/requests", { headers: await authHeaders() });
-          const requestData = await readApiResponse(requests);
-          setPending(Array.isArray(requestData.requests) ? requestData.requests.length : 0);
+        if (mounted && response.ok) {
+          const userRole = (result.profile as { role?: Role } | undefined)?.role ?? null;
+          setRole(userRole);
+          setIsSecondaryCr(Boolean(result.isSecondaryCr));
+          if (userRole === "cr") {
+            const requests = await fetch("/api/requests", { headers: await authHeaders() });
+            const requestData = await readApiResponse(requests);
+            if (mounted) {
+              setPending(Array.isArray(requestData.requests) ? requestData.requests.length : 0);
+            }
+          }
         }
       } catch {
-        setRole(null);
+        if (mounted) setRole(null);
       } finally {
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     });
-    return unsubscribe;
-  }, [pathname]);
+    return () => {
+      mounted = false;
+      unsubscribe();
+    };
+  }, []);
 
   const tabs = useMemo<Tab[]>(() => {
     if (role === "student") {
       return [
         { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+        ...(isSecondaryCr ? [{ label: "Attendance", href: "/attendance", icon: CheckCircle2 }] : []),
         { label: "Subjects", href: "/subjects", icon: BookOpen },
         { label: "History", href: "/history", icon: Clock },
         { label: "Settings", href: "/settings", icon: Settings },
@@ -71,6 +85,7 @@ export function AppBottomNav() {
     if (role === "teacher") {
       return [
         { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+        { label: "Students", href: "/students", icon: Users },
         { label: "Subjects", href: "/subjects", icon: BookOpen },
         { label: "Attendance", href: "/attendance", icon: CheckCircle2 },
         { label: "Settings", href: "/settings", icon: Settings },
@@ -78,12 +93,13 @@ export function AppBottomNav() {
     }
     return [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+      { label: "Students", href: "/students", icon: Users },
       { label: "Subjects", href: "/subjects", icon: BookOpen },
       { label: "Requests", href: "/cr/requests", icon: UserCheck },
       { label: "Sheets", href: "/google", icon: FileSpreadsheet },
       { label: "Settings", href: "/settings", icon: Settings },
     ];
-  }, [role]);
+  }, [role, isSecondaryCr]);
 
   if (publicPaths.includes(pathname)) return null;
 

@@ -7,7 +7,7 @@ export interface UserProfile {
   profileCompleted: boolean; createdAt: string; updatedAt: string;
 }
 export interface ClassRecord {
-  id: string; classCode: string; crUid: string; university: string; semester: string;
+  id: string; classCode: string; crUid: string; secondaryCrUid?: string | null; university: string; semester: string;
   department: string; batch: string; className: string; section: string;
   spreadsheetId?: string; createdAt: string; updatedAt: string;
 }
@@ -15,7 +15,11 @@ export interface SubjectRecord {
   id: string; classId: string; name: string; teacherUid?: string; teacherName?: string;
   googleSheetTabId?: number; active: boolean; createdAt: string; updatedAt: string;
 }
-export interface MembershipRecord { id: string; classId: string; uid: string; role: Role; status: MembershipStatus; fullName?: string; fatherName?: string; seatNumber?: string; createdAt: string; updatedAt: string; }
+export interface MembershipRecord {
+  id: string; classId: string; uid: string; role: Role; status: MembershipStatus;
+  fullName?: string; fatherName?: string; seatNumber?: string; email?: string;
+  isSecondaryCr?: boolean; isPrimaryCr?: boolean; createdAt: string; updatedAt: string;
+}
 export interface JoinRequest { id: string; classId: string; studentUid?: string; teacherUid?: string; status: RequestStatus; fullName?: string; fatherName?: string; seatNumber?: string; createdAt: string; updatedAt: string; }
 export interface AttendanceRecord { id: string; classId: string; subjectId: string; studentUid: string; date: string; present: boolean; markedBy: string; updatedAt: string; }
 export interface AttendanceSummary { total: number; present: number; absent: number; percentage: number; }

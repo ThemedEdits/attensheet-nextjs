@@ -46,6 +46,11 @@ export default function DashboardPage() {
   const [members, setMembers] = useState<{ uid: string; fullName?: string; role: string }[]>([]);
   const [confirmDelete, setConfirmDelete] = useState<SubjectRecord | null>(null);
   const [copiedCode, setCopiedCode] = useState(false);
+  const [isSecondaryCr, setIsSecondaryCr] = useState(false);
+  const [isCrEnrolledAsStudent, setIsCrEnrolledAsStudent] = useState(true);
+  const [showEnrollModal, setShowEnrollModal] = useState(false);
+  const [enrollForm, setEnrollForm] = useState({ seatNumber: "", fatherName: "" });
+  const [enrolling, setEnrolling] = useState(false);
   const router = useRouter();
   const toast = useToast();
 
@@ -69,6 +74,8 @@ export default function DashboardPage() {
         setSubjects((result.subjects ?? []) as SubjectRecord[]);
         setMembers((result.members ?? []) as { uid: string; fullName?: string; role: string }[]);
         setMemberCount(Number(result.memberCount ?? 0));
+        setIsSecondaryCr(Boolean(result.isSecondaryCr));
+        setIsCrEnrolledAsStudent(result.isCrEnrolledAsStudent !== false);
         const records = (result.attendance ?? []) as { date: string; present: boolean }[];
         setAttendanceSummary({
           total: records.length,
@@ -190,6 +197,33 @@ export default function DashboardPage() {
     toast("Class code copied to clipboard!", "success");
     setTimeout(() => setCopiedCode(false), 2000);
   };
+
+  async function handleEnrollCrAsStudent(e: React.FormEvent) {
+    e.preventDefault();
+    if (!classRecord) return;
+    setEnrolling(true);
+    try {
+      const response = await fetch("/api/students", {
+        method: "PATCH",
+        headers: await authHeaders(true),
+        body: JSON.stringify({
+          classId: classRecord.id,
+          action: "enroll_cr",
+          seatNumber: enrollForm.seatNumber,
+          fatherName: enrollForm.fatherName,
+        }),
+      });
+      const result = await readApiResponse(response);
+      if (!response.ok) throw new Error(String(result.error ?? "Failed to enroll as student."));
+      toast("You are now enrolled in the class student roster!", "success");
+      setShowEnrollModal(false);
+      setIsCrEnrolledAsStudent(true);
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Enrollment failed.", "error");
+    } finally {
+      setEnrolling(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -339,6 +373,32 @@ export default function DashboardPage() {
         </div>
       ) : (
         <>
+          {/* CR Self-Enrollment Notice Card */}
+          {profile?.role === "cr" && classRecord && !isCrEnrolledAsStudent && (
+            <div className="mt-6 rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent-soft)]/20 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-start sm:items-center gap-3.5">
+                <div className="grid h-10 w-10 flex-none place-items-center rounded-xl bg-[var(--primary)] text-[#07110D] font-black text-sm">
+                  CR
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-white">
+                    You haven&apos;t added yourself to your class student roster yet
+                  </p>
+                  <p className="mt-0.5 text-xs text-[var(--text-secondary)]">
+                    As the Class Representative, you are also an enrolled student. Add yourself so teachers and attendance registers include you!
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowEnrollModal(true)}
+                className="button-primary text-xs py-2 px-4 whitespace-nowrap self-start sm:self-auto"
+              >
+                Add Myself as Student
+              </button>
+            </div>
+          )}
+
           {/* Summary / Stat Cards */}
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <StatCard
@@ -490,9 +550,11 @@ export default function DashboardPage() {
               {subjects.length ? (
                 subjects.map((subject) => {
                   const isAssignedToCurrentTeacher = subject.teacherUid === firebaseAuth.currentUser?.uid;
+                  const isStudentUser = profile?.role === "student";
+                  const isSecondaryCrUser = isStudentUser && isSecondaryCr;
                   const canAccessAttendance =
-                    profile?.role === "cr" || profile?.role === "student" || isAssignedToCurrentTeacher;
-                  const attendanceHref = profile?.role === "student"
+                    profile?.role === "cr" || isStudentUser || isAssignedToCurrentTeacher;
+                  const attendanceHref = isStudentUser && !isSecondaryCrUser
                     ? `/history?subjectId=${subject.id}`
                     : `/attendance?classId=${classRecord.id}&subjectId=${subject.id}`;
                   const assignedTeacherName = subject.teacherName ?? members.find((m) => m.uid === subject.teacherUid)?.fullName;
@@ -509,6 +571,11 @@ export default function DashboardPage() {
                           </div>
                           {isAssignedToCurrentTeacher && (
                             <span className="badge-present text-[10px]">Your Subject</span>
+                          )}
+                          {isSecondaryCrUser && (
+                            <span className="rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2 py-0.5 text-[10px] font-semibold">
+                              2nd CR Access
+                            </span>
                           )}
                         </div>
 
@@ -534,7 +601,7 @@ export default function DashboardPage() {
                             href={attendanceHref}
                             className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--accent)] hover:text-[var(--primary-hover)]"
                           >
-                            <span>{profile?.role === "student" ? "View My Attendance" : "Open Attendance"}</span>
+                            <span>{isStudentUser && !isSecondaryCrUser ? "View My Attendance" : "Take Attendance"}</span>
                             <ArrowRight className="h-3 w-3" />
                           </Link>
                         ) : (
@@ -661,6 +728,80 @@ export default function DashboardPage() {
             void deleteSubject(subject.id);
           }}
         />
+      )}
+
+      {/* CR Self-Enrollment Modal */}
+      {showEnrollModal && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/75 p-4 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="w-full max-w-md rounded-2xl border border-[var(--border-hover)] bg-[var(--surface)] p-6 shadow-2xl relative">
+            <button
+              type="button"
+              onClick={() => setShowEnrollModal(false)}
+              className="absolute right-4 top-4 rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-white"
+            >
+              <Check className="sr-only" />
+              <span className="text-sm font-bold">✕</span>
+            </button>
+
+            <div className="flex items-center gap-3 pb-4 border-b border-[var(--border)]">
+              <div className="grid h-10 w-10 place-items-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)] border border-[var(--border)]">
+                <GraduationCap className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white">Enroll as Student</h3>
+                <p className="text-xs text-[var(--text-secondary)]">Add your account to this class student roster</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleEnrollCrAsStudent} className="mt-5 space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-[var(--text-secondary)]">
+                  My Seat Number <span className="text-red-400">*</span>
+                </label>
+                <input
+                  required
+                  value={enrollForm.seatNumber}
+                  onChange={(e) => setEnrollForm((c) => ({ ...c, seatNumber: e.target.value }))}
+                  className="field mt-1.5 font-mono"
+                  placeholder="e.g. BSCS-2024-001"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-[var(--text-secondary)]">
+                  Father Name
+                </label>
+                <input
+                  value={enrollForm.fatherName}
+                  onChange={(e) => setEnrollForm((c) => ({ ...c, fatherName: e.target.value }))}
+                  className="field mt-1.5"
+                  placeholder="e.g. Muhammad ..."
+                />
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-[var(--border)] flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setShowEnrollModal(false)}
+                  className="button-secondary text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={enrolling}
+                  className="button-primary text-xs py-2 px-4 inline-flex items-center gap-1.5"
+                >
+                  {enrolling ? (
+                    <span>Enrolling...</span>
+                  ) : (
+                    <span>Add to Student Roster</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </main>
   );

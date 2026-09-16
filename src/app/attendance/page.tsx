@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -21,7 +21,9 @@ import {
   FileSpreadsheet, 
   CheckCheck, 
   RotateCcw,
-  Loader2 
+  Loader2,
+  Check,
+  X
 } from "lucide-react";
 
 type Student = { uid: string; fullName?: string; fatherName?: string; seatNumber?: string };
@@ -41,10 +43,12 @@ function AttendanceContent() {
   const [busy, setBusy] = useState(false);
   const [canEdit, setCanEdit] = useState(false);
   const [canManage, setCanManage] = useState(false);
+  const [isSecondaryCr, setIsSecondaryCr] = useState(false);
   const [confirmSave, setConfirmSave] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [message, setMessage] = useState("");
   const [authReady, setAuthReady] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
   const params = useSearchParams();
   const rawClassId = params.get("classId");
@@ -63,8 +67,8 @@ function AttendanceContent() {
         const response = await fetch("/api/dashboard", { headers: await authHeaders() });
         const result = await readApiResponse(response);
         if (response.ok && result.profile) {
-          const prof = result.profile as { role?: string };
-          if (prof.role === "student") {
+          const prof = result.profile as { role?: string; isSecondaryCr?: boolean };
+          if (prof.role === "student" && !prof.isSecondaryCr) {
             router.replace(`/history${rawSubjectId ? `?subjectId=${encodeURIComponent(rawSubjectId)}` : ""}`);
             return;
           }
@@ -116,6 +120,7 @@ function AttendanceContent() {
       setClassData((result.class ?? {}) as ClassData);
       setCanEdit(result.canEdit === true);
       setCanManage(result.canManage === true);
+      setIsSecondaryCr(Boolean(result.isSecondaryCr));
       setMessage("");
     } catch (error) {
       const text = error instanceof Error ? error.message : "Unable to load attendance.";
@@ -172,6 +177,25 @@ function AttendanceContent() {
       next[student.uid] = status;
     });
     setRecords(next);
+  };
+
+  // Quick-mark student when pressing Enter on single search match
+  const handleSearchEnter = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!canEdit) return;
+    if (filteredStudents.length === 1) {
+      const student = filteredStudents[0];
+      setRecords((current) => ({
+        ...current,
+        [student.uid]: true,
+      }));
+      setSearch("");
+      searchInputRef.current?.focus();
+      toast(
+        `Marked ${student.seatNumber ? `#${student.seatNumber} ` : ""}${student.fullName ?? "Student"} Present`,
+        "success"
+      );
+    }
   };
 
   async function save() {
@@ -270,16 +294,39 @@ function AttendanceContent() {
             </select>
           )}
 
-          {/* Search Box */}
-          <div className="relative flex-1 sm:w-60">
+          {/* Search Box with Quick-Mark Enter */}
+          <form
+            onSubmit={handleSearchEnter}
+            className="relative flex-1 sm:w-60"
+          >
             <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--text-muted)]" />
             <input
+              ref={searchInputRef}
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              className="field pl-9 py-2 text-xs"
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  handleSearchEnter();
+                }
+              }}
+              enterKeyHint="go"
+              className="field pl-9 pr-7 py-2 text-xs"
               placeholder="Search student or seat #"
             />
-          </div>
+            {search && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch("");
+                  searchInputRef.current?.focus();
+                }}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-white"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            )}
+          </form>
 
           {/* Date Picker & Today Shortcut */}
           <div className="flex items-center gap-1.5">
@@ -411,21 +458,33 @@ function AttendanceContent() {
                       className={`transition-colors ${isPresent ? "bg-[var(--accent-soft)]/20 hover:bg-[var(--accent-soft)]/30" : "hover:bg-[var(--surface-hover)]"}`}
                     >
                       <td className="px-6 py-3.5">
-                        <label className="inline-flex items-center gap-2 cursor-pointer select-none">
-                          <input
-                            type="checkbox"
-                            aria-label={`Present: ${student.fullName ?? student.uid}`}
-                            disabled={!canEdit}
-                            checked={isPresent}
-                            onChange={(event) =>
+                        <label className="inline-flex items-center gap-2.5 cursor-pointer select-none">
+                          <div
+                            role="checkbox"
+                            aria-checked={isPresent}
+                            aria-label={`Mark ${student.fullName ?? student.uid} present`}
+                            tabIndex={canEdit ? 0 : -1}
+                            onKeyDown={(e) => {
+                              if (canEdit && (e.key === " " || e.key === "Enter")) {
+                                e.preventDefault();
+                                setRecords((current) => ({
+                                  ...current,
+                                  [student.uid]: !isPresent,
+                                }));
+                              }
+                            }}
+                            onClick={() => {
+                              if (!canEdit) return;
                               setRecords((current) => ({
                                 ...current,
-                                [student.uid]: event.target.checked,
-                              }))
-                            }
-                            className="h-5 w-5 rounded border-[var(--border)] bg-[var(--bg-secondary)] accent-[var(--primary)] cursor-pointer disabled:cursor-not-allowed"
-                          />
-                          <span className={`text-xs font-semibold ${isPresent ? "text-[var(--accent)]" : "text-[var(--text-muted)]"}`}>
+                                [student.uid]: !isPresent,
+                              }));
+                            }}
+                            className={`custom-checkbox ${isPresent ? "is-checked" : ""} ${!canEdit ? "opacity-50 cursor-not-allowed" : ""}`}
+                          >
+                            <Check className="custom-checkbox-icon" />
+                          </div>
+                          <span className={`text-xs font-semibold transition-colors duration-150 ${isPresent ? "text-[var(--accent)]" : "text-[var(--text-muted)]"}`}>
                             {isPresent ? "Present" : "Absent"}
                           </span>
                         </label>
@@ -576,77 +635,79 @@ function AttendanceContent() {
         </div>
       </section>
 
-      {/* Google Sheets Blueprint Register */}
-      <section className="mt-12">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-2 text-xs font-semibold text-[var(--accent)]">
-              <FileSpreadsheet className="h-3.5 w-3.5" />
-              <span>Google Sheets Register Blueprint</span>
+      {/* Google Sheets Blueprint Register (Hidden for Secondary CR) */}
+      {!isSecondaryCr && (
+        <section className="mt-12">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2 text-xs font-semibold text-[var(--accent)]">
+                <FileSpreadsheet className="h-3.5 w-3.5" />
+                <span>Google Sheets Register Blueprint</span>
+              </div>
+              <h2 className="mt-1 text-xl font-bold text-white">
+                {subjectName} Master Sheet
+              </h2>
             </div>
-            <h2 className="mt-1 text-xl font-bold text-white">
-              {subjectName} Master Sheet
-            </h2>
+            <span className="badge-neutral text-[11px] hidden sm:inline-flex">
+              Auto-synced
+            </span>
           </div>
-          <span className="badge-neutral text-[11px] hidden sm:inline-flex">
-            Auto-synced
-          </span>
-        </div>
 
-        <div className="mt-4 card overflow-hidden border border-[var(--border-hover)] bg-[#0A1612]">
-          <div className="p-3.5 border-b border-[var(--border)] bg-[#07110D] text-xs text-[var(--text-muted)] truncate">
-            {headerSubtitle}
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="border-b border-[var(--border)] bg-[var(--surface)] text-[10px] uppercase font-bold text-[var(--text-muted)]">
-                  <th className="px-4 py-3 whitespace-nowrap">Seat #</th>
-                  <th className="px-4 py-3 whitespace-nowrap">Student Name</th>
-                  <th className="px-4 py-3 whitespace-nowrap">Father Name</th>
-                  {dates.map((day) => (
-                    <th key={day} className="px-3 py-3 whitespace-nowrap text-center">
-                      {day}
-                    </th>
-                  ))}
-                  <th className="px-4 py-3 whitespace-nowrap text-right">Total</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--border)]">
-                {matrix.map(({ student, statuses, present, marked }) => (
-                  <tr key={student.uid} className="hover:bg-[var(--surface-hover)]">
-                    <td className="px-4 py-2.5 font-mono text-[11px] text-white">
-                      {student.seatNumber ?? "-"}
-                    </td>
-                    <td className="px-4 py-2.5 font-medium text-[var(--text-primary)] whitespace-nowrap">
-                      {student.fullName ?? "Unnamed"}
-                    </td>
-                    <td className="px-4 py-2.5 text-[var(--text-secondary)] whitespace-nowrap">
-                      {student.fatherName ?? "-"}
-                    </td>
-                    {statuses.map((item, index) => (
-                      <td key={`${student.uid}-${index}`} className="px-3 py-2.5 text-center">
-                        {item ? (
-                          item.present ? (
-                            <span className="inline-block h-2 w-2 rounded-full bg-[var(--accent)]" title="Present" />
-                          ) : (
-                            <span className="inline-block h-2 w-2 rounded-full bg-red-400" title="Absent" />
-                          )
-                        ) : (
-                          <span className="text-[var(--text-muted)]">-</span>
-                        )}
-                      </td>
+          <div className="mt-4 card overflow-hidden border border-[var(--border-hover)] bg-[#0A1612]">
+            <div className="p-3.5 border-b border-[var(--border)] bg-[#07110D] text-xs text-[var(--text-muted)] truncate">
+              {headerSubtitle}
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-[var(--border)] bg-[var(--surface)] text-[10px] uppercase font-bold text-[var(--text-muted)]">
+                    <th className="px-4 py-3 whitespace-nowrap">Seat #</th>
+                    <th className="px-4 py-3 whitespace-nowrap">Student Name</th>
+                    <th className="px-4 py-3 whitespace-nowrap">Father Name</th>
+                    {dates.map((day) => (
+                      <th key={day} className="px-3 py-3 whitespace-nowrap text-center">
+                        {day}
+                      </th>
                     ))}
-                    <td className="px-4 py-2.5 text-right font-bold text-[var(--accent)]">
-                      {present}/{marked}
-                    </td>
+                    <th className="px-4 py-3 whitespace-nowrap text-right">Total</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-[var(--border)]">
+                  {matrix.map(({ student, statuses, present, marked }) => (
+                    <tr key={student.uid} className="hover:bg-[var(--surface-hover)]">
+                      <td className="px-4 py-2.5 font-mono text-[11px] text-white">
+                        {student.seatNumber ?? "-"}
+                      </td>
+                      <td className="px-4 py-2.5 font-medium text-[var(--text-primary)] whitespace-nowrap">
+                        {student.fullName ?? "Unnamed"}
+                      </td>
+                      <td className="px-4 py-2.5 text-[var(--text-secondary)] whitespace-nowrap">
+                        {student.fatherName ?? "-"}
+                      </td>
+                      {statuses.map((item, index) => (
+                        <td key={`${student.uid}-${index}`} className="px-3 py-2.5 text-center">
+                          {item ? (
+                            item.present ? (
+                              <span className="inline-block h-2 w-2 rounded-full bg-[var(--accent)]" title="Present" />
+                            ) : (
+                              <span className="inline-block h-2 w-2 rounded-full bg-red-400" title="Absent" />
+                            )
+                          ) : (
+                            <span className="text-[var(--text-muted)]">-</span>
+                          )}
+                        </td>
+                      ))}
+                      <td className="px-4 py-2.5 text-right font-bold text-[var(--accent)]">
+                        {present}/{marked}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Modal Confirmations */}
       {confirmSave && (

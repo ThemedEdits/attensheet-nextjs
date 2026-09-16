@@ -10,7 +10,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { authHeaders } from "@/lib/client-auth";
 import { readApiResponse } from "@/lib/client-response";
 import { useToast } from "@/components/ToastProvider";
-import { ArrowLeft, Sparkles, Building2, BookOpen, Layers, Calendar, GraduationCap, Hash, AlertCircle, Loader2, ArrowRight } from "lucide-react";
+import { ArrowLeft, Sparkles, Building2, BookOpen, Layers, Calendar, GraduationCap, Hash, AlertCircle, Loader2, ArrowRight, CheckCircle2 } from "lucide-react";
 
 function ClassSetupForm() {
   const router = useRouter();
@@ -27,6 +27,10 @@ function ClassSetupForm() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [classId, setClassId] = useState("");
+  const [addSelfAsStudent, setAddSelfAsStudent] = useState(true);
+  const [selfSeatNumber, setSelfSeatNumber] = useState("");
+  const [selfFatherName, setSelfFatherName] = useState("");
+  const [isAlreadyEnrolled, setIsAlreadyEnrolled] = useState(false);
   const toast = useToast();
 
   useEffect(() => {
@@ -38,6 +42,7 @@ function ClassSetupForm() {
           const classData = result.class as Record<string, string> | undefined;
           if (response.ok && classData) {
             setClassId(String(classData.id));
+            setIsAlreadyEnrolled(Boolean(result.isCrEnrolledAsStudent));
             setForm({
               university: classData.university,
               semester: classData.semester,
@@ -62,6 +67,10 @@ function ClassSetupForm() {
       setError(parsed.error.issues[0]?.message ?? "Please verify the form inputs.");
       return;
     }
+    if (addSelfAsStudent && !isAlreadyEnrolled && !selfSeatNumber.trim()) {
+      setError("Please provide your seat number to be enrolled into the student roster.");
+      return;
+    }
     setBusy(true);
 
     try {
@@ -77,6 +86,20 @@ function ClassSetupForm() {
           setBusy(false);
           return;
         }
+
+        if (addSelfAsStudent && !isAlreadyEnrolled && selfSeatNumber.trim()) {
+          await fetch("/api/students", {
+            method: "PATCH",
+            headers: await authHeaders(true),
+            body: JSON.stringify({
+              classId,
+              action: "enroll_cr",
+              seatNumber: selfSeatNumber.trim(),
+              fatherName: selfFatherName.trim(),
+            }),
+          });
+        }
+
         toast("Class details updated.", "success");
         router.replace("/dashboard");
         return;
@@ -103,6 +126,25 @@ function ClassSetupForm() {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
+
+      if (addSelfAsStudent && selfSeatNumber.trim()) {
+        await setDoc(doc(firestore, "memberships", `${id}_${user.uid}`), {
+          classId: id,
+          uid: user.uid,
+          role: "student",
+          status: "approved",
+          isPrimaryCr: true,
+          isSecondaryCr: false,
+          fullName: user.displayName || "Class Representative",
+          seatNumber: selfSeatNumber.trim(),
+          fatherName: selfFatherName.trim(),
+          email: user.email || "",
+          approvedAt: serverTimestamp(),
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      }
+
       toast("Class workspace created successfully!", "success");
       router.replace("/dashboard");
     } catch (err) {
@@ -174,6 +216,68 @@ function ClassSetupForm() {
             );
           })}
         </div>
+
+        {/* Student Self-Enrollment Section */}
+        {!isAlreadyEnrolled ? (
+          <div className="mt-8 rounded-2xl border border-[var(--border-hover)] bg-[var(--bg-secondary)] p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <GraduationCap className="h-4 w-4 text-[var(--accent)]" />
+                  <span className="text-sm font-bold text-white">
+                    Class Representative Student Enrolment
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-[var(--text-secondary)] leading-relaxed">
+                  As the CR, you are also an active student of this class. Automatically add yourself to the student roster so teachers can mark your attendance and Google Sheets includes you.
+                </p>
+              </div>
+
+              <label className="relative inline-flex items-center cursor-pointer flex-none mt-1">
+                <input
+                  type="checkbox"
+                  checked={addSelfAsStudent}
+                  onChange={(e) => setAddSelfAsStudent(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-9 h-5 bg-[var(--surface-elevated)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--primary)]" />
+              </label>
+            </div>
+
+            {addSelfAsStudent && (
+              <div className="mt-4 pt-4 border-t border-[var(--border)] grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-medium text-[var(--text-secondary)]">
+                    My Seat Number <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    required={addSelfAsStudent}
+                    value={selfSeatNumber}
+                    onChange={(e) => setSelfSeatNumber(e.target.value)}
+                    className="field font-mono text-xs"
+                    placeholder="e.g. BSCS-2024-001"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-medium text-[var(--text-secondary)]">
+                    Father Name
+                  </label>
+                  <input
+                    value={selfFatherName}
+                    onChange={(e) => setSelfFatherName(e.target.value)}
+                    className="field text-xs"
+                    placeholder="e.g. Muhammad ..."
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="mt-6 rounded-xl border border-[var(--accent-soft)] bg-[var(--accent-soft)]/30 p-3.5 flex items-center gap-2.5 text-xs text-[var(--accent)] font-medium">
+            <CheckCircle2 className="h-4 w-4 flex-none text-[var(--accent)]" />
+            <span>You are enrolled as a student in this class roster.</span>
+          </div>
+        )}
 
         <div className="mt-8 pt-6 border-t border-[var(--border)] flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3">
           <Link href="/dashboard" className="button-secondary w-full sm:w-auto text-xs">

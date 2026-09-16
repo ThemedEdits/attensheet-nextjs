@@ -55,10 +55,15 @@ export async function GET(request: Request) {
         })
     );
 
+    const userMembershipDoc = memberSnap.docs.find((d) => d.data().uid === user.uid && d.data().status === "approved");
+    const isSecondaryCr = profile.role === "student" && (userMembershipDoc?.data()?.isSecondaryCr === true || classData.secondaryCrUid === user.uid);
+    const isCrEnrolledAsStudent = profile.role === "cr" && memberSnap.docs.some((item) => item.data().uid === user.uid && item.data().role === "student" && item.data().status === "approved");
+
     let subjectDocs = subjectSnap.docs.filter((item) => item.data().active === true);
     if (profile.role === "teacher") {
       subjectDocs = subjectDocs.filter((item) => item.data().teacherUid === user.uid);
     }
+    // Note: If user is secondary CR or CR, they get all active subjects!
 
     const subjects = await Promise.all(subjectDocs.map(async (item) => {
       const data = item.data();
@@ -66,12 +71,15 @@ export async function GET(request: Request) {
       return { id: item.id, ...data, teacherName: teacher?.data()?.name ?? null };
     }));
     return NextResponse.json({
-      profile,
+      profile: { ...profile, isSecondaryCr },
       class: { id: classId, ...classData },
       subjects,
       members,
       memberCount: memberSnap.docs.filter((item) => item.data().status === "approved" && item.data().role === "student").length,
       attendance,
+      secondaryCrUid: classData.secondaryCrUid ?? null,
+      isSecondaryCr,
+      isCrEnrolledAsStudent,
     });
   } catch (error) {
     console.error("GET /api/dashboard failed:", error);

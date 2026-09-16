@@ -44,7 +44,7 @@ export function CustomSelect({
         onClick={() => setOpen((current) => !current)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="flex w-full items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] px-3.5 py-2.5 text-left text-sm text-[var(--text-primary)] transition-all hover:border-[var(--border-hover)] focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--accent-soft)]"
+        className="flex w-full items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] px-3.5 py-2.5 text-left text-sm text-[var(--text-primary)] transition-all hover:border-[var(--border-hover)] focus:outline-none focus:border-[var(--border)] focus:shadow-[0_0_0_1.5px_var(--accent)]"
       >
         <span className={selected ? "text-[var(--text-primary)] font-medium" : "text-[var(--text-muted)]"}>
           {selected?.label ?? placeholder}

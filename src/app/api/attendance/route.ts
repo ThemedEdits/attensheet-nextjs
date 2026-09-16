@@ -33,8 +33,13 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
-  // If user is a student: return ONLY their personal attendance records
-  if (membership.data()?.role === "student") {
+  const isPrimaryCr = cls.data()?.crUid === user.uid;
+  const isTeacher = membership.exists && membership.data()?.role === "teacher" && membership.data()?.status === "approved";
+  const isSecondaryCr = !isPrimaryCr && (membership.data()?.isSecondaryCr === true || cls.data()?.secondaryCrUid === user.uid);
+  const isRegularStudent = membership.data()?.role === "student" && !isPrimaryCr && !isSecondaryCr;
+
+  // If user is a regular student (and not CR or 2nd CR): return ONLY their personal attendance records
+  if (isRegularStudent) {
     let query = db.collection("attendance").where("classId", "==", classId).where("studentUid", "==", user.uid);
     if (subjectId) {
       query = query.where("subjectId", "==", subjectId);
@@ -83,14 +88,15 @@ export async function GET(request: Request) {
     });
   }
 
-  // Teacher or CR flow:
+  // Teacher, CR, or Secondary CR flow:
   if (!subjectId) return NextResponse.json({ error: "subjectId is required." }, { status: 400 });
   let query = db.collection("attendance").where("classId", "==", classId).where("subjectId", "==", subjectId);
   if (date && !allDates) query = query.where("date", "==", date) as typeof query;
   const snap = await query.get();
   const students = await db.collection("memberships").where("classId", "==", classId).where("role", "==", "student").where("status", "==", "approved").get();
   const subjectData = (await db.collection("subjects").doc(subjectId).get()).data() ?? {};
-  const isManager = cls.data()?.crUid === user.uid || (membership.data()?.role === "teacher" && subjectData.teacherUid === user.uid);
+  const isManager = isPrimaryCr || (isTeacher && subjectData.teacherUid === user.uid);
+  const canTakeAttendance = isPrimaryCr || (isTeacher && subjectData.teacherUid === user.uid) || isSecondaryCr;
   const selectedDateRecords = date ? snap.docs.filter((item) => item.data().date === date) : [];
   const canEditDate = date !== null && (date === karachiDate() || (date < karachiDate() && selectedDateRecords.length === 0));
   return NextResponse.json({ 
@@ -99,8 +105,9 @@ export async function GET(request: Request) {
     subject: { id: subjectId, name: subjectData.name }, 
     class: cls.data(), 
     canManage: isManager, 
-    canEdit: isManager && canEditDate, 
-    dateLocked: isManager && !canEditDate 
+    canEdit: canTakeAttendance && canEditDate, 
+    isSecondaryCr: Boolean(isSecondaryCr),
+    dateLocked: canTakeAttendance && !canEditDate 
   });
 }
 export async function POST(request: Request) {
@@ -109,7 +116,10 @@ export async function POST(request: Request) {
   if (!classId || !subjectId || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !Array.isArray(records)) return NextResponse.json({ error: "Invalid attendance payload." }, { status: 400 });
   const cls = await db.collection("classes").doc(classId).get(); const subject = await db.collection("subjects").doc(subjectId).get();
   const member = await db.collection("memberships").doc(`${classId}_${user.uid}`).get();
-  if (cls.data()?.crUid !== user.uid && (!member.exists || member.data()?.role !== "teacher" || subject.data()?.teacherUid !== user.uid)) return NextResponse.json({ error: "Only the assigned teacher can mark attendance." }, { status: 403 });
+  const isPrimaryCr = cls.data()?.crUid === user.uid;
+  const isTeacher = member.exists && member.data()?.role === "teacher" && subject.data()?.teacherUid === user.uid;
+  const isSecondaryCr = !isPrimaryCr && (member.data()?.isSecondaryCr === true || cls.data()?.secondaryCrUid === user.uid);
+  if (!isPrimaryCr && !isTeacher && !isSecondaryCr) return NextResponse.json({ error: "Only the CR, assigned teacher, or 2nd CR can mark attendance." }, { status: 403 });
   if (date > karachiDate()) return NextResponse.json({ error: "Attendance cannot be marked for a future date." }, { status: 409 });
   const existingDate = await db.collection("attendance").where("classId", "==", classId).where("subjectId", "==", subjectId).where("date", "==", date).limit(1).get();
   if (existingDate.size > 0 && date < karachiDate()) return NextResponse.json({ error: "This historical attendance is permanently locked." }, { status: 409 });

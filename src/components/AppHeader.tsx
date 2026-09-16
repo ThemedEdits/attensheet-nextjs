@@ -18,6 +18,7 @@ import {
   ShieldCheck, 
   GraduationCap, 
   User,
+  Users,
   type LucideIcon 
 } from "lucide-react";
 import { firebaseAuth } from "@/lib/firebase";
@@ -32,6 +33,7 @@ export function AppHeader() {
   const pathname = usePathname();
   const router = useRouter();
   const [profile, setProfile] = useState<{ name?: string; role?: Role; email?: string } | null>(null);
+  const [isSecondaryCr, setIsSecondaryCr] = useState(false);
   const [pending, setPending] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [prevPathname, setPrevPathname] = useState(pathname);
@@ -52,32 +54,43 @@ export function AppHeader() {
   useEffect(() => {
     if (publicPaths.includes(pathname)) return;
 
+    let mounted = true;
     const unsubscribe = onAuthStateChanged(firebaseAuth, async (user) => {
       if (!user) {
-        setProfile(null);
-        setLoading(false);
+        if (mounted) {
+          setProfile(null);
+          setLoading(false);
+        }
         return;
       }
       try {
         const response = await fetch("/api/dashboard", { headers: await authHeaders() });
         const result = await readApiResponse(response);
-        const userProfile = result.profile as { name?: string; role?: Role; email?: string } | undefined;
-        setProfile(userProfile ?? null);
+        if (mounted && response.ok) {
+          const userProfile = result.profile as { name?: string; role?: Role; email?: string } | undefined;
+          setProfile(userProfile ?? null);
+          setIsSecondaryCr(Boolean(result.isSecondaryCr));
 
-        if (userProfile?.role === "cr") {
-          const requests = await fetch("/api/requests", { headers: await authHeaders() });
-          const requestData = await readApiResponse(requests);
-          setPending(Array.isArray(requestData.requests) ? requestData.requests.length : 0);
+          if (userProfile?.role === "cr") {
+            const requests = await fetch("/api/requests", { headers: await authHeaders() });
+            const requestData = await readApiResponse(requests);
+            if (mounted) {
+              setPending(Array.isArray(requestData.requests) ? requestData.requests.length : 0);
+            }
+          }
         }
       } catch {
-        setProfile(null);
+        if (mounted) setProfile(null);
       } finally {
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     });
 
-    return unsubscribe;
-  }, [pathname]);
+    return () => {
+      mounted = false;
+      unsubscribe();
+    };
+  }, []);
 
   if (publicPaths.includes(pathname)) return null;
 
@@ -90,7 +103,7 @@ export function AppHeader() {
   const roleLabels: Record<Role, { title: string; icon: LucideIcon; color: string }> = {
     cr: { title: "Class Rep", icon: ShieldCheck, color: "text-[var(--accent)] border-[var(--accent-soft)] bg-[var(--accent-soft)]" },
     teacher: { title: "Teacher", icon: GraduationCap, color: "text-blue-400 border-blue-500/20 bg-blue-500/10" },
-    student: { title: "Student", icon: User, color: "text-emerald-400 border-emerald-500/20 bg-emerald-500/10" },
+    student: { title: isSecondaryCr ? "2nd CR" : "Student", icon: isSecondaryCr ? ShieldCheck : User, color: isSecondaryCr ? "text-amber-400 border-amber-500/20 bg-amber-500/10" : "text-emerald-400 border-emerald-500/20 bg-emerald-500/10" },
   };
 
   const currentRole = profile.role ? roleLabels[profile.role] : null;
@@ -100,21 +113,32 @@ export function AppHeader() {
     if (profile.role === "student") {
       return [
         { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+        ...(isSecondaryCr ? [{ label: "Attendance", href: "/attendance", icon: CheckCircle2 }] : []),
         { label: "Subjects", href: "/subjects", icon: BookOpen },
         { label: "Attendance History", href: "/history", icon: Clock },
         { label: "Settings", href: "/settings", icon: Settings },
       ];
     }
+    if (profile.role === "teacher") {
+      return [
+        { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+        { label: "Students", href: "/students", icon: Users },
+        { label: "Subjects", href: "/subjects", icon: BookOpen },
+        { label: "Attendance", href: "/attendance", icon: CheckCircle2 },
+        { label: "Settings", href: "/settings", icon: Settings },
+      ];
+    }
     return [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+      { label: "Students", href: "/students", icon: Users },
       { label: "Subjects", href: "/subjects", icon: BookOpen },
       { 
-        label: profile.role === "cr" ? "Requests" : "Attendance", 
-        href: profile.role === "cr" ? "/cr/requests" : "/attendance", 
-        icon: profile.role === "cr" ? UserCheck : CheckCircle2,
-        badge: profile.role === "cr" && pending > 0 ? pending : undefined
+        label: "Requests", 
+        href: "/cr/requests", 
+        icon: UserCheck,
+        badge: pending > 0 ? pending : undefined
       },
-      ...(profile.role === "cr" ? [{ label: "Google Sheets", href: "/google", icon: FileSpreadsheet }] : []),
+      { label: "Google Sheets", href: "/google", icon: FileSpreadsheet },
       { label: "Settings", href: "/settings", icon: Settings },
     ];
   };
@@ -152,6 +176,33 @@ export function AppHeader() {
               </div>
             )}
           </div>
+
+          {/* Center: Desktop Navigation Links */}
+          <nav className="hidden lg:flex items-center gap-1" aria-label="Desktop Navigation">
+            {navLinks.map((link) => {
+              const Icon = link.icon;
+              const isActive = pathname === link.href.split("?")[0];
+              return (
+                <Link
+                  key={link.label}
+                  href={link.href}
+                  className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all ${
+                    isActive
+                      ? "bg-[var(--accent)]/15 text-[var(--accent)] font-semibold"
+                      : "text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-white"
+                  }`}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  <span>{link.label}</span>
+                  {link.badge !== undefined && link.badge > 0 && (
+                    <span className="rounded-full bg-red-500 px-1.5 py-0.2 text-[10px] font-bold text-white leading-tight">
+                      {link.badge}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+          </nav>
 
           {/* Right: User Profile & Actions (Desktop) */}
           <div className="hidden items-center gap-3 md:flex">
