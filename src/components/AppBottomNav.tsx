@@ -1,6 +1,5 @@
 "use client";
 
-import { onAuthStateChanged } from "firebase/auth";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -14,11 +13,8 @@ import {
   Users,
   type LucideIcon
 } from "lucide-react";
-import { firebaseAuth } from "@/lib/firebase";
-import { authHeaders } from "@/lib/client-auth";
-import { readApiResponse } from "@/lib/client-response";
+import { useSession, type Role } from "@/lib/session-cache";
 
-type Role = "cr" | "teacher" | "student";
 type Tab = { label: string; href: string; icon: LucideIcon };
 
 const publicPaths = ["/", "/login", "/signup", "/complete-profile"];
@@ -29,101 +25,27 @@ export function AppBottomNav() {
   const isPublic = publicPaths.includes(pathname);
 
   const [mounted, setMounted] = useState(false);
-  const [cachedRole, setCachedRole] = useState<Role | null>(null);
-  const [cachedSecondaryCr, setCachedSecondaryCr] = useState<boolean>(false);
-  const [role, setRole] = useState<Role | null>(null);
-  const [isSecondaryCr, setIsSecondaryCr] = useState(false);
-  const [pending, setPending] = useState(0);
-  const [visible, setVisible] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const { session, loading } = useSession();
 
-  // Sync from localStorage immediately on client mount (avoids SSR hydration mismatch #418)
   useEffect(() => {
     setMounted(true);
-    if (typeof window !== "undefined") {
-      const localRole = (localStorage.getItem("attensheet_role") as Role) || null;
-      const localSec = localStorage.getItem("attensheet_secondary_cr") === "true";
-      if (localRole) {
-        setCachedRole(localRole);
-        setRole(localRole);
-        setCachedSecondaryCr(localSec);
-        setIsSecondaryCr(localSec);
-        if (!publicPaths.includes(pathname)) {
-          setVisible(true);
-          setLoading(false);
-        }
-      }
-    }
-  }, [pathname]);
+  }, []);
 
-  useEffect(() => {
-    if (publicPaths.includes(pathname)) return;
-
-    let isSubscribed = true;
-    const unsubscribe = onAuthStateChanged(firebaseAuth, async (user) => {
-      if (!user) {
-        if (isSubscribed) {
-          setVisible(false);
-          setLoading(false);
-          setRole(null);
-        }
-        return;
-      }
-      if (isSubscribed) setVisible(true);
-
-      // Background revalidation (stale-while-revalidate pattern)
-      try {
-        const response = await fetch("/api/dashboard", { headers: await authHeaders() });
-        const result = await readApiResponse(response);
-        if (isSubscribed && response.ok) {
-          const userRole = (result.profile as { role?: Role } | undefined)?.role ?? null;
-          const isSec = Boolean(result.isSecondaryCr);
-          setRole(userRole);
-          setIsSecondaryCr(isSec);
-          if (typeof window !== "undefined" && userRole) {
-            localStorage.setItem("attensheet_role", userRole);
-            localStorage.setItem("attensheet_secondary_cr", String(isSec));
-            setCachedRole(userRole);
-            setCachedSecondaryCr(isSec);
-          }
-          // Non-blocking fetch for pending badge count
-          if (userRole === "cr") {
-            void fetch("/api/requests", { headers: await authHeaders() })
-              .then(readApiResponse)
-              .then((requestData) => {
-                if (isSubscribed && Array.isArray(requestData.requests)) {
-                  setPending(requestData.requests.length);
-                }
-              })
-              .catch(() => {});
-          }
-        }
-      } catch {
-        if (isSubscribed && !cachedRole) setRole(null);
-      } finally {
-        if (isSubscribed) setLoading(false);
-      }
-    });
-
-    return () => {
-      isSubscribed = false;
-      unsubscribe();
-    };
-  }, [pathname, cachedRole]);
+  const role = session?.profile?.role ?? null;
+  const isSecondaryCr = session?.isSecondaryCr ?? false;
+  const pending = session?.pending ?? 0;
 
   const tabs = useMemo<Tab[]>(() => {
-    const activeRole = role ?? cachedRole;
-    const activeSec = isSecondaryCr || cachedSecondaryCr;
-    if (activeRole === "student") {
+    if (role === "student") {
       return [
         { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-        ...(activeSec ? [{ label: "Attendance", href: "/attendance", icon: CheckCircle2 }] : []),
+        ...(isSecondaryCr ? [{ label: "Attendance", href: "/attendance", icon: CheckCircle2 }] : []),
         { label: "Subjects", href: "/subjects", icon: BookOpen },
         { label: "History", href: "/history", icon: Clock },
         { label: "Settings", href: "/settings", icon: Settings },
       ];
     }
-    if (activeRole === "teacher") {
+    if (role === "teacher") {
       return [
         { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
         { label: "Students", href: "/students", icon: Users },
@@ -140,17 +62,14 @@ export function AppBottomNav() {
       { label: "Sheets", href: "/google", icon: FileSpreadsheet },
       { label: "Settings", href: "/settings", icon: Settings },
     ];
-  }, [role, cachedRole, isSecondaryCr, cachedSecondaryCr]);
+  }, [role, isSecondaryCr]);
 
   const skeletonCount = useMemo(() => {
-    const activeRole = role ?? cachedRole;
-    const isSec = isSecondaryCr || cachedSecondaryCr;
-    if (activeRole === "cr") return 6;
-    if (activeRole === "teacher") return 5;
-    if (activeRole === "student") return isSec ? 5 : 4;
-    if (pathname.startsWith("/cr")) return 6;
+    if (role === "cr") return 6;
+    if (role === "teacher") return 5;
+    if (role === "student") return isSecondaryCr ? 5 : 4;
     return 6;
-  }, [role, cachedRole, isSecondaryCr, cachedSecondaryCr, pathname]);
+  }, [role, isSecondaryCr]);
 
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [pillLeft, setPillLeft] = useState<number | null>(null);
@@ -177,7 +96,7 @@ export function AppBottomNav() {
 
   if (isPublic) return null;
 
-  if (!mounted || loading) {
+  if (!mounted || (loading && !session)) {
     return <BottomNavSkeleton count={skeletonCount} />;
   }
 

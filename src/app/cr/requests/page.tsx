@@ -5,6 +5,7 @@ import Link from "next/link";
 import { authHeaders } from "@/lib/client-auth";
 import { readApiResponse } from "@/lib/client-response";
 import { useToast } from "@/components/ToastProvider";
+import { updatePendingCount } from "@/lib/session-cache";
 import { 
   ArrowLeft, 
   UserCheck, 
@@ -32,7 +33,9 @@ export default function RequestsPage() {
       const response = await fetch("/api/requests", { headers: await authHeaders() });
       const result = await readApiResponse(response);
       if (!response.ok) throw new Error(String(result.error ?? "Unable to load requests."));
-      setItems(Array.isArray(result.requests) ? (result.requests as RequestItem[]) : []);
+      const reqList = Array.isArray(result.requests) ? (result.requests as RequestItem[]) : [];
+      setItems(reqList);
+      updatePendingCount(reqList.length);
       setCounts(
         (result.counts as { students: number; teachers: number } | undefined) ?? { students: 0, teachers: 0 }
       );

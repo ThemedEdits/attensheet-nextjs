@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { onAuthStateChanged, signOut } from "firebase/auth";
+import { signOut } from "firebase/auth";
 import { 
   Menu, 
   X, 
@@ -18,35 +18,37 @@ import {
   ShieldCheck, 
   GraduationCap, 
   User,
-  Users,
+  Users, 
   type LucideIcon 
 } from "lucide-react";
 import { firebaseAuth } from "@/lib/firebase";
-import { authHeaders } from "@/lib/client-auth";
-import { readApiResponse } from "@/lib/client-response";
-
-type Role = "cr" | "teacher" | "student";
+import { useSession, clearCachedSession, type Role } from "@/lib/session-cache";
 
 const publicPaths = ["/", "/login", "/signup", "/complete-profile"];
 
 export function AppHeader() {
   const pathname = usePathname();
   const router = useRouter();
-  const [profile, setProfile] = useState<{ name?: string; role?: Role; email?: string } | null>(null);
-  const [isSecondaryCr, setIsSecondaryCr] = useState(false);
-  const [pending, setPending] = useState(0);
+  const [mounted, setMounted] = useState(false);
+  const { session, loading } = useSession();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [prevPathname, setPrevPathname] = useState(pathname);
-  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const profile = session?.profile ?? null;
+  const isSecondaryCr = session?.isSecondaryCr ?? false;
+  const pending = session?.pending ?? 0;
 
   const handleSignOut = async () => {
     closeMenu();
     try {
       await signOut(firebaseAuth);
     } finally {
+      clearCachedSession();
       if (typeof window !== "undefined") {
-        localStorage.removeItem("attensheet_role");
-        localStorage.removeItem("attensheet_secondary_cr");
         window.location.href = "/login";
       }
     }
@@ -64,50 +66,9 @@ export function AppHeader() {
     closeMenu();
   }
 
-  useEffect(() => {
-    if (publicPaths.includes(pathname)) return;
-
-    let mounted = true;
-    const unsubscribe = onAuthStateChanged(firebaseAuth, async (user) => {
-      if (!user) {
-        if (mounted) {
-          setProfile(null);
-          setLoading(false);
-        }
-        return;
-      }
-      try {
-        const response = await fetch("/api/dashboard", { headers: await authHeaders() });
-        const result = await readApiResponse(response);
-        if (mounted && response.ok) {
-          const userProfile = result.profile as { name?: string; role?: Role; email?: string } | undefined;
-          setProfile(userProfile ?? null);
-          setIsSecondaryCr(Boolean(result.isSecondaryCr));
-
-          if (userProfile?.role === "cr") {
-            const requests = await fetch("/api/requests", { headers: await authHeaders() });
-            const requestData = await readApiResponse(requests);
-            if (mounted) {
-              setPending(Array.isArray(requestData.requests) ? requestData.requests.length : 0);
-            }
-          }
-        }
-      } catch {
-        if (mounted) setProfile(null);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    });
-
-    return () => {
-      mounted = false;
-      unsubscribe();
-    };
-  }, []);
-
   if (publicPaths.includes(pathname)) return null;
 
-  if (loading) {
+  if (!mounted || (loading && !session)) {
     return <HeaderSkeleton />;
   }
 

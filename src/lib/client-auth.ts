@@ -17,9 +17,9 @@ function currentUser(): Promise<User> {
   });
 }
 
-export async function authHeaders(json = false): Promise<HeadersInit> {
+export async function authHeaders(json = false, forceRefresh = false): Promise<HeadersInit> {
   const user = await currentUser();
-  const token = await user.getIdToken(true);
+  const token = await user.getIdToken(forceRefresh);
   return {
     Authorization: `Bearer ${token}`,
     ...(json ? { "Content-Type": "application/json" } : {}),
