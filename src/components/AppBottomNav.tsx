@@ -26,29 +26,35 @@ const publicPaths = ["/", "/login", "/signup", "/complete-profile"];
 export function AppBottomNav() {
   const pathname = usePathname();
   const router = useRouter();
-
-  // Fast-loading: retrieve role synchronously from localStorage on mount
-  const [cachedRole, setCachedRole] = useState<Role | null>(() => {
-    if (typeof window !== "undefined") {
-      return (localStorage.getItem("attensheet_role") as Role) || null;
-    }
-    return null;
-  });
-  const [cachedSecondaryCr, setCachedSecondaryCr] = useState<boolean>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("attensheet_secondary_cr") === "true";
-    }
-    return false;
-  });
-
-  const [role, setRole] = useState<Role | null>(cachedRole);
-  const [isSecondaryCr, setIsSecondaryCr] = useState(cachedSecondaryCr);
-  const [pending, setPending] = useState(0);
-
-  // If role is cached and we are not on a public path, show instantly with 0ms delay
   const isPublic = publicPaths.includes(pathname);
-  const [visible, setVisible] = useState(() => !isPublic && Boolean(cachedRole));
-  const [loading, setLoading] = useState(() => !isPublic && !cachedRole);
+
+  const [mounted, setMounted] = useState(false);
+  const [cachedRole, setCachedRole] = useState<Role | null>(null);
+  const [cachedSecondaryCr, setCachedSecondaryCr] = useState<boolean>(false);
+  const [role, setRole] = useState<Role | null>(null);
+  const [isSecondaryCr, setIsSecondaryCr] = useState(false);
+  const [pending, setPending] = useState(0);
+  const [visible, setVisible] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Sync from localStorage immediately on client mount (avoids SSR hydration mismatch #418)
+  useEffect(() => {
+    setMounted(true);
+    if (typeof window !== "undefined") {
+      const localRole = (localStorage.getItem("attensheet_role") as Role) || null;
+      const localSec = localStorage.getItem("attensheet_secondary_cr") === "true";
+      if (localRole) {
+        setCachedRole(localRole);
+        setRole(localRole);
+        setCachedSecondaryCr(localSec);
+        setIsSecondaryCr(localSec);
+        if (!publicPaths.includes(pathname)) {
+          setVisible(true);
+          setLoading(false);
+        }
+      }
+    }
+  }, [pathname]);
 
   useEffect(() => {
     if (publicPaths.includes(pathname)) return;
@@ -148,7 +154,7 @@ export function AppBottomNav() {
 
   if (publicPaths.includes(pathname)) return null;
 
-  if (loading) {
+  if (!mounted || loading) {
     return <BottomNavSkeleton count={skeletonCount} />;
   }
 

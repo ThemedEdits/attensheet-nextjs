@@ -33,7 +33,6 @@ export default function DashboardPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [classRecord, setClassRecord] = useState<ClassRecord | null>(null);
   const [subjects, setSubjects] = useState<SubjectRecord[]>([]);
-  const [subjectName, setSubjectName] = useState("");
   const [message, setMessage] = useState("");
   const [connecting, setConnecting] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -92,36 +91,7 @@ export default function DashboardPage() {
     });
   }, [router, toast]);
 
-  async function createSubject() {
-    if (!classRecord || !subjectName.trim()) return;
-    setMessage("");
-    const response = await fetch("/api/subjects", {
-      method: "POST",
-      headers: await authHeaders(true),
-      body: JSON.stringify({ classId: classRecord.id, name: subjectName.trim() }),
-    });
-    const result = await readApiResponse(response);
-    if (!response.ok) {
-      const error = String(result.error ?? "Unable to create subject.");
-      setMessage(error);
-      toast(error, "error");
-      return;
-    }
-    setSubjects((current) => [
-      ...current,
-      {
-        id: String(result.id),
-        classId: classRecord.id,
-        name: subjectName.trim(),
-        active: true,
-        createdAt: "",
-        updatedAt: "",
-      },
-    ]);
-    setSubjectName("");
-    setMessage("Subject created.");
-    toast("Subject added and sheet roster updated.", "success");
-  }
+
 
   async function connectSheets() {
     if (!classRecord) return;
@@ -273,10 +243,7 @@ export default function DashboardPage() {
             <div className="flex flex-wrap items-center gap-2">
               <div className="skeleton h-8 w-28 rounded-xl" />
               <div className="skeleton h-8 w-28 rounded-xl" />
-              <div className="flex items-center gap-1.5">
-                <div className="skeleton h-8 w-44 rounded-xl" />
-                <div className="skeleton h-8 w-14 rounded-xl" />
-              </div>
+              <div className="skeleton h-8 w-36 rounded-xl" />
             </div>
           </div>
 
@@ -536,23 +503,13 @@ export default function DashboardPage() {
                       <span>Spreadsheet</span>
                     </a>
                   )}
-                  <div className="flex w-full sm:w-auto items-center gap-1.5 mt-2 sm:mt-0">
-                    <input
-                      value={subjectName}
-                      onChange={(event) => setSubjectName(event.target.value)}
-                      className="field py-1.5 text-xs w-full sm:w-48"
-                      placeholder="New subject name"
-                    />
-                    <button
-                      type="button"
-                      onClick={createSubject}
-                      disabled={!subjectName.trim()}
-                      className="button-primary text-xs py-2 px-3 whitespace-nowrap"
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                      <span>Add</span>
-                    </button>
-                  </div>
+                  <Link
+                    href="/subjects"
+                    className="button-primary text-xs py-2 px-3 inline-flex items-center gap-1.5 whitespace-nowrap"
+                  >
+                    <BookOpen className="h-3.5 w-3.5" />
+                    <span>Manage Subjects</span>
+                  </Link>
                 </div>
               )}
             </div>

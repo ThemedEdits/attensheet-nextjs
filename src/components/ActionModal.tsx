@@ -9,6 +9,8 @@ export function ActionModal({
   confirmLabel = "Confirm",
   onConfirm,
   onClose,
+  disabled = false,
+  danger,
   children,
 }: {
   title: string;
@@ -16,9 +18,11 @@ export function ActionModal({
   confirmLabel?: string;
   onConfirm: () => void;
   onClose: () => void;
+  disabled?: boolean;
+  danger?: boolean;
   children?: React.ReactNode;
 }) {
-  const isDanger = confirmLabel.toLowerCase().includes("delete");
+  const isDanger = danger ?? confirmLabel.toLowerCase().includes("delete");
 
   // Close on Escape key
   useEffect(() => {
@@ -73,8 +77,11 @@ export function ActionModal({
           </button>
           <button
             type="button"
+            disabled={disabled}
             onClick={onConfirm}
-            className={`w-full sm:w-auto ${isDanger ? "button-danger" : "button-primary"}`}
+            className={`w-full sm:w-auto ${isDanger ? "button-danger" : "button-primary"} ${
+              disabled ? "opacity-50 cursor-not-allowed pointer-events-none" : ""
+            }`}
           >
             {confirmLabel}
           </button>
