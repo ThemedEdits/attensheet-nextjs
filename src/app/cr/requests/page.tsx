@@ -71,6 +71,10 @@ export default function RequestsPage() {
     }
   }
 
+  if (loading) {
+    return <RequestsSkeleton />;
+  }
+
   return (
     <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Back Link */}
@@ -117,11 +121,7 @@ export default function RequestsPage() {
 
       {/* Requests List */}
       <div className="mt-8 space-y-3">
-        {loading ? (
-          Array.from({ length: 4 }, (_, i) => (
-            <div key={i} className="skeleton h-20 w-full" />
-          ))
-        ) : items.length ? (
+        {items.length ? (
           items.map((item) => {
             const isTeacher = Boolean(item.teacherUid);
             const isProcessing = busyId === item.id;
@@ -196,6 +196,58 @@ export default function RequestsPage() {
             </p>
           </div>
         )}
+      </div>
+    </main>
+  );
+}
+
+function RequestsSkeleton() {
+  return (
+    <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+      {/* Back Link Skeleton */}
+      <div className="skeleton h-3.5 w-28 rounded-md" />
+
+      {/* Header Skeleton */}
+      <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <div className="skeleton h-3.5 w-3.5 rounded-full" />
+            <div className="skeleton h-3.5 w-48 rounded-md" />
+          </div>
+          <div className="mt-1 skeleton h-8 sm:h-9 w-44 sm:w-56 rounded-xl" />
+          <div className="mt-1.5 skeleton h-4 w-72 sm:w-96 rounded-md" />
+        </div>
+
+        {/* Counter Badges Skeleton */}
+        <div className="flex items-center gap-2">
+          <div className="skeleton h-8 w-24 rounded-xl" />
+          <div className="skeleton h-8 w-24 rounded-xl" />
+        </div>
+      </div>
+
+      {/* Requests List Skeleton */}
+      <div className="mt-8 space-y-3">
+        {Array.from({ length: 4 }, (_, i) => (
+          <div
+            key={i}
+            className="card p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+          >
+            <div className="flex items-center gap-3.5">
+              <div className="skeleton h-10 w-10 rounded-xl flex-none" />
+              <div>
+                <div className="flex items-center gap-2">
+                  <div className="skeleton h-4 w-32 rounded" />
+                  <div className="skeleton h-5 w-16 rounded-full" />
+                </div>
+                <div className="mt-2 skeleton h-3 w-20 rounded" />
+              </div>
+            </div>
+            <div className="flex items-center gap-2 self-end sm:self-center">
+              <div className="skeleton h-8 w-20 rounded-xl" />
+              <div className="skeleton h-8 w-18 rounded-xl" />
+            </div>
+          </div>
+        ))}
       </div>
     </main>
   );

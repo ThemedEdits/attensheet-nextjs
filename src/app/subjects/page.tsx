@@ -32,6 +32,10 @@ export default function SubjectsPage() {
     return () => window.clearTimeout(timer);
   }, []);
 
+  if (loading) {
+    return <SubjectsSkeleton />;
+  }
+
   return (
     <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Back Link */}
@@ -58,29 +62,7 @@ export default function SubjectsPage() {
       </div>
 
       {/* Subjects Grid */}
-      {loading ? (
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3].map((item) => (
-            <div key={item} className="card p-6 flex flex-col justify-between">
-              <div>
-                <div className="flex items-start justify-between">
-                  <div className="skeleton h-11 w-11 rounded-xl" />
-                  <div className="skeleton h-5 w-14 rounded-full" />
-                </div>
-                <div className="mt-5 space-y-2">
-                  <div className="skeleton h-5 w-36 rounded-md" />
-                  <div className="skeleton h-3.5 w-44 rounded-md" />
-                </div>
-              </div>
-              <div className="mt-6 pt-3.5 border-t border-[var(--border)] flex items-center justify-between">
-                <div className="skeleton h-4 w-32 rounded-md" />
-                <div className="skeleton h-4 w-4 rounded-md" />
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {subjects.length ? (
             subjects.map((subject) => {
               const classId = classRecord?.id ?? subject.classId;
@@ -135,8 +117,48 @@ export default function SubjectsPage() {
               </Link>
             </div>
           )}
+      </div>
+    </main>
+  );
+}
+
+function SubjectsSkeleton() {
+  return (
+    <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      {/* Back Link Skeleton */}
+      <div className="skeleton h-3.5 w-28 rounded-md" />
+
+      {/* Page Header Skeleton */}
+      <div className="mt-4">
+        <div className="flex items-center gap-2">
+          <div className="skeleton h-3.5 w-3.5 rounded-full" />
+          <div className="skeleton h-3.5 w-36 rounded-md" />
         </div>
-      )}
+        <div className="mt-1 skeleton h-8 sm:h-9 w-48 sm:w-60 rounded-xl" />
+        <div className="mt-1.5 skeleton h-4 w-72 sm:w-96 rounded-md" />
+      </div>
+
+      {/* Subjects Grid Skeleton */}
+      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {[1, 2, 3, 4, 5, 6].map((item) => (
+          <div key={item} className="card p-6 flex flex-col justify-between">
+            <div>
+              <div className="flex items-start justify-between">
+                <div className="skeleton h-11 w-11 rounded-xl" />
+                <div className="skeleton h-5 w-16 rounded-full" />
+              </div>
+              <div className="mt-5 space-y-2">
+                <div className="skeleton h-5 w-40 rounded-md" />
+                <div className="skeleton h-3.5 w-32 rounded-md" />
+              </div>
+            </div>
+            <div className="mt-6 pt-3.5 border-t border-[var(--border)] flex items-center justify-between">
+              <div className="skeleton h-4 w-28 rounded-md" />
+              <div className="skeleton h-4 w-4 rounded-md" />
+            </div>
+          </div>
+        ))}
+      </div>
     </main>
   );
 }

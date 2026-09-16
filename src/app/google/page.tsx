@@ -28,6 +28,10 @@ export default function GooglePage() {
 
   const isConnected = Boolean(classRecord?.spreadsheetId);
 
+  if (loading) {
+    return <GoogleSheetsSkeleton />;
+  }
+
   return (
     <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Back Link */}
@@ -53,33 +57,7 @@ export default function GooglePage() {
       </div>
 
       <section className="mt-8 card p-6 sm:p-8">
-        {loading ? (
-          <div>
-            <div className="flex items-start gap-4">
-              <div className="skeleton h-12 w-12 flex-none rounded-2xl" />
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <div className="skeleton h-2.5 w-2.5 rounded-full" />
-                  <div className="skeleton h-5 w-48 rounded" />
-                </div>
-                <div className="mt-2.5 skeleton h-3.5 w-full max-w-md rounded" />
-                <div className="mt-1.5 skeleton h-3.5 w-3/4 rounded" />
-              </div>
-            </div>
-
-            <div className="mt-6 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border)] p-4">
-              <div className="skeleton h-3 w-28 rounded" />
-              <div className="mt-2 skeleton h-4 w-64 rounded" />
-            </div>
-
-            <div className="mt-8 pt-6 border-t border-[var(--border)] flex flex-wrap items-center gap-3">
-              <div className="skeleton h-9 w-56 rounded-xl" />
-              <div className="skeleton h-9 w-32 rounded-xl" />
-            </div>
-          </div>
-        ) : (
-          <>
-            <div className="flex items-start gap-4">
+        <div className="flex items-start gap-4">
               <div className="grid h-12 w-12 flex-none place-items-center rounded-2xl bg-[var(--surface-elevated)] border border-[var(--border)] text-[var(--accent)]">
                 <FileSpreadsheet className="h-6 w-6" />
               </div>
@@ -126,8 +104,50 @@ export default function GooglePage() {
                 Back to Dashboard
               </Link>
             </div>
-          </>
-        )}
+      </section>
+    </main>
+  );
+}
+
+function GoogleSheetsSkeleton() {
+  return (
+    <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+      {/* Back Link Skeleton */}
+      <div className="skeleton h-3.5 w-28 rounded-md" />
+
+      {/* Header Skeleton */}
+      <div className="mt-4">
+        <div className="flex items-center gap-2">
+          <div className="skeleton h-3.5 w-3.5 rounded-full" />
+          <div className="skeleton h-3.5 w-32 rounded-md" />
+        </div>
+        <div className="mt-1 skeleton h-8 sm:h-9 w-60 rounded-xl" />
+        <div className="mt-1.5 skeleton h-4 w-72 sm:w-96 rounded-md" />
+      </div>
+
+      {/* Sync Card Skeleton */}
+      <section className="mt-8 card p-6 sm:p-8">
+        <div className="flex items-start gap-4">
+          <div className="skeleton h-12 w-12 flex-none rounded-2xl" />
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <div className="skeleton h-2.5 w-2.5 rounded-full" />
+              <div className="skeleton h-5 w-48 rounded" />
+            </div>
+            <div className="mt-2.5 skeleton h-3.5 w-full max-w-md rounded" />
+            <div className="mt-1.5 skeleton h-3.5 w-3/4 rounded" />
+          </div>
+        </div>
+
+        <div className="mt-6 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border)] p-4">
+          <div className="skeleton h-3 w-28 rounded" />
+          <div className="mt-2 skeleton h-4 w-64 rounded" />
+        </div>
+
+        <div className="mt-8 pt-6 border-t border-[var(--border)] flex flex-wrap items-center gap-3">
+          <div className="skeleton h-9 w-52 rounded-xl" />
+          <div className="skeleton h-9 w-32 rounded-xl" />
+        </div>
       </section>
     </main>
   );

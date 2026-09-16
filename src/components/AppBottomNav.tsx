@@ -26,6 +26,8 @@ const publicPaths = ["/", "/login", "/signup", "/complete-profile"];
 export function AppBottomNav() {
   const pathname = usePathname();
   const router = useRouter();
+
+  // Fast-loading: retrieve role synchronously from localStorage on mount
   const [cachedRole, setCachedRole] = useState<Role | null>(() => {
     if (typeof window !== "undefined") {
       return (localStorage.getItem("attensheet_role") as Role) || null;
@@ -38,11 +40,15 @@ export function AppBottomNav() {
     }
     return false;
   });
+
   const [role, setRole] = useState<Role | null>(cachedRole);
   const [isSecondaryCr, setIsSecondaryCr] = useState(cachedSecondaryCr);
   const [pending, setPending] = useState(0);
-  const [visible, setVisible] = useState(false);
-  const [loading, setLoading] = useState(true);
+
+  // If role is cached and we are not on a public path, show instantly with 0ms delay
+  const isPublic = publicPaths.includes(pathname);
+  const [visible, setVisible] = useState(() => !isPublic && Boolean(cachedRole));
+  const [loading, setLoading] = useState(() => !isPublic && !cachedRole);
 
   useEffect(() => {
     if (publicPaths.includes(pathname)) return;
@@ -53,10 +59,13 @@ export function AppBottomNav() {
         if (mounted) {
           setVisible(false);
           setLoading(false);
+          setRole(null);
         }
         return;
       }
       if (mounted) setVisible(true);
+
+      // Background revalidation (stale-while-revalidate pattern)
       try {
         const response = await fetch("/api/dashboard", { headers: await authHeaders() });
         const result = await readApiResponse(response);
@@ -71,37 +80,44 @@ export function AppBottomNav() {
             setCachedRole(userRole);
             setCachedSecondaryCr(isSec);
           }
+          // Non-blocking fetch for pending badge count
           if (userRole === "cr") {
-            const requests = await fetch("/api/requests", { headers: await authHeaders() });
-            const requestData = await readApiResponse(requests);
-            if (mounted) {
-              setPending(Array.isArray(requestData.requests) ? requestData.requests.length : 0);
-            }
+            void fetch("/api/requests", { headers: await authHeaders() })
+              .then(readApiResponse)
+              .then((requestData) => {
+                if (mounted && Array.isArray(requestData.requests)) {
+                  setPending(requestData.requests.length);
+                }
+              })
+              .catch(() => {});
           }
         }
       } catch {
-        if (mounted) setRole(null);
+        if (mounted && !cachedRole) setRole(null);
       } finally {
         if (mounted) setLoading(false);
       }
     });
+
     return () => {
       mounted = false;
       unsubscribe();
     };
-  }, []);
+  }, [pathname, cachedRole]);
 
   const tabs = useMemo<Tab[]>(() => {
-    if (role === "student") {
+    const activeRole = role ?? cachedRole;
+    const activeSec = isSecondaryCr || cachedSecondaryCr;
+    if (activeRole === "student") {
       return [
         { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-        ...(isSecondaryCr ? [{ label: "Attendance", href: "/attendance", icon: CheckCircle2 }] : []),
+        ...(activeSec ? [{ label: "Attendance", href: "/attendance", icon: CheckCircle2 }] : []),
         { label: "Subjects", href: "/subjects", icon: BookOpen },
         { label: "History", href: "/history", icon: Clock },
         { label: "Settings", href: "/settings", icon: Settings },
       ];
     }
-    if (role === "teacher") {
+    if (activeRole === "teacher") {
       return [
         { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
         { label: "Students", href: "/students", icon: Users },
@@ -118,7 +134,7 @@ export function AppBottomNav() {
       { label: "Sheets", href: "/google", icon: FileSpreadsheet },
       { label: "Settings", href: "/settings", icon: Settings },
     ];
-  }, [role, isSecondaryCr]);
+  }, [role, cachedRole, isSecondaryCr, cachedSecondaryCr]);
 
   const skeletonCount = useMemo(() => {
     const activeRole = role ?? cachedRole;
@@ -136,16 +152,58 @@ export function AppBottomNav() {
     return <BottomNavSkeleton count={skeletonCount} />;
   }
 
-  if (!visible || !role) return null;
+  if (!visible || (!role && !cachedRole)) return null;
 
   const activeIndex = Math.max(
     0,
     tabs.findIndex((tab) => pathname === tab.href.split("?")[0] || (tab.label === "Dashboard" && pathname === "/dashboard"))
   );
 
+  const activePercent = tabs.length > 0 ? ((activeIndex + 0.5) / tabs.length) * 100 : 50;
+  const ActiveIcon = tabs[activeIndex]?.icon ?? LayoutDashboard;
+
   return (
     <nav className="bottom-nav" aria-label="Primary navigation">
       <div className="bottom-nav-track">
+        {/* Curved Track Cutout that smoothly tracks the active nav item */}
+        <div
+          className="bottom-nav-cutout"
+          style={{ left: `${activePercent}%` }}
+          aria-hidden="true"
+        >
+          <svg width="86" height="34" viewBox="0 0 86 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* Cutout fill that masks out track background/border */}
+            <path
+              d="M 0 0 C 12 0 16 8 21 17 C 26 26 34 31 43 31 C 52 31 60 26 65 17 C 70 8 74 0 86 0 L 86 -4 L 0 -4 Z"
+              fill="var(--bg-primary)"
+            />
+            {/* Curved scoop track border */}
+            <path
+              d="M 0 0 C 12 0 16 8 21 17 C 26 26 34 31 43 31 C 52 31 60 26 65 17 C 70 8 74 0 86 0"
+              stroke="var(--border)"
+              strokeWidth="1.2"
+              fill="none"
+            />
+          </svg>
+        </div>
+
+        {/* Elevated circular sliding active pill */}
+        <div
+          className="bottom-nav-pill"
+          style={{ left: `${activePercent}%` }}
+          aria-hidden="true"
+        >
+          <ActiveIcon className="h-5 w-5 stroke-[2.4] text-[#07110D] transition-transform duration-200" />
+        </div>
+
+        {/* Active indicator dot under active nav item */}
+        <div
+          className="bottom-nav-active-dot"
+          style={{ left: `${activePercent}%` }}
+          aria-hidden="true"
+        />
+
+        {/* Nav Items */}
         {tabs.map((tab, index) => {
           const active = index === activeIndex;
           const Icon = tab.icon;
@@ -154,21 +212,22 @@ export function AppBottomNav() {
               key={`${tab.label}-${index}`}
               type="button"
               onClick={() => router.push(tab.href)}
-              className={`bottom-nav-item relative ${active ? "is-active" : ""}`}
+              className={`bottom-nav-item ${active ? "is-active" : ""}`}
               aria-current={active ? "page" : undefined}
             >
-              <span className="bottom-nav-icon">
+              {/* When active, the icon is displayed in the elevated sliding pill above */}
+              <span
+                className={`bottom-nav-icon transition-all duration-200 ${
+                  active ? "opacity-0 scale-50" : "opacity-100 scale-100"
+                }`}
+              >
                 <Icon className="h-4 w-4 stroke-[2.2]" />
               </span>
-              <span className="bottom-nav-label">{tab.label}</span>
+              <span className={`bottom-nav-label ${active ? "font-semibold text-[var(--accent)]" : ""}`}>
+                {tab.label}
+              </span>
               {tab.label === "Requests" && pending > 0 && (
                 <b className="bottom-nav-badge">{pending > 9 ? "9+" : pending}</b>
-              )}
-              {active && (
-                <span
-                  className="absolute bottom-0.5 left-1/2 -translate-x-1/2 h-[2.5px] w-7 rounded-full bg-[var(--accent)] shadow-[0_0_8px_var(--accent)]"
-                  aria-hidden="true"
-                />
               )}
             </button>
           );

@@ -313,6 +313,10 @@ export default function StudentsPage() {
   const secondaryCrStudent = students.find((s) => s.isSecondaryCr);
   const primaryCrStudent = students.find((s) => s.isPrimaryCr);
 
+  if (loading) {
+    return <StudentsSkeleton />;
+  }
+
   return (
     <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Top Breadcrumb */}
@@ -1159,6 +1163,116 @@ export default function StudentsPage() {
           </div>
         </div>
       )}
+    </main>
+  );
+}
+
+function StudentsSkeleton() {
+  return (
+    <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      {/* Top Breadcrumb Skeleton */}
+      <div className="flex items-center gap-2">
+        <div className="skeleton h-3.5 w-16 rounded" />
+        <span className="text-[var(--text-muted)] text-xs">/</span>
+        <div className="skeleton h-3.5 w-20 rounded" />
+      </div>
+
+      {/* Header Section Skeleton */}
+      <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <div className="skeleton h-3.5 w-3.5 rounded-full" />
+            <div className="skeleton h-3.5 w-36 rounded-md" />
+          </div>
+          <div className="mt-1 skeleton h-8 sm:h-9 w-64 sm:w-80 rounded-xl" />
+          <div className="mt-1.5 skeleton h-4 w-72 sm:w-96 rounded-md" />
+        </div>
+        <div className="skeleton h-9 w-40 rounded-xl" />
+      </div>
+
+      {/* KPI Stats Cards Skeleton */}
+      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="card p-5 flex flex-col justify-between">
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="skeleton h-3.5 w-24 rounded" />
+                <div className="skeleton mt-2 h-7 w-20 rounded-lg" />
+              </div>
+              <div className="skeleton h-10 w-10 rounded-xl flex-none" />
+            </div>
+            <div className="mt-3 pt-2.5 border-t border-[var(--border)]">
+              <div className="skeleton h-3 w-36 rounded" />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Filters, Search & Sort Bar Skeleton */}
+      <div className="mt-8 flex flex-col gap-3.5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="skeleton h-9 w-full sm:max-w-md rounded-xl" />
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="skeleton h-8 w-60 rounded-xl" />
+          <div className="skeleton h-9 w-full sm:w-52 rounded-xl" />
+        </div>
+      </div>
+
+      {/* Main Student Roster Table Skeleton */}
+      <section className="mt-6 card overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-[var(--border)] bg-[var(--bg-secondary)] text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
+              <tr>
+                <th className="w-28 px-5 py-3.5">
+                  <div className="skeleton h-3.5 w-12 rounded" />
+                </th>
+                <th className="px-5 py-3.5">
+                  <div className="skeleton h-3.5 w-24 rounded" />
+                </th>
+                <th className="px-5 py-3.5">
+                  <div className="skeleton h-3.5 w-20 rounded" />
+                </th>
+                <th className="px-5 py-3.5">
+                  <div className="skeleton h-3.5 w-24 rounded" />
+                </th>
+                <th className="px-5 py-3.5 text-center">
+                  <div className="skeleton mx-auto h-3.5 w-20 rounded" />
+                </th>
+                <th className="w-20 px-5 py-3.5 text-right">
+                  <div className="skeleton ml-auto h-3.5 w-14 rounded" />
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--border)]">
+              {Array.from({ length: 6 }, (_, index) => (
+                <tr key={index}>
+                  <td className="px-5 py-3.5">
+                    <div className="skeleton h-4 w-16 rounded" />
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <div className="flex items-center gap-3">
+                      <div className="skeleton h-8 w-8 rounded-full flex-none" />
+                      <div className="skeleton h-4 w-32 rounded" />
+                    </div>
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <div className="skeleton h-4 w-28 rounded" />
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <div className="skeleton h-4 w-40 rounded" />
+                  </td>
+                  <td className="px-5 py-3.5 text-center">
+                    <div className="skeleton mx-auto h-5 w-20 rounded-full" />
+                  </td>
+                  <td className="px-5 py-3.5 text-right">
+                    <div className="skeleton ml-auto h-7 w-7 rounded-lg" />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
     </main>
   );
 }
