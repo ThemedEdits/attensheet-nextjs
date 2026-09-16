@@ -164,12 +164,7 @@ export function AppBottomNav() {
               {tab.label === "Requests" && pending > 0 && (
                 <b className="bottom-nav-badge">{pending > 9 ? "9+" : pending}</b>
               )}
-              {active && (
-                <span
-                  className="absolute bottom-0.5 left-1/2 -translate-x-1/2 h-[2.5px] w-7 rounded-full bg-[var(--accent)] shadow-[0_0_8px_var(--accent)]"
-                  aria-hidden="true"
-                />
-              )}
+              {active && <span className="bottom-nav-dot" aria-hidden="true" />}
             </button>
           );
         })}
@@ -192,4 +187,3 @@ function BottomNavSkeleton({ count }: { count: number }) {
     </nav>
   );
 }
-
