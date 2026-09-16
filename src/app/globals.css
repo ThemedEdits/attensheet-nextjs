@@ -290,10 +290,7 @@ textarea:focus {
   background-size: 200% 100%;
 }
 
-/* ============================================================
-   Bottom Navigation — Floating Pill with Sliding Active Pill
-   ============================================================ */
-
+/* Bottom Navigation Dock (Desktop & Mobile Adaptive) */
 .bottom-nav {
   position: fixed;
   z-index: 40;
@@ -302,63 +299,31 @@ textarea:focus {
   left: 0;
   width: 100%;
   margin: 0;
-  padding: 0 0 1rem;
-  pointer-events: none;
-  border-top: 0;
-  background: transparent;
-  box-shadow: none;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
+  padding: 0;
+  pointer-events: auto;
+  border-top: 1px solid var(--border);
+  background: rgba(7, 17, 13, 0.96);
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
 .bottom-nav-track {
   pointer-events: auto;
   position: relative;
   display: flex;
-  width: calc(100% - 2rem);
-  max-width: 40rem;
-  margin: 1.75rem auto 0;
-  padding: 0.35rem 0.5rem;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 0.25rem 0.5rem;
   align-items: center;
   justify-content: space-around;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 9999px;
-  background: rgba(13, 28, 22, 0.92);
-  box-shadow:
-    0 10px 30px rgba(0, 0, 0, 0.55),
-    0 2px 6px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(4px);
-  isolation: isolate;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
-/* Sliding pill — position derived from data-active-index + data-count */
-.bottom-nav-track::before {
-  content: "";
-  position: absolute;
-  z-index: 1;
-  top: 50%;
-  left: 0;
-  /* Fixed circle diameter — never stretches */
-  --size: 2.6rem;
-  --slot: calc(100% / var(--count, 5));
-  width: var(--size);
-  height: var(--size);
-  border-radius: 9999px;
-  background: var(--primary);
-  box-shadow:
-    0 6px 18px rgba(22, 166, 106, 0.45),
-    0 0 0 1px rgba(255, 255, 255, 0.06) inset;
-  /* Center of slot N, minus half the circle */
-  transform: translate(
-    calc(var(--slot) * var(--index, 0) + (var(--slot) / 2) - (var(--size) / 2)),
-    -50%
-  );
-  transition: transform 0.42s cubic-bezier(0.34, 1.4, 0.64, 1);
-  pointer-events: none;
-}
-
-/* Active item lifts above the pill */
 .bottom-nav-item {
   position: relative;
   z-index: 2;
@@ -368,17 +333,15 @@ textarea:focus {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.15rem;
-  padding: 0.5rem 0.25rem;
+  gap: 0.25rem;
+  padding: 0.55rem 0.25rem;
   border: 0;
   background: transparent;
   color: var(--text-muted);
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   font-weight: 500;
   cursor: pointer;
-  transition:
-    color 0.18s ease,
-    transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: color 0.18s, transform 0.18s;
 }
 
 .bottom-nav-item:hover {
@@ -386,9 +349,13 @@ textarea:focus {
 }
 
 .bottom-nav-item.is-active {
+  color: var(--accent);
+}
+
+.bottom-nav-item.is-active .bottom-nav-icon {
+  background: var(--primary);
   color: #07110D;
-  transform: translateY(0);
-  /* was -1.4rem */
+  box-shadow: 0 2px 12px rgba(22, 166, 106, 0.4);
 }
 
 .bottom-nav-icon {
@@ -396,47 +363,13 @@ textarea:focus {
   width: 2.1rem;
   height: 2.1rem;
   place-items: center;
-  border-radius: 9999px;
-  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-  background: transparent;
-  color: inherit;
+  border-radius: var(--radius-md);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Remove the per-item lift */
-.bottom-nav-item.is-active {
-  color: #07110D;
-  transform: translateY(0);
-  /* was -1.4rem */
-}
-
-/* Make the active icon transparent — the sliding pill is the bg */
-.bottom-nav-item.is-active .bottom-nav-icon {
-  width: 2.6rem;
-  height: 2.6rem;
-  background: transparent;
-  /* was var(--primary) */
-  color: #07110D;
-  box-shadow: none;
-  /* was the big halo */
-  border: 0;
-}
-
-.bottom-nav-label {
-  line-height: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-}
-
-.bottom-nav-item.is-active .bottom-nav-label {
-  font-weight: 600;
-}
-
-/* Badge stays visible above the pill */
 .bottom-nav-badge {
   position: absolute;
-  top: 0.1rem;
+  top: 0.25rem;
   right: 18%;
   min-width: 1.1rem;
   padding: 0.1rem 0.3rem;
@@ -447,50 +380,6 @@ textarea:focus {
   font-weight: 700;
   line-height: 1;
   text-align: center;
-  z-index: 3;
-}
-
-/* ---------- Sliding-pill index wiring ---------- */
-/* Set --count on the track for width math */
-.bottom-nav-track[data-count] {
-  --count: attr(data-count number, 5);
-}
-
-/* Per-index translation using attribute selectors (no JS hooks needed) */
-.bottom-nav-track[data-active-index="0"]::before {
-  --index: 0;
-}
-
-.bottom-nav-track[data-active-index="1"]::before {
-  --index: 1;
-}
-
-.bottom-nav-track[data-active-index="2"]::before {
-  --index: 2;
-}
-
-.bottom-nav-track[data-active-index="3"]::before {
-  --index: 3;
-}
-
-.bottom-nav-track[data-active-index="4"]::before {
-  --index: 4;
-}
-
-.bottom-nav-track[data-active-index="5"]::before {
-  --index: 5;
-}
-
-.bottom-nav-track[data-active-index="6"]::before {
-  --index: 6;
-}
-
-/* Hide pill during skeleton/loading (active index -1) */
-.bottom-nav-track[data-active-index="-1"]::before,
-.bottom-nav-track:not([data-active-index])::before {
-  opacity: 0;
-  transform: translateY(-50%) translateX(0);
-  transition: opacity 0.2s ease;
 }
 
 /* Page shell padding to prevent bottom nav overlap */
@@ -498,7 +387,26 @@ textarea:focus {
   width: 100%;
   max-width: 100vw;
   min-height: 100vh;
-  padding-bottom: 8.5rem;
+  padding-bottom: 7rem;
+}
+
+/* Custom Scrollbar for rich data tables */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-hover);
 }
 
 /* Reduced motion preference */
@@ -520,39 +428,24 @@ textarea:focus {
   }
 
   .bottom-nav {
-    padding: 0 0 0.75rem;
+    background: rgba(7, 17, 13, 0.98);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 
   .bottom-nav-track {
-    width: calc(100% - 1.5rem);
-    margin-top: 1.5rem;
-    padding: 0.3rem 0.4rem;
-  }
-
-  .bottom-nav-track::before {
-    left: 0.4rem;
-    width: calc((100% - 0.8rem) / var(--count, 5));
-    height: calc(100% - 0.6rem);
+    border-radius: 0;
+    border-radius: 0px;
   }
 
   .bottom-nav-item {
     gap: 0;
-    padding: 0.5rem 0.2rem;
-  }
-
-  .bottom-nav-item.is-active {
-    transform: translateY(0);
+    padding: 0.65rem 0.25rem;
   }
 
   .bottom-nav-icon {
-    width: 2.25rem;
-    height: 2.25rem;
-  }
-
-  .bottom-nav-item.is-active .bottom-nav-icon {
-    width: 2.4rem;
-    height: 2.4rem;
-    box-shadow: none;
+    width: 2.35rem;
+    height: 2.35rem;
   }
 }
 

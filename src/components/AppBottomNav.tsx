@@ -3,7 +3,6 @@
 import { onAuthStateChanged } from "firebase/auth";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import type React from "react";
 import {
   BookOpen,
   Clock,
@@ -146,15 +145,7 @@ export function AppBottomNav() {
 
   return (
     <nav className="bottom-nav" aria-label="Primary navigation">
-      <div
-        className="bottom-nav-track"
-        style={
-          {
-            "--count": tabs.length,
-            "--index": activeIndex,
-          } as React.CSSProperties
-        }
-      >
+      <div className="bottom-nav-track">
         {tabs.map((tab, index) => {
           const active = index === activeIndex;
           const Icon = tab.icon;
@@ -173,6 +164,12 @@ export function AppBottomNav() {
               {tab.label === "Requests" && pending > 0 && (
                 <b className="bottom-nav-badge">{pending > 9 ? "9+" : pending}</b>
               )}
+              {active && (
+                <span
+                  className="absolute bottom-0.5 left-1/2 -translate-x-1/2 h-[2.5px] w-7 rounded-full bg-[var(--accent)] shadow-[0_0_8px_var(--accent)]"
+                  aria-hidden="true"
+                />
+              )}
             </button>
           );
         })}
@@ -184,15 +181,7 @@ export function AppBottomNav() {
 function BottomNavSkeleton({ count }: { count: number }) {
   return (
     <nav className="bottom-nav" aria-label="Loading navigation">
-      <div
-        className="bottom-nav-track"
-        style={
-          {
-            "--count": count,
-            "--index": 0,
-          } as React.CSSProperties
-        }
-      >
+      <div className="bottom-nav-track">
         {Array.from({ length: count }, (_, i) => i + 1).map((item) => (
           <div key={item} className="bottom-nav-item animate-pulse">
             <div className="h-8 w-8 rounded-xl bg-[var(--surface-elevated)]" />
@@ -203,3 +192,4 @@ function BottomNavSkeleton({ count }: { count: number }) {
     </nav>
   );
 }
+
