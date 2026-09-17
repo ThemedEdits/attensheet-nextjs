@@ -143,30 +143,31 @@ export function DownloadAttendanceModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/75 p-4 backdrop-blur-sm animate-in fade-in duration-150">
-      <div className="w-full max-w-lg rounded-2xl border border-[var(--border-hover)] bg-[var(--surface)] p-6 shadow-2xl relative">
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/75 p-3 sm:p-4 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
+      <div className="w-full max-w-lg rounded-2xl border border-[var(--border-hover)] bg-[var(--surface)] p-4 sm:p-6 shadow-2xl relative my-auto max-h-[92vh] flex flex-col">
         {/* Close button */}
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-4 top-4 rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-white transition-colors"
+          aria-label="Close dialog"
+          className="absolute right-3.5 top-3.5 sm:right-4 sm:top-4 rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-white transition-colors"
         >
           <X className="h-4 w-4" />
         </button>
 
         {/* Modal Header */}
-        <div className="flex items-start gap-3.5 pb-5 border-b border-[var(--border)]">
-          <div className="grid h-11 w-11 place-items-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)] border border-[var(--border)] flex-none">
+        <div className="flex items-start gap-3 pb-4 sm:pb-5 border-b border-[var(--border)] pr-8 flex-none">
+          <div className="grid h-10 w-10 sm:h-11 sm:w-11 place-items-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)] border border-[var(--border)] flex-none">
             <Download className="h-5 w-5" />
           </div>
-          <div>
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-semibold text-[var(--accent)] uppercase tracking-wider">
+              <span className="text-[10px] sm:text-[11px] font-semibold text-[var(--accent)] uppercase tracking-wider">
                 Export Attendance
               </span>
             </div>
-            <h3 className="text-base font-bold text-white mt-0.5">{subject.name}</h3>
-            <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+            <h3 className="text-base sm:text-lg font-bold text-white mt-0.5 truncate">{subject.name}</h3>
+            <p className="text-xs text-[var(--text-secondary)] mt-0.5 truncate">
               {classRecord.className || "Class"}
               {classRecord.section ? ` (Sec ${classRecord.section})` : ""}
               {classRecord.semester ? ` • ${classRecord.semester}` : ""}
@@ -175,20 +176,20 @@ export function DownloadAttendanceModal({
         </div>
 
         {/* Options List */}
-        <div className="mt-5 space-y-3">
+        <div className="mt-4 sm:mt-5 space-y-3 overflow-y-auto flex-1 pr-0.5">
           <p className="text-xs font-medium text-[var(--text-secondary)]">
             Choose your preferred export format:
           </p>
 
           {/* Option 1: Excel */}
-          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] p-4 hover:border-[var(--border-hover)] transition-all flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3.5">
-              <div className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex-none">
-                <FileSpreadsheet className="h-5 w-5" />
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] p-3.5 sm:p-4 hover:border-[var(--border-hover)] transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+            <div className="flex items-start gap-3 min-w-0 flex-1">
+              <div className="grid h-9 w-9 sm:h-10 sm:w-10 place-items-center rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex-none mt-0.5 sm:mt-0">
+                <FileSpreadsheet className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
               </div>
-              <div>
-                <h4 className="text-sm font-semibold text-white">Excel Spreadsheet (.xlsx)</h4>
-                <p className="text-xs text-[var(--text-muted)] mt-0.5">
+              <div className="min-w-0 flex-1">
+                <h4 className="text-sm font-semibold text-white leading-snug">Excel Spreadsheet (.xlsx)</h4>
+                <p className="text-xs text-[var(--text-muted)] mt-1 leading-relaxed">
                   Complete attendance ledger with lecture dates, student roster, and totals.
                 </p>
               </div>
@@ -197,7 +198,7 @@ export function DownloadAttendanceModal({
               type="button"
               disabled={Boolean(downloadingFormat)}
               onClick={handleDownloadExcel}
-              className="button-secondary text-xs px-3.5 py-2 flex items-center gap-1.5 flex-none text-emerald-400 hover:text-emerald-300 hover:border-emerald-500/40"
+              className="button-secondary text-xs px-3.5 py-2.5 sm:py-2 flex items-center justify-center gap-1.5 w-full sm:w-auto flex-none text-emerald-400 hover:text-emerald-300 hover:border-emerald-500/40 cursor-pointer"
             >
               {downloadingFormat === "excel" ? (
                 <>
@@ -214,14 +215,14 @@ export function DownloadAttendanceModal({
           </div>
 
           {/* Option 2: PDF */}
-          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] p-4 hover:border-[var(--border-hover)] transition-all flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3.5">
-              <div className="grid h-10 w-10 place-items-center rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20 flex-none">
-                <FileText className="h-5 w-5" />
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] p-3.5 sm:p-4 hover:border-[var(--border-hover)] transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+            <div className="flex items-start gap-3 min-w-0 flex-1">
+              <div className="grid h-9 w-9 sm:h-10 sm:w-10 place-items-center rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20 flex-none mt-0.5 sm:mt-0">
+                <FileText className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
               </div>
-              <div>
-                <h4 className="text-sm font-semibold text-white">PDF Document (.pdf)</h4>
-                <p className="text-xs text-[var(--text-muted)] mt-0.5">
+              <div className="min-w-0 flex-1">
+                <h4 className="text-sm font-semibold text-white leading-snug">PDF Document (.pdf)</h4>
+                <p className="text-xs text-[var(--text-muted)] mt-1 leading-relaxed">
                   Clean printable document styled with institutional headers and statistics.
                 </p>
               </div>
@@ -230,7 +231,7 @@ export function DownloadAttendanceModal({
               type="button"
               disabled={Boolean(downloadingFormat)}
               onClick={handleDownloadPdf}
-              className="button-secondary text-xs px-3.5 py-2 flex items-center gap-1.5 flex-none text-rose-400 hover:text-rose-300 hover:border-rose-500/40"
+              className="button-secondary text-xs px-3.5 py-2.5 sm:py-2 flex items-center justify-center gap-1.5 w-full sm:w-auto flex-none text-rose-400 hover:text-rose-300 hover:border-rose-500/40 cursor-pointer"
             >
               {downloadingFormat === "pdf" ? (
                 <>
@@ -247,14 +248,14 @@ export function DownloadAttendanceModal({
           </div>
 
           {/* Option 3: Google Sheets */}
-          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] p-4 hover:border-[var(--border-hover)] transition-all flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3.5">
-              <div className="grid h-10 w-10 place-items-center rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20 flex-none">
-                <ExternalLink className="h-5 w-5" />
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] p-3.5 sm:p-4 hover:border-[var(--border-hover)] transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+            <div className="flex items-start gap-3 min-w-0 flex-1">
+              <div className="grid h-9 w-9 sm:h-10 sm:w-10 place-items-center rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20 flex-none mt-0.5 sm:mt-0">
+                <ExternalLink className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
               </div>
-              <div>
-                <h4 className="text-sm font-semibold text-white">Google Sheet</h4>
-                <p className="text-xs text-[var(--text-muted)] mt-0.5">
+              <div className="min-w-0 flex-1">
+                <h4 className="text-sm font-semibold text-white leading-snug">Google Sheet</h4>
+                <p className="text-xs text-[var(--text-muted)] mt-1 leading-relaxed">
                   Open live synchronized cloud sheet in Google Sheets tab.
                 </p>
               </div>
@@ -263,7 +264,7 @@ export function DownloadAttendanceModal({
               type="button"
               disabled={Boolean(downloadingFormat)}
               onClick={handleOpenGoogleSheet}
-              className="button-secondary text-xs px-3.5 py-2 flex items-center gap-1.5 flex-none text-sky-400 hover:text-sky-300 hover:border-sky-500/40"
+              className="button-secondary text-xs px-3.5 py-2.5 sm:py-2 flex items-center justify-center gap-1.5 w-full sm:w-auto flex-none text-sky-400 hover:text-sky-300 hover:border-sky-500/40 cursor-pointer"
             >
               <ExternalLink className="h-3.5 w-3.5" />
               <span>Open Sheet</span>
@@ -272,12 +273,14 @@ export function DownloadAttendanceModal({
         </div>
 
         {/* Modal Footer */}
-        <div className="mt-6 pt-4 border-t border-[var(--border)] flex items-center justify-between text-xs text-[var(--text-muted)]">
-          <span>File name: {classRecord.className || "Class"} - {subject.name} - Attendance</span>
+        <div className="mt-4 sm:mt-5 pt-3.5 sm:pt-4 border-t border-[var(--border)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 text-xs text-[var(--text-muted)] flex-none">
+          <span className="truncate max-w-full text-[11px] sm:text-xs">
+            File: {classRecord.className || "Class"} - {subject.name} - Attendance
+          </span>
           <button
             type="button"
             onClick={onClose}
-            className="text-xs text-[var(--text-secondary)] hover:text-white transition-colors"
+            className="text-xs text-[var(--text-secondary)] hover:text-white transition-colors self-end sm:self-auto cursor-pointer"
           >
             Close
           </button>
