@@ -15,7 +15,7 @@ import {
 import { firebaseAuth } from "@/lib/firebase";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Eye, EyeOff, AlertCircle, Loader2, Mail, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, AlertCircle, Loader2, Mail, CheckCircle2, Sparkles } from "lucide-react";
 
 export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const [email, setEmail] = useState("");
@@ -35,6 +35,22 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const [verifying, setVerifying] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
   const [verificationSuccess, setVerificationSuccess] = useState(false);
+  const [inviteCode, setInviteCode] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const codeParam = params.get("code") || params.get("classCode");
+      if (codeParam) {
+        const cleanCode = codeParam.trim().toUpperCase();
+        setInviteCode(cleanCode);
+        localStorage.setItem("attensheet_invite_code", cleanCode);
+      } else {
+        const stored = localStorage.getItem("attensheet_invite_code");
+        if (stored) setInviteCode(stored.trim().toUpperCase());
+      }
+    }
+  }, []);
 
   // Live password requirements checklist
   const passwordRequirements = useMemo(() => {
@@ -400,6 +416,15 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
                 : "Get started in seconds with university class attendance."}
             </p>
           </div>
+
+          {inviteCode && !reset && (
+            <div className="mt-4 flex items-center gap-2 rounded-xl border border-[var(--accent)]/30 bg-[var(--accent-soft)]/20 px-3.5 py-2.5 text-xs text-[var(--accent)]">
+              <Sparkles className="h-4 w-4 flex-none" />
+              <span>
+                Joining class with code: <strong className="font-mono font-bold tracking-wider text-white">{inviteCode}</strong>
+              </span>
+            </div>
+          )}
 
           {error && (
             <div className="mt-5 flex items-start gap-2.5 rounded-xl border border-red-500/30 bg-red-500/10 p-3.5 text-xs sm:text-sm text-red-200">

@@ -25,7 +25,6 @@ type RequestItem = { id: string; fullName?: string; teacherUid?: string; student
 export default function RequestsPage() {
   const [items, setItems] = useState<RequestItem[]>([]);
   const [message, setMessage] = useState("");
-  const [counts, setCounts] = useState({ students: 0, teachers: 0 });
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
@@ -61,9 +60,6 @@ export default function RequestsPage() {
       const reqList = Array.isArray(result.requests) ? (result.requests as RequestItem[]) : [];
       setItems(reqList);
       updatePendingCount(reqList.length);
-      setCounts(
-        (result.counts as { students: number; teachers: number } | undefined) ?? { students: 0, teachers: 0 }
-      );
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to load requests.");
     } finally {
@@ -164,13 +160,6 @@ export default function RequestsPage() {
               </button>
             </div>
           )}
-
-          <span className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)]">
-            Students: <strong className="text-white font-semibold">{counts.students}</strong>
-          </span>
-          <span className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)]">
-            Teachers: <strong className="text-white font-semibold">{counts.teachers}</strong>
-          </span>
         </div>
       </div>
 
@@ -296,12 +285,6 @@ function RequestsSkeleton() {
           </div>
           <div className="mt-1 skeleton h-8 sm:h-9 w-44 sm:w-56 rounded-xl" />
           <div className="mt-1.5 skeleton h-4 w-72 sm:w-96 rounded-md" />
-        </div>
-
-        {/* Counter Badges Skeleton */}
-        <div className="flex items-center gap-2">
-          <div className="skeleton h-8 w-24 rounded-xl" />
-          <div className="skeleton h-8 w-24 rounded-xl" />
         </div>
       </div>
 

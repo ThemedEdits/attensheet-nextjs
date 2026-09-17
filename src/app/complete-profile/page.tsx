@@ -73,7 +73,12 @@ export default function CompleteProfilePage() {
         },
         { merge: true }
       );
-      router.replace(role === "cr" ? "/cr/setup" : "/dashboard");
+      const savedCode = typeof window !== "undefined" ? localStorage.getItem("attensheet_invite_code") : null;
+      if (role !== "cr" && savedCode) {
+        router.replace(`/join?code=${encodeURIComponent(savedCode)}`);
+      } else {
+        router.replace(role === "cr" ? "/cr/setup" : "/dashboard");
+      }
     } finally {
       setBusy(false);
     }

@@ -91,9 +91,74 @@ export async function GET(request: Request) {
 
     const crSelfEnrolled = students.some((s) => s.uid === clsData.crUid);
 
+    let teachers: Array<{
+      id: string;
+      uid: string;
+      fullName: string;
+      email: string;
+      subjects: Array<{ id: string; name: string }>;
+      approvedAt?: string;
+      createdAt?: string;
+    }> = [];
+
+    if (isCr) {
+      const [teachersSnap, subjectsSnap] = await Promise.all([
+        db.collection("memberships")
+          .where("classId", "==", classId)
+          .where("role", "==", "teacher")
+          .where("status", "==", "approved")
+          .get(),
+        db.collection("subjects")
+          .where("classId", "==", classId)
+          .get(),
+      ]);
+
+      const subjectsByTeacher = new Map<string, Array<{ id: string; name: string }>>();
+      subjectsSnap.docs.forEach((doc) => {
+        const subData = doc.data();
+        if (subData.teacherUid && subData.active !== false) {
+          const list = subjectsByTeacher.get(subData.teacherUid) || [];
+          list.push({ id: doc.id, name: String(subData.name || "Unnamed Subject") });
+          subjectsByTeacher.set(subData.teacherUid, list);
+        }
+      });
+
+      teachers = await Promise.all(
+        teachersSnap.docs.map(async (docSnap) => {
+          const data = docSnap.data();
+          const teacherUid = String(data.uid);
+          let email = data.email;
+          let fullName = data.fullName;
+
+          if (!email || !fullName) {
+            const uSnap = await db.collection("users").doc(teacherUid).get();
+            if (uSnap.exists) {
+              email = email || uSnap.data()?.email;
+              fullName = fullName || uSnap.data()?.name;
+            }
+          }
+
+          const teacherSubjects = subjectsByTeacher.get(teacherUid) || [];
+
+          return {
+            id: docSnap.id,
+            uid: teacherUid,
+            fullName: fullName || "Unnamed Teacher",
+            email: email || "No email available",
+            subjects: teacherSubjects,
+            approvedAt: data.approvedAt?.toDate ? data.approvedAt.toDate().toISOString() : data.approvedAt || "",
+            createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : data.createdAt || "",
+          };
+        })
+      );
+
+      teachers.sort((a, b) => a.fullName.localeCompare(b.fullName));
+    }
+
     return NextResponse.json({
       class: { id: classId, ...clsData },
       students,
+      teachers,
       secondaryCrUid,
       crSelfEnrolled,
       isCr,
@@ -355,9 +420,10 @@ export async function DELETE(request: Request) {
     const url = new URL(request.url);
     const classId = url.searchParams.get("classId");
     const studentUid = url.searchParams.get("studentUid");
+    const teacherUid = url.searchParams.get("teacherUid");
 
-    if (!classId || !studentUid) {
-      return NextResponse.json({ error: "classId and studentUid are required." }, { status: 400 });
+    if (!classId || (!studentUid && !teacherUid)) {
+      return NextResponse.json({ error: "classId and member UID are required." }, { status: 400 });
     }
 
     const db = getAdminDb();
@@ -368,6 +434,38 @@ export async function DELETE(request: Request) {
     const isCr = clsData.crUid === user.uid;
     const userMemSnap = await db.collection("memberships").doc(`${classId}_${user.uid}`).get();
     const isTeacher = userMemSnap.exists && userMemSnap.data()?.role === "teacher" && userMemSnap.data()?.status === "approved";
+
+    // Handle Teacher Removal (CR only)
+    if (teacherUid) {
+      if (!isCr) {
+        return NextResponse.json({ error: "Only the Class Representative can remove a teacher." }, { status: 403 });
+      }
+      const memRef = db.collection("memberships").doc(`${classId}_${teacherUid}`);
+      const memSnap = await memRef.get();
+      if (!memSnap.exists) {
+        return NextResponse.json({ error: "Teacher membership not found." }, { status: 404 });
+      }
+
+      await memRef.delete();
+
+      const batch = db.batch();
+      const reqSnap = await db.collection("teacherRequests")
+        .where("classId", "==", classId)
+        .where("teacherUid", "==", teacherUid)
+        .get();
+      reqSnap.docs.forEach((doc) => batch.delete(doc.ref));
+
+      const subSnap = await db.collection("subjects")
+        .where("classId", "==", classId)
+        .where("teacherUid", "==", teacherUid)
+        .get();
+      subSnap.docs.forEach((doc) => {
+        batch.update(doc.ref, { teacherUid: FieldValue.delete(), updatedAt: FieldValue.serverTimestamp() });
+      });
+
+      await batch.commit();
+      return NextResponse.json({ ok: true, deleted: true, message: "Teacher removed from class successfully." });
+    }
 
     if (!isCr && !isTeacher) {
       return NextResponse.json({ error: "Only the Class Representative or Teacher can remove a student." }, { status: 403 });

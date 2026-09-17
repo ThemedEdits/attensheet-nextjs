@@ -35,7 +35,8 @@ import {
   Search,
   Filter,
   ShieldCheck,
-  Calendar
+  Calendar,
+  Share2
 } from "lucide-react";
 
 type StudentAttendanceRecord = {
@@ -61,6 +62,7 @@ export default function DashboardPage() {
   const [members, setMembers] = useState<{ uid: string; fullName?: string; role: string }[]>([]);
   const [confirmDelete, setConfirmDelete] = useState<SubjectRecord | null>(null);
   const [copiedCode, setCopiedCode] = useState(false);
+  const [copiedInvite, setCopiedInvite] = useState(false);
   const [isSecondaryCr, setIsSecondaryCr] = useState(false);
   const [isCrEnrolledAsStudent, setIsCrEnrolledAsStudent] = useState(true);
   const [showEnrollModal, setShowEnrollModal] = useState(false);
@@ -196,6 +198,45 @@ export default function DashboardPage() {
     setCopiedCode(true);
     toast("Class code copied to clipboard!", "success");
     setTimeout(() => setCopiedCode(false), 2000);
+  };
+
+  const shareClassInvite = async () => {
+    if (!classRecord?.classCode) return;
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const joinLink = `${origin}/signup?code=${encodeURIComponent(classRecord.classCode)}`;
+
+    const details = [
+      classRecord.university ? `🏛️ *University:* ${classRecord.university}` : "",
+      classRecord.department ? `📂 *Department:* ${classRecord.department}` : "",
+      classRecord.className ? `📚 *Class:* ${classRecord.className} (Sec ${classRecord.section || "A"}, ${classRecord.semester || ""})` : "",
+    ].filter(Boolean).join("\n");
+
+    const message = [
+      `🎓 *Join our Class on AttenSheet*`,
+      `━━━━━━━━━━━━━━━━━━━━━━`,
+      details,
+      ``,
+      `🔑 *CLASS ACCESS CODE:*`,
+      `👉 *${classRecord.classCode}* 👈`,
+      ``,
+      `📝 *How to Join (Takes 30 seconds):*`,
+      `1️⃣ Click to sign up or sign in:`,
+      `🔗 ${joinLink}`,
+      `2️⃣ Complete your profile (Choose Student or Teacher).`,
+      `3️⃣ Enter the Class Code: *${classRecord.classCode}*`,
+      `4️⃣ Once approved, you will have instant access to subjects and attendance registers!`,
+      `━━━━━━━━━━━━━━━━━━━━━━`,
+      `_AttenSheet — Fast & Smart Attendance Management_`,
+    ].join("\n");
+
+    try {
+      await navigator.clipboard.writeText(message);
+      setCopiedInvite(true);
+      toast("Class invite & signup link copied! Ready to paste in WhatsApp.", "success");
+      setTimeout(() => setCopiedInvite(false), 3000);
+    } catch {
+      toast("Unable to copy to clipboard.", "error");
+    }
   };
 
   async function handleEnrollCrAsStudent(e: React.FormEvent) {
@@ -982,25 +1023,47 @@ export default function DashboardPage() {
                   <KeyRound className="h-5 w-5" />
                 </div>
               </div>
-              <div className="mt-4 pt-3 border-t border-[var(--border)] flex items-center justify-between">
-                <span className="text-[11px] text-[var(--text-muted)]">Share with your students</span>
-                <button
-                  type="button"
-                  onClick={copyClassCode}
-                  className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"
-                >
-                  {copiedCode ? (
-                    <>
-                      <Check className="h-3.5 w-3.5 text-[var(--accent)]" />
-                      <span className="text-[var(--accent)]">Copied</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="h-3.5 w-3.5" />
-                      <span>Copy</span>
-                    </>
-                  )}
-                </button>
+              <div className="mt-4 pt-3 border-t border-[var(--border)] flex flex-wrap items-center justify-between gap-2">
+                <span className="text-[11px] text-[var(--text-muted)]">Share with class</span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={shareClassInvite}
+                    className="button-primary text-xs py-1.5 px-3 inline-flex items-center gap-1.5 font-semibold shadow"
+                    title="Copy full invite message with link and class details"
+                  >
+                    {copiedInvite ? (
+                      <>
+                        <Check className="h-3.5 w-3.5" />
+                        <span>Invite Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Share2 className="h-3.5 w-3.5" />
+                        <span>Share Invite</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={copyClassCode}
+                    className="button-secondary text-xs py-1.5 px-2.5 inline-flex items-center gap-1.5 font-medium"
+                    title="Copy class access code only"
+                  >
+                    {copiedCode ? (
+                      <>
+                        <Check className="h-3.5 w-3.5 text-[var(--accent)]" />
+                        <span className="text-[var(--accent)]">Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-3.5 w-3.5" />
+                        <span>Copy Code</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

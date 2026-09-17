@@ -6,6 +6,7 @@ import { authHeaders } from "@/lib/client-auth";
 import { readApiResponse } from "@/lib/client-response";
 import { toTitleCase } from "@/lib/title-case";
 import { PendingRequestCard, type PendingClassRequest } from "@/components/PendingRequestCard";
+import { firebaseAuth } from "@/lib/firebase";
 import { ArrowLeft, KeyRound, AlertCircle, CheckCircle2, Loader2, ArrowRight } from "lucide-react";
 
 export default function JoinPage() {
@@ -37,6 +38,23 @@ export default function JoinPage() {
 
   useEffect(() => {
     void checkPendingStatus();
+
+    // Auto-fill from URL params or stored invite code
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const queryCode = params.get("code") || params.get("classCode");
+      const storedCode = localStorage.getItem("attensheet_invite_code");
+      const targetCode = queryCode || storedCode;
+
+      if (targetCode) {
+        setCode(targetCode.trim().toUpperCase());
+        localStorage.removeItem("attensheet_invite_code");
+      }
+
+      if (firebaseAuth.currentUser?.displayName) {
+        setFullName((prev) => prev || firebaseAuth.currentUser?.displayName || "");
+      }
+    }
   }, []);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {

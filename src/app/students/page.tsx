@@ -30,7 +30,8 @@ import {
   Mail,
   AlertCircle,
   CheckCircle2,
-  Plus
+  Plus,
+  BookOpen
 } from "lucide-react";
 
 interface StudentItem {
@@ -42,6 +43,16 @@ interface StudentItem {
   email: string;
   isPrimaryCr: boolean;
   isSecondaryCr: boolean;
+  createdAt?: string;
+}
+
+interface TeacherItem {
+  id: string;
+  uid: string;
+  fullName: string;
+  email: string;
+  subjects: Array<{ id: string; name: string }>;
+  approvedAt?: string;
   createdAt?: string;
 }
 
@@ -62,7 +73,9 @@ export default function StudentsPage() {
   const router = useRouter();
   const toast = useToast();
 
+  const [activeTab, setActiveTab] = useState<"students" | "teachers">("students");
   const [students, setStudents] = useState<StudentItem[]>([]);
+  const [teachers, setTeachers] = useState<TeacherItem[]>([]);
   const [classData, setClassData] = useState<ClassMetadata | null>(null);
   const [secondaryCrUid, setSecondaryCrUid] = useState<string | null>(null);
   const [crSelfEnrolled, setCrSelfEnrolled] = useState<boolean>(true);
@@ -70,10 +83,15 @@ export default function StudentsPage() {
   const [isTeacher, setIsTeacher] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Filters & Sorting
+  // Filters & Sorting for Students
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
   const [sortBy, setSortBy] = useState<SortOption>("seat_asc");
+
+  // Filters for Teachers
+  const [teacherSearch, setTeacherSearch] = useState("");
+  const [selectedTeacherForDelete, setSelectedTeacherForDelete] = useState<TeacherItem | null>(null);
+  const [deletingTeacher, setDeletingTeacher] = useState(false);
 
   // Selected student for Action Modal
   const [selectedStudent, setSelectedStudent] = useState<StudentItem | null>(null);
@@ -103,6 +121,7 @@ export default function StudentsPage() {
       }
 
       setStudents((result.students ?? []) as StudentItem[]);
+      setTeachers((result.teachers ?? []) as TeacherItem[]);
       setClassData(result.class as ClassMetadata | null);
       setSecondaryCrUid((result.secondaryCrUid as string | null) ?? null);
       setCrSelfEnrolled(Boolean(result.crSelfEnrolled));
@@ -112,6 +131,29 @@ export default function StudentsPage() {
       toast(error instanceof Error ? error.message : "Unable to load student roster.", "error");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleRemoveTeacher() {
+    if (!classData || !selectedTeacherForDelete) return;
+    setDeletingTeacher(true);
+    try {
+      const response = await fetch(
+        `/api/students?classId=${encodeURIComponent(classData.id)}&teacherUid=${encodeURIComponent(selectedTeacherForDelete.uid)}`,
+        {
+          method: "DELETE",
+          headers: await authHeaders(),
+        }
+      );
+      const result = await readApiResponse(response);
+      if (!response.ok) throw new Error(String(result.error ?? "Failed to remove teacher."));
+      toast(`${selectedTeacherForDelete.fullName} removed from teachers list.`, "success");
+      setSelectedTeacherForDelete(null);
+      await loadData();
+    } catch (error) {
+      toast(error instanceof Error ? error.message : "Failed to remove teacher.", "error");
+    } finally {
+      setDeletingTeacher(false);
     }
   }
 
@@ -170,6 +212,18 @@ export default function StudentsPage() {
 
     return result;
   }, [students, search, roleFilter, sortBy]);
+
+  // Filter teachers (name, email, subjects)
+  const filteredTeachers = useMemo(() => {
+    const q = teacherSearch.trim().toLowerCase();
+    if (!q) return teachers;
+    return teachers.filter(
+      (t) =>
+        t.fullName.toLowerCase().includes(q) ||
+        t.email.toLowerCase().includes(q) ||
+        t.subjects.some((s) => s.name.toLowerCase().includes(q))
+    );
+  }, [teachers, teacherSearch]);
 
   // Open modal for student
   const openActionModal = (student: StudentItem) => {
@@ -329,7 +383,9 @@ export default function StudentsPage() {
           <span>Dashboard</span>
         </Link>
         <span className="text-[var(--text-muted)] text-xs">/</span>
-        <span className="text-xs font-semibold text-[var(--accent)]">Students</span>
+        <span className="text-xs font-semibold text-[var(--accent)]">
+          {activeTab === "teachers" ? "Teachers" : "Students"}
+        </span>
       </div>
 
       {/* Header Section */}
@@ -340,17 +396,19 @@ export default function StudentsPage() {
             <span>Class Directory & Roster</span>
           </div>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-3xl">
-            Students Management
+            {activeTab === "teachers" ? "Teachers Management" : "Students Management"}
           </h1>
           <p className="mt-1 text-xs sm:text-sm text-[var(--text-secondary)]">
-            {classData
+            {activeTab === "teachers"
+              ? "View approved teachers, their email addresses, and assigned subjects for this class."
+              : classData
               ? `${classData.className ?? ""} · Section ${classData.section ?? ""} · ${classData.department ?? ""}`
               : "View, edit, assign roles, and manage class student enrollment."}
           </p>
         </div>
 
         {/* Self-Enroll Button for CR if not yet enrolled */}
-        {isCr && !crSelfEnrolled && (
+        {activeTab === "students" && isCr && !crSelfEnrolled && (
           <button
             type="button"
             onClick={() => {
@@ -369,8 +427,262 @@ export default function StudentsPage() {
         )}
       </div>
 
-      {/* CR Self-Enrollment Notice Card */}
-      {isCr && !crSelfEnrolled && !loading && (
+      {/* Role Toggle for CR: Students vs Teachers */}
+      {isCr && (
+        <div className="mt-6 flex items-center gap-2">
+          <div className="inline-flex items-center rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-sm">
+            <button
+              type="button"
+              onClick={() => setActiveTab("students")}
+              className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs sm:text-sm font-semibold transition-all ${
+                activeTab === "students"
+                  ? "bg-[var(--primary)] text-[#07110D] shadow"
+                  : "text-[var(--text-secondary)] hover:text-white"
+              }`}
+            >
+              <Users className="h-4 w-4" />
+              <span>Students</span>
+              <span
+                className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                  activeTab === "students"
+                    ? "bg-[#07110D]/20 text-[#07110D]"
+                    : "bg-[var(--surface-elevated)] text-[var(--text-muted)]"
+                }`}
+              >
+                {students.length}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab("teachers")}
+              className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs sm:text-sm font-semibold transition-all ${
+                activeTab === "teachers"
+                  ? "bg-blue-500 text-white shadow"
+                  : "text-[var(--text-secondary)] hover:text-white"
+              }`}
+            >
+              <GraduationCap className="h-4 w-4" />
+              <span>Teachers</span>
+              <span
+                className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                  activeTab === "teachers"
+                    ? "bg-white/20 text-white"
+                    : "bg-[var(--surface-elevated)] text-[var(--text-muted)]"
+                }`}
+              >
+                {teachers.length}
+              </span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {activeTab === "teachers" ? (
+        <>
+          {/* Teachers KPI Stats Cards */}
+          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="card p-5 flex flex-col justify-between">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-xs font-medium text-[var(--text-secondary)]">Total Teachers</p>
+                  <p className="mt-1 text-2xl font-extrabold text-white">{teachers.length}</p>
+                </div>
+                <div className="grid h-10 w-10 place-items-center rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400">
+                  <GraduationCap className="h-5 w-5" />
+                </div>
+              </div>
+              <p className="mt-3 text-[11px] text-[var(--text-muted)] border-t border-[var(--border)] pt-2.5">
+                Approved instructors in this class
+              </p>
+            </div>
+
+            <div className="card p-5 flex flex-col justify-between">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-xs font-medium text-[var(--text-secondary)]">Assigned to Subjects</p>
+                  <p className="mt-1 text-2xl font-extrabold text-emerald-400">
+                    {teachers.filter((t) => t.subjects.length > 0).length}
+                  </p>
+                </div>
+                <div className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                  <BookOpen className="h-5 w-5" />
+                </div>
+              </div>
+              <p className="mt-3 text-[11px] text-[var(--text-muted)] border-t border-[var(--border)] pt-2.5">
+                Teaching one or more class subjects
+              </p>
+            </div>
+
+            <div className="card p-5 flex flex-col justify-between">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-xs font-medium text-[var(--text-secondary)]">Unassigned</p>
+                  <p className="mt-1 text-2xl font-extrabold text-amber-400">
+                    {teachers.filter((t) => t.subjects.length === 0).length}
+                  </p>
+                </div>
+                <div className="grid h-10 w-10 place-items-center rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
+                  <AlertCircle className="h-5 w-5" />
+                </div>
+              </div>
+              <p className="mt-3 text-[11px] text-[var(--text-muted)] border-t border-[var(--border)] pt-2.5">
+                Joined class but not assigned to a subject yet
+              </p>
+            </div>
+          </div>
+
+          {/* Search Bar for Teachers */}
+          <div className="mt-8 flex flex-col gap-3.5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative flex-1 sm:max-w-md">
+              <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-muted)]" />
+              <input
+                value={teacherSearch}
+                onChange={(e) => setTeacherSearch(e.target.value)}
+                className="field pl-9.5 pr-8 py-2 text-xs"
+                placeholder="Search teachers by name, email, or subject..."
+              />
+              {teacherSearch && (
+                <button
+                  type="button"
+                  onClick={() => setTeacherSearch("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-white"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Teachers Roster Table */}
+          <section className="mt-6 card overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="border-b border-[var(--border)] bg-[var(--bg-secondary)] text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                  <tr>
+                    <th className="px-5 py-3.5">Teacher Name</th>
+                    <th className="px-5 py-3.5">Email Address</th>
+                    <th className="px-5 py-3.5">Assigned Subject(s)</th>
+                    <th className="px-5 py-3.5 text-center">Status</th>
+                    <th className="w-24 px-5 py-3.5 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--border)]">
+                  {filteredTeachers.length ? (
+                    filteredTeachers.map((teacher) => {
+                      const initials = teacher.fullName ? teacher.fullName.charAt(0).toUpperCase() : "T";
+                      return (
+                        <tr
+                          key={teacher.uid}
+                          className="transition-colors hover:bg-[var(--surface-hover)] group"
+                        >
+                          {/* Name & Avatar */}
+                          <td className="px-5 py-3.5">
+                            <div className="flex items-center gap-3">
+                              <div className="grid h-9 w-9 flex-none place-items-center rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs font-bold text-blue-400">
+                                {initials}
+                              </div>
+                              <div>
+                                <p className="font-semibold text-white">
+                                  {teacher.fullName}
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Email */}
+                          <td className="px-5 py-3.5 text-xs font-mono text-[var(--text-muted)] whitespace-nowrap">
+                            {teacher.email}
+                          </td>
+
+                          {/* Subjects */}
+                          <td className="px-5 py-3.5">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              {teacher.subjects.length > 0 ? (
+                                teacher.subjects.map((sub) => (
+                                  <span
+                                    key={sub.id}
+                                    className="rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] px-2.5 py-1 text-xs font-medium text-white"
+                                  >
+                                    {sub.name}
+                                  </span>
+                                ))
+                              ) : (
+                                <span className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-medium text-amber-300">
+                                  Not assigned yet
+                                </span>
+                              )}
+                            </div>
+                          </td>
+
+                          {/* Status */}
+                          <td className="px-5 py-3.5 text-center whitespace-nowrap">
+                            <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 px-2.5 py-0.5 text-[11px] font-bold text-blue-300">
+                              <GraduationCap className="h-3 w-3" />
+                              <span>Teacher</span>
+                            </span>
+                          </td>
+
+                          {/* Actions */}
+                          <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <a
+                                href={`mailto:${teacher.email}`}
+                                className="grid h-8 w-8 place-items-center rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] transition hover:border-[var(--border-hover)] hover:bg-[var(--surface-hover)] hover:text-white"
+                                title={`Send email to ${teacher.fullName}`}
+                              >
+                                <Mail className="h-4 w-4" />
+                              </a>
+                              <button
+                                type="button"
+                                onClick={() => setSelectedTeacherForDelete(teacher)}
+                                className="grid h-8 w-8 place-items-center rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] transition hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-400"
+                                title={`Remove ${teacher.fullName}`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan={5} className="px-5 py-12 text-center text-xs text-[var(--text-muted)]">
+                        {teachers.length === 0 ? (
+                          <div className="max-w-md mx-auto py-6">
+                            <GraduationCap className="mx-auto h-10 w-10 text-[var(--text-muted)]" />
+                            <h3 className="mt-3 text-sm font-bold text-white">No teachers have joined yet</h3>
+                            <p className="mt-1 text-xs text-[var(--text-secondary)]">
+                              Share your class code with your subject teachers. Once they send a join request, approve them from the Requests page.
+                            </p>
+                          </div>
+                        ) : (
+                          "No teachers match your search criteria."
+                        )}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Table Footer */}
+            <div className="flex items-center justify-between border-t border-[var(--border)] bg-[var(--bg-secondary)]/60 px-5 py-3 text-xs text-[var(--text-secondary)]">
+              <div>
+                Showing <strong className="text-white font-semibold">{filteredTeachers.length}</strong> of{" "}
+                <strong className="text-white font-semibold">{teachers.length}</strong> teachers
+              </div>
+              <div className="text-[11px] text-[var(--text-muted)]">
+                Assign subjects to teachers from Dashboard or Class Setup.
+              </div>
+            </div>
+          </section>
+        </>
+      ) : (
+        <>
+          {/* CR Self-Enrollment Notice Card */}
+          {isCr && !crSelfEnrolled && !loading && (
         <div className="mt-6 rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent-soft)]/20 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-start sm:items-center gap-3.5">
             <div className="grid h-10 w-10 flex-none place-items-center rounded-xl bg-[var(--primary)] text-[#07110D] font-black text-sm">
@@ -709,6 +1021,23 @@ export default function StudentsPage() {
           </div>
         </div>
       </section>
+        </>
+      )}
+
+      {/* Delete Teacher Modal */}
+      {selectedTeacherForDelete && (
+        <ActionModal
+          title={`Remove ${selectedTeacherForDelete.fullName}?`}
+          description={`Are you sure you want to remove ${selectedTeacherForDelete.fullName} from this class? They will lose access to the class workspace and will be unassigned from any subjects.`}
+          confirmLabel="Remove Teacher"
+          danger={true}
+          disabled={deletingTeacher}
+          onConfirm={() => void handleRemoveTeacher()}
+          onClose={() => {
+            if (!deletingTeacher) setSelectedTeacherForDelete(null);
+          }}
+        />
+      )}
 
       {/* Action Modal for Selected Student */}
       {selectedStudent && (
