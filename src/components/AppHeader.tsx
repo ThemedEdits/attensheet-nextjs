@@ -163,9 +163,9 @@ export function AppHeader() {
             {profile.role === "cr" && pending > 0 && (
               <Link 
                 href="/cr/requests"
-                className="flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-300 hover:bg-amber-500/20"
+                className="flex items-center gap-1.5 rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-xs font-semibold text-red-300 hover:bg-red-500/20 transition-all"
               >
-                <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-ping" />
+                <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
                 <span>{pending} {pending === 1 ? "request" : "requests"}</span>
               </Link>
             )}
@@ -195,8 +195,18 @@ export function AppHeader() {
             </button>
           </div>
 
-          {/* Mobile Hamburger Button */}
+          {/* Mobile Hamburger Button & Pending indicator */}
           <div className="flex items-center gap-2 md:hidden">
+            {profile.role === "cr" && pending > 0 && (
+              <Link
+                href="/cr/requests"
+                className="flex items-center gap-1 rounded-full border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-[11px] font-bold text-red-300 animate-pulse"
+                title={`${pending} pending requests`}
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                <span>{pending > 9 ? "9+" : pending}</span>
+              </Link>
+            )}
             {currentRole && (
               <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium ${currentRole.color}`}>
                 {currentRole.title}
@@ -206,9 +216,12 @@ export function AppHeader() {
               type="button"
               onClick={() => setMobileMenuOpen((curr) => !curr)}
               aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
-              className="grid h-10 w-10 place-items-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text-primary)] transition hover:bg-[var(--surface-hover)]"
+              className="relative grid h-10 w-10 place-items-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text-primary)] transition hover:bg-[var(--surface-hover)]"
             >
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              {profile.role === "cr" && pending > 0 && (
+                <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-red-500 border-2 border-[#07110D]" />
+              )}
             </button>
           </div>
         </div>

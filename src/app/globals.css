@@ -411,8 +411,9 @@ textarea:focus {
 
 .bottom-nav-badge {
   position: absolute;
-  top: 0.35rem;
-  right: 14%;
+  top: 0.25rem;
+  left: calc(50% + 4px);
+  right: auto;
   min-width: 1.1rem;
   padding: 0.1rem 0.3rem;
   border-radius: 9999px;

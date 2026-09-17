@@ -115,6 +115,19 @@ export async function GET(request: Request) {
       const teacher = data.teacherUid ? await db.collection("users").doc(String(data.teacherUid)).get() : null;
       return { id: item.id, ...data, teacherName: teacher?.data()?.name ?? null };
     }));
+    let pendingRequestsCount = 0;
+    if (profile.role === "cr" && classId) {
+      try {
+        const [studentCountSnap, teacherCountSnap] = await Promise.all([
+          db.collection("studentRequests").where("classId", "==", classId).where("status", "==", "pending").count().get(),
+          db.collection("teacherRequests").where("classId", "==", classId).where("status", "==", "pending").count().get(),
+        ]);
+        pendingRequestsCount = (studentCountSnap.data().count ?? 0) + (teacherCountSnap.data().count ?? 0);
+      } catch (countErr) {
+        console.error("Failed to query pending requests count:", countErr);
+      }
+    }
+
     return NextResponse.json({
       profile: { ...profile, isSecondaryCr },
       class: { id: classId, ...classData },
@@ -125,6 +138,7 @@ export async function GET(request: Request) {
       secondaryCrUid: classData.secondaryCrUid ?? null,
       isSecondaryCr,
       isCrEnrolledAsStudent,
+      pendingRequestsCount,
     });
   } catch (error) {
     console.error("GET /api/dashboard failed:", error);

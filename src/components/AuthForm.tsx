@@ -9,7 +9,6 @@ import {
   signInWithPopup,
   onAuthStateChanged,
   sendEmailVerification,
-  applyActionCode,
   signOut
 } from "firebase/auth";
 import { firebaseAuth } from "@/lib/firebase";
@@ -32,7 +31,6 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const [reset, setReset] = useState(false);
   const [resetSent, setResetSent] = useState(false);
   const [verificationPending, setVerificationPending] = useState(false);
-  const [verificationCode, setVerificationCode] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
   const [verificationSuccess, setVerificationSuccess] = useState(false);
@@ -126,6 +124,42 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     });
   }, [router, mode, verificationPending]);
 
+  // Auto-check verification status when user returns to tab or periodically
+  useEffect(() => {
+    if (!verificationPending || verificationSuccess) return;
+
+    let checking = false;
+    const checkSilent = async () => {
+      if (checking || verificationSuccess) return;
+      checking = true;
+      try {
+        await firebaseAuth.currentUser?.reload();
+        if (firebaseAuth.currentUser?.emailVerified) {
+          setVerificationSuccess(true);
+          setTimeout(() => {
+            router.replace("/dashboard");
+          }, 900);
+        }
+      } catch {
+        // Non-blocking silent check
+      } finally {
+        checking = false;
+      }
+    };
+
+    const handleFocus = () => {
+      void checkSilent();
+    };
+
+    window.addEventListener("focus", handleFocus);
+    const interval = window.setInterval(checkSilent, 4000);
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      window.clearInterval(interval);
+    };
+  }, [verificationPending, verificationSuccess, router]);
+
   useEffect(() => {
     if (resendTimer <= 0) return;
     const interval = window.setInterval(() => {
@@ -186,7 +220,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
           await sendEmailVerification(cred.user);
           setVerificationPending(true);
           setResendTimer(60);
-          setError("Your email address is not verified yet. We have sent a confirmation link to your email.");
+          setError("");
           return;
         }
         router.push("/dashboard");
@@ -204,32 +238,6 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     }
   }
 
-  async function verifyWithCode(event: React.FormEvent) {
-    event.preventDefault();
-    if (!verificationCode.trim()) return;
-    setVerifying(true);
-    setError("");
-    try {
-      let code = verificationCode.trim();
-      if (code.includes("oobCode=")) {
-        const params = new URLSearchParams(code.split("?")[1] || code);
-        const extracted = params.get("oobCode");
-        if (extracted) code = extracted;
-      }
-      await applyActionCode(firebaseAuth, code);
-      await firebaseAuth.currentUser?.reload();
-      setVerificationSuccess(true);
-      setTimeout(() => {
-        router.replace("/dashboard");
-      }, 1000);
-    } catch (cause) {
-      const msg = cause instanceof Error ? cause.message : "Invalid or expired verification code.";
-      setError(msg.replace("Firebase: ", "").replace(/\s\(auth\/.+\)\.?$/, "."));
-    } finally {
-      setVerifying(false);
-    }
-  }
-
   async function checkVerificationStatus() {
     setVerifying(true);
     setError("");
@@ -239,12 +247,12 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
         setVerificationSuccess(true);
         setTimeout(() => {
           router.replace("/dashboard");
-        }, 1000);
+        }, 900);
       } else {
-        setError("Email not verified yet. Please check your inbox and click the link, or enter the code above.");
+        setError("Email not confirmed yet. Please open the link sent to your email, then click 'I have verified' again.");
       }
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Unable to check verification status.");
+      setError(cause instanceof Error ? cause.message : "Unable to check verification status. Please try again.");
     } finally {
       setVerifying(false);
     }
@@ -305,83 +313,93 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
       {verificationPending ? (
         <div className="mt-8 space-y-6">
           <div className="text-center">
-            <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-[var(--accent-soft)] border border-[var(--border-hover)] text-[var(--accent)]">
-              <Mail className="h-6 w-6" />
+            <div className="relative mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[var(--accent-soft)] border border-[var(--border-hover)] text-[var(--accent)] shadow-lg shadow-[var(--accent-soft)]/20">
+              <Mail className="h-7 w-7 text-[var(--accent)]" />
+              <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--accent)] opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-[var(--accent)]"></span>
+              </span>
             </div>
-            <h1 className="mt-4 text-2xl font-bold tracking-tight text-white">
-              Verify your email address
+            <h1 className="mt-4 text-2xl font-bold tracking-tight text-white sm:text-3xl">
+              Verify your email
             </h1>
             <p className="mt-2 text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
-              We sent a verification email to <span className="font-semibold text-white">{email || firebaseAuth.currentUser?.email}</span>.
-              Follow the link in that email or paste the verification code below to activate your account.
+              We have sent a verification link to:
             </p>
+            <div className="mt-1.5 inline-flex max-w-full items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface-elevated)] px-3.5 py-1 text-xs font-semibold text-white">
+              <span className="truncate">{email || firebaseAuth.currentUser?.email}</span>
+            </div>
           </div>
 
           {error && (
-            <div className="flex items-start gap-2.5 rounded-xl border border-red-500/30 bg-red-500/10 p-3.5 text-xs text-red-200">
-              <AlertCircle className="h-4 w-4 flex-none text-red-400 mt-0.5" />
+            <div className="flex items-start gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 text-xs text-amber-200 animate-in fade-in duration-200">
+              <AlertCircle className="h-4 w-4 flex-none text-amber-400 mt-0.5" />
               <span>{error}</span>
             </div>
           )}
 
           {verificationSuccess && (
-            <div className="flex items-start gap-2.5 rounded-xl border border-[var(--border-hover)] bg-[var(--accent-soft)] p-3.5 text-xs text-[var(--accent)] font-semibold">
+            <div className="flex items-start gap-2.5 rounded-xl border border-[var(--border-hover)] bg-[var(--accent-soft)] p-3.5 text-xs text-[var(--accent)] font-semibold animate-in fade-in duration-200">
               <CheckCircle2 className="h-4 w-4 flex-none text-[var(--accent)] mt-0.5" />
               <span>Email verified successfully! Redirecting to workspace...</span>
             </div>
           )}
 
-          <form onSubmit={verifyWithCode} className="space-y-3">
-            <div>
-              <label className="block text-xs font-medium text-[var(--text-secondary)]">
-                Verification Code / Link
-              </label>
-              <input
-                value={verificationCode}
-                onChange={(e) => setVerificationCode(e.target.value)}
-                className="field mt-1.5 font-mono text-xs"
-                placeholder="Paste code or link from email"
-              />
+          {/* Step-by-step instructions card */}
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4 space-y-3">
+            <p className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">
+              Quick 2-Step Verification
+            </p>
+            <div className="space-y-3 text-xs">
+              <div className="flex items-start gap-3">
+                <div className="flex h-5 w-5 flex-none items-center justify-center rounded-full bg-[var(--accent-soft)] text-[var(--accent)] text-[11px] font-bold border border-[var(--border-hover)]">
+                  1
+                </div>
+                <p className="text-[var(--text-secondary)] leading-snug">
+                  Open your email inbox and click the <strong className="text-white">verification link</strong> sent from AttenSheet.
+                </p>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="flex h-5 w-5 flex-none items-center justify-center rounded-full bg-[var(--accent-soft)] text-[var(--accent)] text-[11px] font-bold border border-[var(--border-hover)]">
+                  2
+                </div>
+                <p className="text-[var(--text-secondary)] leading-snug">
+                  Return to this window and click the <strong className="text-white">"I have verified"</strong> button below.
+                </p>
+              </div>
             </div>
-            <button
-              type="submit"
-              disabled={verifying || !verificationCode.trim()}
-              className="button-primary w-full py-2.5 text-xs"
-            >
-              {verifying ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Verifying...</span>
-                </>
-              ) : (
-                <span>Verify Code & Continue</span>
-              )}
-            </button>
-          </form>
-
-          <div className="relative flex items-center justify-center">
-            <span className="h-px w-full bg-[var(--border)]" />
-            <span className="absolute bg-[var(--surface)] px-2 text-[11px] text-[var(--text-muted)]">
-              or
-            </span>
           </div>
 
+          {/* Primary Action Button: "I have verified" */}
           <button
             type="button"
-            disabled={verifying}
+            disabled={verifying || verificationSuccess}
             onClick={checkVerificationStatus}
-            className="button-secondary w-full py-2.5 text-xs"
+            className="button-primary w-full py-3 text-sm font-semibold flex items-center justify-center gap-2"
           >
             {verifying ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
                 <span>Checking status...</span>
               </>
+            ) : verificationSuccess ? (
+              <>
+                <CheckCircle2 className="h-4 w-4" />
+                <span>Verified! Redirecting...</span>
+              </>
             ) : (
-              <span>I already clicked the link in my email</span>
+              <>
+                <CheckCircle2 className="h-4 w-4" />
+                <span>I have verified</span>
+              </>
             )}
           </button>
 
+          <p className="text-center text-[11px] text-[var(--text-muted)]">
+            Can&apos;t find the email? Check your spam folder or request a new link below.
+          </p>
+
+          {/* Footer options */}
           <div className="flex items-center justify-between text-xs pt-3 border-t border-[var(--border)]">
             <button
               type="button"

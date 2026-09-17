@@ -54,6 +54,7 @@ export default function DashboardPage() {
   const [connecting, setConnecting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [memberCount, setMemberCount] = useState(0);
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
   const [attendanceSummary, setAttendanceSummary] = useState({ total: 0, present: 0 });
   const [attendanceHistory, setAttendanceHistory] = useState<{ date: string; present: boolean }[]>([]);
   const [editingSubject, setEditingSubject] = useState<SubjectRecord | null>(null);
@@ -86,10 +87,12 @@ export default function DashboardPage() {
       if (!response.ok) throw new Error(String(result.error ?? "Unable to load your workspace."));
       const nextProfile = result.profile as UserProfile;
       setProfile(nextProfile);
+      const pendingCount = Number(result.pendingRequestsCount ?? 0);
+      setPendingRequestsCount(pendingCount);
       setCachedSession({
         profile: nextProfile,
         isSecondaryCr: Boolean(result.isSecondaryCr),
-        pending: 0,
+        pending: pendingCount,
       });
       setClassRecord(result.class as ClassRecord | null);
       setSubjects((result.subjects ?? []) as SubjectRecord[]);
@@ -495,8 +498,13 @@ export default function DashboardPage() {
         <div className="flex flex-wrap gap-2.5">
           {profile?.role === "cr" && classRecord && (
             <>
-              <Link href="/cr/requests" className="button-secondary text-xs sm:text-sm">
-                Manage requests
+              <Link href="/cr/requests" className="button-secondary text-xs sm:text-sm flex items-center gap-2">
+                <span>Manage requests</span>
+                {pendingRequestsCount > 0 && (
+                  <span className="inline-flex items-center justify-center rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-bold text-white min-w-[1.2rem] leading-none">
+                    {pendingRequestsCount > 9 ? "9+" : pendingRequestsCount}
+                  </span>
+                )}
               </Link>
               <Link href={`/cr/setup?edit=${classRecord.id}`} className="button-secondary text-xs sm:text-sm">
                 Edit class

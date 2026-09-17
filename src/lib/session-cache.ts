@@ -93,9 +93,9 @@ export async function fetchSessionData(): Promise<SessionData | null> {
 
       const profile = result.profile as UserProfile;
       const isSecondaryCr = Boolean(result.isSecondaryCr);
-      let pending = 0;
+      let pending = typeof result.pendingRequestsCount === "number" ? result.pendingRequestsCount : 0;
 
-      if (profile.role === "cr") {
+      if (profile.role === "cr" && typeof result.pendingRequestsCount !== "number") {
         try {
           const reqResponse = await fetch("/api/requests", { headers });
           const reqResult = await readApiResponse(reqResponse);
