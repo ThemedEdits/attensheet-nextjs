@@ -102,7 +102,7 @@ export async function GET(request: Request) {
   return NextResponse.json({ 
     attendance: snap.docs.map((d) => ({ id: d.id, ...d.data() })), 
     students: students.docs.map((d) => ({ uid: d.data().uid, fullName: d.data().fullName, fatherName: d.data().fatherName, seatNumber: d.data().seatNumber })), 
-    subject: { id: subjectId, name: subjectData.name }, 
+    subject: { id: subjectId, name: subjectData.name, googleSheetTabId: subjectData.googleSheetTabId ?? null, teacherName: subjectData.teacherName ?? null }, 
     class: cls.data(), 
     canManage: isManager, 
     canEdit: canTakeAttendance && canEditDate, 

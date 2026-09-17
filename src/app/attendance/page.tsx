@@ -24,12 +24,14 @@ import {
   RotateCcw,
   Loader2,
   Check,
-  X
+  X,
+  Download,
 } from "lucide-react";
+import { DownloadAttendanceModal } from "@/components/DownloadAttendanceModal";
 
 type Student = { uid: string; fullName?: string; fatherName?: string; seatNumber?: string };
 type Attendance = { studentUid: string; date: string; present: boolean };
-type ClassData = { university?: string; department?: string; className?: string; section?: string; semester?: string };
+type ClassData = { university?: string; department?: string; className?: string; section?: string; semester?: string; spreadsheetId?: string };
 
 function AttendanceContent() {
   const router = useRouter();
@@ -38,10 +40,13 @@ function AttendanceContent() {
   const [attendance, setAttendance] = useState<Attendance[]>([]);
   const [records, setRecords] = useState<Record<string, boolean>>({});
   const [subjectName, setSubjectName] = useState("Attendance");
+  const [subjectGoogleSheetTabId, setSubjectGoogleSheetTabId] = useState<number | string | undefined>(undefined);
+  const [teacherName, setTeacherName] = useState<string | undefined>(undefined);
   const [classData, setClassData] = useState<ClassData>({});
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [canEdit, setCanEdit] = useState(false);
   const [canManage, setCanManage] = useState(false);
   const [isSecondaryCr, setIsSecondaryCr] = useState(false);
@@ -137,7 +142,10 @@ function AttendanceContent() {
           nextAttendance.filter((item) => item.date === date).map((item) => [item.studentUid, item.present])
         )
       );
-      setSubjectName(String((result.subject as { name?: string } | undefined)?.name ?? "Attendance"));
+      const subj = result.subject as { name?: string; googleSheetTabId?: number | string; teacherName?: string } | undefined;
+      setSubjectName(String(subj?.name ?? "Attendance"));
+      setSubjectGoogleSheetTabId(subj?.googleSheetTabId);
+      setTeacherName(subj?.teacherName);
       setClassData((result.class ?? {}) as ClassData);
       setCanEdit(result.canEdit === true);
       setCanManage(result.canManage === true);
@@ -312,6 +320,15 @@ function AttendanceContent() {
               />
             </div>
           )}
+          <button
+            type="button"
+            onClick={() => setShowDownloadModal(true)}
+            className="button-secondary text-xs py-2 px-3 inline-flex items-center gap-1.5"
+            title="Download attendance sheet (Excel, PDF, Google Sheet)"
+          >
+            <Download className="h-3.5 w-3.5 text-[var(--accent)]" />
+            <span>Download Sheet</span>
+          </button>
           <div className="flex items-center gap-2 text-xs font-semibold">
             <span className="badge-present">{presentCount} Present</span>
             <span className="badge-absent">{students.length - presentCount} Absent</span>
@@ -636,9 +653,20 @@ function AttendanceContent() {
                 {subjectName} Master Sheet
               </h2>
             </div>
-            <span className="badge-neutral text-[11px] hidden sm:inline-flex">
-              Auto-synced
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="badge-neutral text-[11px] hidden sm:inline-flex">
+                Auto-synced
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowDownloadModal(true)}
+                className="button-secondary text-xs py-1.5 px-2.5 inline-flex items-center gap-1.5"
+                title="Download attendance sheet"
+              >
+                <Download className="h-3.5 w-3.5 text-[var(--accent)]" />
+                <span>Export / Download</span>
+              </button>
+            </div>
           </div>
 
           <div className="mt-4 card overflow-hidden border border-[var(--border-hover)] bg-[#0A1612]">
@@ -715,6 +743,33 @@ function AttendanceContent() {
           confirmLabel="Delete Date"
           onClose={() => setConfirmDelete(false)}
           onConfirm={() => void deleteDate()}
+        />
+      )}
+
+      {/* Download Attendance Modal */}
+      {showDownloadModal && subjectId && (
+        <DownloadAttendanceModal
+          isOpen={showDownloadModal}
+          onClose={() => setShowDownloadModal(false)}
+          subject={{
+            id: subjectId,
+            name: subjectName,
+            teacherName,
+            googleSheetTabId: subjectGoogleSheetTabId,
+          }}
+          classRecord={{
+            id: classId || "",
+            className: classData.className,
+            university: classData.university,
+            department: classData.department,
+            section: classData.section,
+            semester: classData.semester,
+            spreadsheetId: classData.spreadsheetId,
+          }}
+          preloadedData={{
+            students,
+            attendance,
+          }}
         />
       )}
     </main>

@@ -19,7 +19,9 @@ import {
   Edit3,
   Trash2,
   FileSpreadsheet,
+  Download,
 } from "lucide-react";
+import { DownloadAttendanceModal } from "@/components/DownloadAttendanceModal";
 
 export default function SubjectsPage() {
   const [subjects, setSubjects] = useState<SubjectRecord[]>([]);
@@ -43,6 +45,9 @@ export default function SubjectsPage() {
   // Delete Subject Confirmation State
   const [confirmDelete, setConfirmDelete] = useState<SubjectRecord | null>(null);
   const [submittingDelete, setSubmittingDelete] = useState(false);
+
+  // Download Attendance Modal State
+  const [downloadModalSubject, setDownloadModalSubject] = useState<SubjectRecord | null>(null);
 
   const toast = useToast();
 
@@ -258,8 +263,17 @@ export default function SubjectsPage() {
                     <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
                   </Link>
 
-                  {canManage && (
+                  {(role === "cr" || role === "teacher") && (
                     <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setDownloadModalSubject(subject)}
+                        className="rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-emerald-400 transition-colors"
+                        title="Download attendance sheet (Excel, PDF, Google Sheet)"
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                      </button>
+
                       {classRecord?.spreadsheetId && (
                         <a
                           target="_blank"
@@ -271,18 +285,20 @@ export default function SubjectsPage() {
                           <FileSpreadsheet className="h-3.5 w-3.5" />
                         </a>
                       )}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEditingSubject(subject);
-                          setEditSubjectName(subject.name);
-                          setEditTeacherUid(subject.teacherUid ?? "");
-                        }}
-                        className="rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-white transition-colors"
-                        title="Edit subject"
-                      >
-                        <Edit3 className="h-3.5 w-3.5" />
-                      </button>
+                      {canManage && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingSubject(subject);
+                            setEditSubjectName(subject.name);
+                            setEditTeacherUid(subject.teacherUid ?? "");
+                          }}
+                          className="rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-white transition-colors"
+                          title="Edit subject"
+                        >
+                          <Edit3 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
                       {role === "cr" && (
                         <button
                           type="button"
@@ -399,6 +415,16 @@ export default function SubjectsPage() {
           onClose={() => setConfirmDelete(null)}
           onConfirm={handleDeleteSubject}
           disabled={submittingDelete}
+        />
+      )}
+
+      {/* Download Attendance Modal */}
+      {downloadModalSubject && classRecord && (
+        <DownloadAttendanceModal
+          isOpen={Boolean(downloadModalSubject)}
+          onClose={() => setDownloadModalSubject(null)}
+          subject={downloadModalSubject}
+          classRecord={classRecord}
         />
       )}
     </main>
