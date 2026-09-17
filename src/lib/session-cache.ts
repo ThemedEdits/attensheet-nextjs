@@ -9,6 +9,7 @@ import { readApiResponse } from "@/lib/client-response";
 export type Role = "cr" | "teacher" | "student";
 
 export type UserProfile = {
+  uid?: string;
   name?: string;
   role?: Role;
   email?: string;
@@ -28,17 +29,11 @@ export function getCachedSession(): SessionData | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      return JSON.parse(raw) as SessionData;
-    }
-    // Fallback migration from older separate keys
-    const role = (localStorage.getItem("attensheet_role") as Role) || null;
-    const isSecondaryCr = localStorage.getItem("attensheet_secondary_cr") === "true";
-    if (role) {
-      return {
-        profile: { role },
-        isSecondaryCr,
-        pending: 0,
-      };
+      const parsed = JSON.parse(raw) as SessionData;
+      if (firebaseAuth.currentUser && parsed.profile?.uid && parsed.profile.uid !== firebaseAuth.currentUser.uid) {
+        return null;
+      }
+      return parsed;
     }
   } catch {
     // Ignore storage parse errors
@@ -52,6 +47,8 @@ export function setCachedSession(session: SessionData): void {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
     if (session.profile?.role) {
       localStorage.setItem("attensheet_role", session.profile.role);
+    } else {
+      localStorage.removeItem("attensheet_role");
     }
     localStorage.setItem("attensheet_secondary_cr", String(session.isSecondaryCr));
     window.dispatchEvent(new CustomEvent(SESSION_EVENT, { detail: session }));
@@ -110,7 +107,14 @@ export async function fetchSessionData(): Promise<SessionData | null> {
         }
       }
 
-      const session: SessionData = { profile, isSecondaryCr, pending };
+      const session: SessionData = {
+        profile: {
+          ...profile,
+          uid: firebaseAuth.currentUser?.uid || profile.uid,
+        },
+        isSecondaryCr,
+        pending,
+      };
       setCachedSession(session);
       return session;
     } catch {
@@ -144,6 +148,13 @@ export function useSession() {
         setSession(null);
         setLoading(false);
         return;
+      }
+
+      // If cached session belongs to a different user, clear it immediately
+      const currentCached = getCachedSession();
+      if (currentCached?.profile?.uid && currentCached.profile.uid !== user.uid) {
+        clearCachedSession();
+        setSession(null);
       }
 
       // Revalidate in background without blocking UI

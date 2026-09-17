@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { ShieldCheck, GraduationCap, User, ArrowRight, Check, Loader2, AlertCircle } from "lucide-react";
 import type { Role } from "@/lib/domain";
 import { toTitleCase } from "@/lib/title-case";
+import { setCachedSession } from "@/lib/session-cache";
 
 const roles: { 
   value: Role; 
@@ -73,6 +74,16 @@ export default function CompleteProfilePage() {
         },
         { merge: true }
       );
+      setCachedSession({
+        profile: {
+          uid,
+          name: formattedName,
+          role,
+          email: firebaseAuth.currentUser?.email || undefined,
+        },
+        isSecondaryCr: false,
+        pending: 0,
+      });
       const savedCode = typeof window !== "undefined" ? localStorage.getItem("attensheet_invite_code") : null;
       if (role !== "cr" && savedCode) {
         router.replace(`/join?code=${encodeURIComponent(savedCode)}`);

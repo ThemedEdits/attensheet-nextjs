@@ -12,7 +12,7 @@ import { useToast } from "@/components/ToastProvider";
 import { CustomSelect } from "@/components/CustomSelect";
 import { ActionModal } from "@/components/ActionModal";
 import { PendingRequestCard, type PendingClassRequest } from "@/components/PendingRequestCard";
-import { getCachedSession } from "@/lib/session-cache";
+import { getCachedSession, setCachedSession } from "@/lib/session-cache";
 import { 
   Users, 
   BookOpen, 
@@ -86,6 +86,11 @@ export default function DashboardPage() {
       if (!response.ok) throw new Error(String(result.error ?? "Unable to load your workspace."));
       const nextProfile = result.profile as UserProfile;
       setProfile(nextProfile);
+      setCachedSession({
+        profile: nextProfile,
+        isSecondaryCr: Boolean(result.isSecondaryCr),
+        pending: 0,
+      });
       setClassRecord(result.class as ClassRecord | null);
       setSubjects((result.subjects ?? []) as SubjectRecord[]);
       setMembers((result.members ?? []) as { uid: string; fullName?: string; role: string }[]);

@@ -102,17 +102,24 @@ export function AppHeader() {
         { label: "Settings", href: "/settings", icon: Settings },
       ];
     }
+    if (profile.role === "cr") {
+      return [
+        { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+        { label: "Students", href: "/students", icon: Users },
+        { label: "Subjects", href: "/subjects", icon: BookOpen },
+        { 
+          label: "Requests", 
+          href: "/cr/requests", 
+          icon: UserCheck,
+          badge: pending > 0 ? pending : undefined
+        },
+        { label: "Google Sheets", href: "/google", icon: FileSpreadsheet },
+        { label: "Settings", href: "/settings", icon: Settings },
+      ];
+    }
+    // Safe default for unassigned, onboarding, or resolving roles
     return [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-      { label: "Students", href: "/students", icon: Users },
-      { label: "Subjects", href: "/subjects", icon: BookOpen },
-      { 
-        label: "Requests", 
-        href: "/cr/requests", 
-        icon: UserCheck,
-        badge: pending > 0 ? pending : undefined
-      },
-      { label: "Google Sheets", href: "/google", icon: FileSpreadsheet },
       { label: "Settings", href: "/settings", icon: Settings },
     ];
   };

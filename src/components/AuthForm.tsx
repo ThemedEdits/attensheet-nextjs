@@ -16,6 +16,7 @@ import { firebaseAuth } from "@/lib/firebase";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Eye, EyeOff, AlertCircle, Loader2, Mail, CheckCircle2, Sparkles } from "lucide-react";
+import { clearCachedSession } from "@/lib/session-cache";
 
 export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const [email, setEmail] = useState("");
@@ -174,6 +175,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     if (hasError) return;
 
     setBusy(true);
+    clearCachedSession();
     try {
       if (reset) {
         await sendPasswordResetEmail(firebaseAuth, email);
@@ -265,6 +267,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   }
 
   async function google() {
+    clearCachedSession();
     setBusy(true);
     setError("");
     try {
@@ -392,6 +395,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
             <button
               type="button"
               onClick={async () => {
+                clearCachedSession();
                 await signOut(firebaseAuth);
                 setVerificationPending(false);
                 setError("");

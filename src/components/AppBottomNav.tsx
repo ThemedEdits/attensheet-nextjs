@@ -54,12 +54,19 @@ export function AppBottomNav() {
         { label: "Settings", href: "/settings", icon: Settings },
       ];
     }
+    if (role === "cr") {
+      return [
+        { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+        { label: "Students", href: "/students", icon: Users },
+        { label: "Subjects", href: "/subjects", icon: BookOpen },
+        { label: "Requests", href: "/cr/requests", icon: UserCheck },
+        { label: "Sheets", href: "/google", icon: FileSpreadsheet },
+        { label: "Settings", href: "/settings", icon: Settings },
+      ];
+    }
+    // Safe default for unassigned, onboarding, or resolving roles
     return [
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-      { label: "Students", href: "/students", icon: Users },
-      { label: "Subjects", href: "/subjects", icon: BookOpen },
-      { label: "Requests", href: "/cr/requests", icon: UserCheck },
-      { label: "Sheets", href: "/google", icon: FileSpreadsheet },
       { label: "Settings", href: "/settings", icon: Settings },
     ];
   }, [role, isSecondaryCr]);
@@ -68,7 +75,7 @@ export function AppBottomNav() {
     if (role === "cr") return 6;
     if (role === "teacher") return 5;
     if (role === "student") return isSecondaryCr ? 5 : 4;
-    return 6;
+    return 4;
   }, [role, isSecondaryCr]);
 
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
