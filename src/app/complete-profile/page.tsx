@@ -1,14 +1,15 @@
 "use client";
 
-import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
-import { firebaseAuth, firestore } from "@/lib/firebase";
+import { firebaseAuth } from "@/lib/firebase";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ShieldCheck, GraduationCap, User, ArrowRight, Check, Loader2, AlertCircle } from "lucide-react";
 import type { Role } from "@/lib/domain";
 import { toTitleCase } from "@/lib/title-case";
 import { setCachedSession } from "@/lib/session-cache";
+import { authHeaders } from "@/lib/client-auth";
+import { readApiResponse } from "@/lib/client-response";
 
 const roles: { 
   value: Role; 
@@ -60,20 +61,20 @@ export default function CompleteProfilePage() {
     setBusy(true);
     const formattedName = toTitleCase(name);
     try {
-      await setDoc(
-        doc(firestore, "users", uid),
-        {
-          uid,
-          email: firebaseAuth.currentUser?.email,
+      const response = await fetch("/api/users/profile", {
+        method: "POST",
+        headers: await authHeaders(true),
+        body: JSON.stringify({
           name: formattedName,
           role,
-          profileCompleted: true,
+          email: firebaseAuth.currentUser?.email,
           photoURL: firebaseAuth.currentUser?.photoURL ?? "",
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
+        }),
+      });
+      const result = await readApiResponse(response);
+      if (!response.ok) {
+        throw new Error(String(result.error ?? "Failed to update profile"));
+      }
       setCachedSession({
         profile: {
           uid,

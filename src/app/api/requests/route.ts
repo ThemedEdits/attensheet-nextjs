@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { authenticated, unauthorized } from "@/lib/server-auth";
+import { prisma } from "@/lib/prisma";
+import { toTitleCase } from "@/lib/title-case";
 
 export const runtime = "nodejs";
 
@@ -7,22 +9,24 @@ export async function GET(request: Request) {
   try {
     const user = await authenticated(request);
     if (!user) return unauthorized();
-    const { getAdminDb } = await import("@/lib/firebase-admin");
-    const db = getAdminDb();
-    const cls = await db.collection("classes").where("crUid", "==", user.uid).limit(1).get();
-    if (cls.empty) return NextResponse.json({ requests: [] });
-    const classId = cls.docs[0].id;
+    
+    const cls = await prisma.class.findFirst({ where: { crUid: user.uid } });
+    if (!cls) return NextResponse.json({ requests: [] });
+    
+    const classId = cls.id;
 
-    const [studentsSnap, teachersSnap] = await Promise.all([
-      db.collection("studentRequests").where("classId", "==", classId).where("status", "==", "pending").get(),
-      db.collection("teacherRequests").where("classId", "==", classId).where("status", "==", "pending").get(),
+    const [students, teachers] = await Promise.all([
+      prisma.studentRequest.findMany({ where: { classId, status: "pending" } }),
+      prisma.teacherRequest.findMany({ where: { classId, status: "pending" } }),
     ]);
 
-    const pendingRequests = await Promise.all([...studentsSnap.docs, ...teachersSnap.docs].map(async (d) => {
-      const data = d.data();
-      if (!data.teacherUid || data.fullName) return { id: d.id, ...data };
-      const teacher = await db.collection("users").doc(String(data.teacherUid)).get();
-      return { id: d.id, ...data, fullName: teacher.data()?.name ?? data.teacherUid, email: teacher.data()?.email };
+    const pendingRequests = await Promise.all([
+      ...students.map(s => ({ ...s, kind: 'studentRequests', studentUid: s.uid, teacherUid: undefined })), 
+      ...teachers.map(t => ({ ...t, fullName: t.displayName, kind: 'teacherRequests', teacherUid: t.uid, studentUid: undefined }))
+    ].map(async (data) => {
+      if (!data.teacherUid || data.fullName) return data;
+      const teacher = await prisma.user.findUnique({ where: { uid: data.teacherUid } });
+      return { ...data, fullName: teacher?.displayName ?? data.teacherUid, email: teacher?.email };
     }));
 
     return NextResponse.json({
@@ -34,200 +38,141 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Failed to retrieve pending requests." }, { status: 500 });
   }
 }
+
 export async function PATCH(request: Request) {
   try {
     const user = await authenticated(request);
     if (!user) return unauthorized();
-    const [{ getAdminDb }, { FieldValue }] = await Promise.all([
-      import("@/lib/firebase-admin"),
-      import("firebase-admin/firestore"),
-    ]);
-    const { toTitleCase } = await import("@/lib/title-case");
     const body = await request.json().catch(() => ({}));
     const { action, requestId, kind, decision, subjectId } = body;
-    const db = getAdminDb();
 
     // BULK ACTIONS: approve_all or reject_all
     if (action === "approve_all" || action === "reject_all") {
       const targetDecision = action === "approve_all" ? "approved" : "rejected";
-      const clsSnap = await db.collection("classes").where("crUid", "==", user.uid).limit(1).get();
-      if (clsSnap.empty) return NextResponse.json({ error: "Class not found." }, { status: 404 });
-      const classId = clsSnap.docs[0].id;
-      const clsData = clsSnap.docs[0].data() || {};
+      const cls = await prisma.class.findFirst({ where: { crUid: user.uid } });
+      if (!cls) return NextResponse.json({ error: "Class not found." }, { status: 404 });
+      const classId = cls.id;
 
-      const [studentSnap, teacherSnap] = await Promise.all([
-        db.collection("studentRequests").where("classId", "==", classId).where("status", "==", "pending").limit(200).get(),
-        db.collection("teacherRequests").where("classId", "==", classId).where("status", "==", "pending").limit(200).get(),
+      const [pendingStudentDocs, pendingTeacherDocs] = await Promise.all([
+        prisma.studentRequest.findMany({ where: { classId, status: "pending" }, take: 200 }),
+        prisma.teacherRequest.findMany({ where: { classId, status: "pending" }, take: 200 }),
       ]);
 
-      const pendingStudentDocs = studentSnap.docs;
-      const pendingTeacherDocs = teacherSnap.docs;
       const totalCount = pendingStudentDocs.length + pendingTeacherDocs.length;
+      if (totalCount === 0) return NextResponse.json({ ok: true, count: 0, message: "No pending requests to process." });
 
-      if (totalCount === 0) {
-        return NextResponse.json({ ok: true, count: 0, message: "No pending requests to process." });
-      }
-
-      // 1. Process Teachers
-      for (const tDoc of pendingTeacherDocs) {
-        const tData = tDoc.data();
-        await tDoc.ref.update({ status: targetDecision, updatedAt: FieldValue.serverTimestamp() });
+      // Process Teachers
+      for (const tData of pendingTeacherDocs) {
+        await prisma.teacherRequest.update({ where: { id: tData.id }, data: { status: targetDecision } });
         if (targetDecision === "approved") {
-          const uid = tData.teacherUid;
-          let name = tData.fullName;
+          const uid = tData.uid;
+          let name = tData.displayName;
           let email = tData.email;
           if (!name) {
-            const uSnap = await db.collection("users").doc(uid).get();
-            name = uSnap.data()?.name || uid;
-            email = email || uSnap.data()?.email;
+            const uSnap = await prisma.user.findUnique({ where: { uid } });
+            name = uSnap?.displayName || uid;
+            email = email || uSnap?.email || null;
           }
-          await db.collection("memberships").doc(`${classId}_${uid}`).set(
-            {
-              classId,
-              uid,
-              role: "teacher",
-              status: "approved",
-              fullName: toTitleCase(name),
-              email: email || "",
-              approvedAt: FieldValue.serverTimestamp(),
-              updatedAt: FieldValue.serverTimestamp(),
-            },
-            { merge: true }
-          );
+          await prisma.membership.upsert({
+            where: { id: `${classId}_${uid}` },
+            update: { role: "teacher", status: "approved", fullName: toTitleCase(name || "") },
+            create: { id: `${classId}_${uid}`, classId, uid, role: "teacher", status: "approved", fullName: toTitleCase(name || "") }
+          });
         }
       }
 
-      // 2. Process Students
+      // Process Students
       let tabNames: string[] = [];
-      if (targetDecision === "approved" && clsData.spreadsheetId) {
+      if (targetDecision === "approved" && cls.spreadsheetId) {
         try {
-          const subSnap = await db.collection("subjects").where("classId", "==", classId).get();
-          tabNames = subSnap.docs.filter((item) => item.data().active === true).map((item) => String(item.data().name));
-        } catch (subErr) {
-          console.error("Failed fetching subject tabs for bulk sync", subErr);
-        }
+          const subs = await prisma.subject.findMany({ where: { classId, active: true } });
+          tabNames = subs.map(item => String(item.name));
+        } catch (subErr) { console.error("Failed fetching subject tabs for bulk sync", subErr); }
       }
 
-      for (const sDoc of pendingStudentDocs) {
-        const sData = sDoc.data();
-        await sDoc.ref.update({ status: targetDecision, updatedAt: FieldValue.serverTimestamp() });
+      for (const sData of pendingStudentDocs) {
+        await prisma.studentRequest.update({ where: { id: sData.id }, data: { status: targetDecision } });
         if (targetDecision === "approved") {
-          const uid = sData.studentUid;
-          const formattedFullName = toTitleCase(sData.fullName);
-          const formattedFatherName = toTitleCase(sData.fatherName);
-          await db.collection("memberships").doc(`${classId}_${uid}`).set(
-            {
-              classId,
-              uid,
-              role: "student",
-              status: "approved",
-              fullName: formattedFullName,
-              fatherName: formattedFatherName,
-              seatNumber: String(sData.seatNumber || "").trim(),
-              approvedAt: FieldValue.serverTimestamp(),
-              updatedAt: FieldValue.serverTimestamp(),
-            },
-            { merge: true }
-          );
+          const uid = sData.uid;
+          const formattedFullName = toTitleCase(sData.fullName || "");
+          const formattedFatherName = toTitleCase(sData.fatherName || "");
+          await prisma.membership.upsert({
+            where: { id: `${classId}_${uid}` },
+            update: { role: "student", status: "approved", fullName: formattedFullName, fatherName: formattedFatherName, seatNumber: String(sData.seatNumber || "").trim() },
+            create: { id: `${classId}_${uid}`, classId, uid, role: "student", status: "approved", fullName: formattedFullName, fatherName: formattedFatherName, seatNumber: String(sData.seatNumber || "").trim() }
+          });
 
-          if (clsData.spreadsheetId && tabNames.length > 0) {
+          if (cls.spreadsheetId && tabNames.length > 0) {
             try {
               const { addStudentToAttendanceTabs } = await import("@/lib/google");
-              await addStudentToAttendanceTabs(user.uid, clsData.spreadsheetId, tabNames, {
-                uid,
-                fullName: formattedFullName,
-                fatherName: formattedFatherName,
-                seatNumber: String(sData.seatNumber || "").trim(),
+              await addStudentToAttendanceTabs(user.uid, cls.spreadsheetId, tabNames, {
+                uid, fullName: formattedFullName, fatherName: formattedFatherName, seatNumber: String(sData.seatNumber || "").trim(),
               });
-            } catch (err) {
-              console.error(`Google Sheets sync failed for student ${uid}`, err);
-            }
+            } catch (err) { console.error(`Google Sheets sync failed for student ${uid}`, err); }
           }
         }
       }
 
-      return NextResponse.json({
-        ok: true,
-        count: totalCount,
-        message: targetDecision === "approved" ? `Approved ${totalCount} requests.` : `Rejected ${totalCount} requests.`,
-      });
+      return NextResponse.json({ ok: true, count: totalCount, message: targetDecision === "approved" ? `Approved ${totalCount} requests.` : `Rejected ${totalCount} requests.`, });
     }
 
     // INDIVIDUAL DECISION
     if (!requestId || !["studentRequests", "teacherRequests"].includes(kind) || !["approved", "rejected"].includes(decision)) {
       return NextResponse.json({ error: "Invalid decision." }, { status: 400 });
     }
-    const ref = db.collection(kind).doc(requestId);
-    const snap = await ref.get();
-    if (!snap.exists) return NextResponse.json({ error: "Request not found." }, { status: 404 });
-    const data = snap.data()!;
-    const cls = await db.collection("classes").doc(data.classId).get();
-    if (!cls.exists || cls.data()?.crUid !== user.uid) return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+    
+    let data: any;
+    if (kind === "studentRequests") data = await prisma.studentRequest.findUnique({ where: { id: requestId } });
+    else data = await prisma.teacherRequest.findUnique({ where: { id: requestId } });
+
+    if (!data) return NextResponse.json({ error: "Request not found." }, { status: 404 });
+    const cls = await prisma.class.findUnique({ where: { id: data.classId } });
+    if (!cls || cls.crUid !== user.uid) return NextResponse.json({ error: "Forbidden." }, { status: 403 });
 
     if (decision === "approved" && kind === "teacherRequests" && subjectId) {
-      const subject = await db.collection("subjects").doc(subjectId).get();
-      if (!subject.exists || subject.data()?.classId !== data.classId) {
+      const subject = await prisma.subject.findUnique({ where: { id: subjectId } });
+      if (!subject || subject.classId !== data.classId) {
         return NextResponse.json({ error: "Subject does not belong to this class." }, { status: 400 });
       }
     }
 
-    await ref.update({ status: decision, updatedAt: FieldValue.serverTimestamp() });
+    if (kind === "studentRequests") await prisma.studentRequest.update({ where: { id: requestId }, data: { status: decision } });
+    else await prisma.teacherRequest.update({ where: { id: requestId }, data: { status: decision } });
 
     if (decision === "approved") {
-      const uid = kind === "studentRequests" ? data.studentUid : data.teacherUid;
-      const userSnap = kind === "teacherRequests" && !data.fullName ? await db.collection("users").doc(uid).get() : null;
-      const memberData = userSnap?.data();
-      const normalizedData = memberData?.name ? { ...data, fullName: memberData.name, email: memberData.email } : data;
-      const formattedFullName = toTitleCase(normalizedData.fullName);
-      const formattedFatherName = toTitleCase(normalizedData.fatherName);
+      const uid = data.uid;
+      const userSnap = kind === "teacherRequests" && !data.displayName ? await prisma.user.findUnique({ where: { uid } }) : null;
+      const normalizedData = userSnap?.displayName ? { ...data, fullName: userSnap.displayName, email: userSnap.email } : (kind === "studentRequests" ? data : { ...data, fullName: data.displayName });
+      
+      const formattedFullName = toTitleCase(normalizedData.fullName || "");
+      const formattedFatherName = toTitleCase(normalizedData.fatherName || "");
 
-      if (normalizedData.fullName && !data.fullName) {
-        await ref.set(
-          { fullName: formattedFullName, email: normalizedData.email, updatedAt: FieldValue.serverTimestamp() },
-          { merge: true }
-        );
+      if (normalizedData.fullName && !data.fullName && kind === "studentRequests") {
+        await prisma.studentRequest.update({ where: { id: requestId }, data: { fullName: formattedFullName, email: normalizedData.email } });
+      } else if (normalizedData.fullName && !data.displayName && kind === "teacherRequests") {
+        await prisma.teacherRequest.update({ where: { id: requestId }, data: { displayName: formattedFullName, email: normalizedData.email } });
       }
 
-      await db.collection("memberships").doc(`${data.classId}_${uid}`).set(
-        {
-          ...normalizedData,
-          classId: data.classId,
-          uid,
-          role: kind === "studentRequests" ? "student" : "teacher",
-          status: "approved",
-          fullName: formattedFullName,
-          fatherName: formattedFatherName,
-          approvedAt: FieldValue.serverTimestamp(),
-          updatedAt: FieldValue.serverTimestamp(),
-        },
-        { merge: true }
-      );
+      await prisma.membership.upsert({
+        where: { id: `${data.classId}_${uid}` },
+        update: { role: kind === "studentRequests" ? "student" : "teacher", status: "approved", fullName: formattedFullName, fatherName: formattedFatherName, seatNumber: kind === "studentRequests" ? data.seatNumber : undefined },
+        create: { id: `${data.classId}_${uid}`, classId: data.classId, uid, role: kind === "studentRequests" ? "student" : "teacher", status: "approved", fullName: formattedFullName, fatherName: formattedFatherName, seatNumber: kind === "studentRequests" ? data.seatNumber : undefined }
+      });
 
       if (kind === "studentRequests") {
-        const clsData = cls.data() ?? {};
-        if (clsData.spreadsheetId) {
+        if (cls.spreadsheetId) {
           try {
             const { addStudentToAttendanceTabs } = await import("@/lib/google");
-            const subjects = await db.collection("subjects").where("classId", "==", data.classId).get();
-            await addStudentToAttendanceTabs(
-              user.uid,
-              clsData.spreadsheetId,
-              subjects.docs.filter((item) => item.data().active === true).map((item) => String(item.data().name)),
-              {
-                uid,
-                fullName: formattedFullName,
-                fatherName: formattedFatherName,
-                seatNumber: data.seatNumber,
-              }
-            );
-          } catch (error) {
-            console.error("Student sheet enrollment failed", error);
-          }
+            const subjects = await prisma.subject.findMany({ where: { classId: data.classId, active: true } });
+            await addStudentToAttendanceTabs(user.uid, cls.spreadsheetId, subjects.map((item) => String(item.name)), {
+              uid, fullName: formattedFullName, fatherName: formattedFatherName, seatNumber: data.seatNumber,
+            });
+          } catch (error) { console.error("Student sheet enrollment failed", error); }
         }
       }
 
       if (kind === "teacherRequests" && subjectId) {
-        await db.collection("subjects").doc(subjectId).update({ teacherUid: uid, updatedAt: FieldValue.serverTimestamp() });
+        await prisma.subject.update({ where: { id: subjectId }, data: { teacherUid: uid } });
       }
     }
 

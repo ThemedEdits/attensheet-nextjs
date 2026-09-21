@@ -1,29 +1,42 @@
-import { FieldValue } from "firebase-admin/firestore";
-import { getAdminDb } from "./firebase-admin";
+import { prisma } from "./prisma";
+import { v4 as uuidv4 } from "uuid";
 
 export const repositories = {
   async profile(uid: string) {
-    const snap = await getAdminDb().collection("users").doc(uid).get();
-    return snap.exists ? ({ uid: snap.id, ...snap.data() } as Record<string, unknown> & { uid: string }) : null;
+    const user = await prisma.user.findUnique({ where: { uid } });
+    return user ? { ...user } : null;
   },
   async classByCode(code: string) {
-    const snap = await getAdminDb().collection("classes").where("classCode", "==", code.toUpperCase()).limit(1).get();
-    return snap.empty ? null : ({ id: snap.docs[0].id, ...snap.docs[0].data() } as Record<string, unknown> & { id: string });
+    const cls = await prisma.class.findUnique({ where: { classCode: code.toUpperCase() } });
+    return cls ? { ...cls } : null;
   },
   async classForUser(uid: string) {
-    const db = getAdminDb();
-    const own = await db.collection("classes").where("crUid", "==", uid).limit(1).get();
-    if (!own.empty) return ({ id: own.docs[0].id, ...own.docs[0].data() } as Record<string, unknown> & { id: string });
-    const membership = await db.collection("memberships").where("uid", "==", uid).limit(10).get();
-    const approved = membership.docs.find((item) => item.data().status === "approved");
-    if (!approved) return null;
-    const id = approved.data().classId;
-    const cls = await db.collection("classes").doc(id).get();
-    return cls.exists ? ({ id: cls.id, ...cls.data() } as Record<string, unknown> & { id: string }) : null;
+    const own = await prisma.class.findFirst({ where: { crUid: uid } });
+    if (own) return own;
+    const membership = await prisma.membership.findFirst({
+      where: { uid, status: "approved" },
+    });
+    if (!membership) return null;
+    const cls = await prisma.class.findUnique({ where: { id: membership.classId } });
+    return cls ? { ...cls } : null;
   },
-  async createRequest(kind: "studentRequests" | "teacherRequests", data: Record<string, unknown>) {
-    const ref = getAdminDb().collection(kind).doc();
-    await ref.set({ ...data, status: "pending", createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() });
-    return ref.id;
+  async createRequest(kind: "studentRequests" | "teacherRequests", data: any) {
+    if (kind === "studentRequests") {
+      const req = await prisma.studentRequest.create({
+        data: {
+          ...data,
+          status: "pending",
+        }
+      });
+      return req.id;
+    } else {
+      const req = await prisma.teacherRequest.create({
+        data: {
+          ...data,
+          status: "pending",
+        }
+      });
+      return req.id;
+    }
   },
 };

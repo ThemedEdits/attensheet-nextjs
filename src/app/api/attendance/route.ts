@@ -1,14 +1,8 @@
 import { NextResponse } from "next/server";
-import { FieldValue } from "firebase-admin/firestore";
 import { authenticated, unauthorized } from "@/lib/server-auth";
-import { getAdminDb } from "@/lib/firebase-admin";
+import { prisma } from "@/lib/prisma";
 import { karachiDate } from "@/lib/domain";
 
-async function context(request: Request) {
-  const user = await authenticated(request); if (!user) return null;
-  const body = await request.json().catch(() => ({}));
-  return { user, body, db: getAdminDb() };
-}
 export async function GET(request: Request) {
   const user = await authenticated(request); if (!user) return unauthorized();
   const url = new URL(request.url); 
@@ -16,56 +10,53 @@ export async function GET(request: Request) {
   const subjectId = url.searchParams.get("subjectId"); 
   const date = url.searchParams.get("date"); 
   const allDates = url.searchParams.get("all") === "true";
-  const db = getAdminDb();
 
   let classId = rawClassId;
   if (!classId) {
-    const memberships = await db.collection("memberships").where("uid", "==", user.uid).where("status", "==", "approved").limit(1).get();
-    if (!memberships.empty) {
-      classId = String(memberships.docs[0].data().classId);
+    const memberships = await prisma.membership.findMany({
+      where: { uid: user.uid, status: "approved" },
+      take: 1
+    });
+    if (memberships.length > 0) {
+      classId = memberships[0].classId;
     }
   }
   if (!classId) return NextResponse.json({ error: "classId is required." }, { status: 400 });
 
-  const membership = await db.collection("memberships").doc(`${classId}_${user.uid}`).get();
-  const cls = await db.collection("classes").doc(classId).get();
-  if ((!membership.exists || membership.data()?.status !== "approved") && cls.data()?.crUid !== user.uid) {
+  const membership = await prisma.membership.findUnique({
+    where: { classId_uid: { classId, uid: user.uid } }
+  });
+  const cls = await prisma.class.findUnique({ where: { id: classId } });
+  if (!cls) return NextResponse.json({ error: "Class not found." }, { status: 404 });
+
+  if ((!membership || membership.status !== "approved") && cls.crUid !== user.uid) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
-  const isPrimaryCr = cls.data()?.crUid === user.uid;
-  const isTeacher = membership.exists && membership.data()?.role === "teacher" && membership.data()?.status === "approved";
-  const isSecondaryCr = !isPrimaryCr && (membership.data()?.isSecondaryCr === true || cls.data()?.secondaryCrUid === user.uid);
-  const isRegularStudent = membership.data()?.role === "student" && !isPrimaryCr && !isSecondaryCr;
+  const isPrimaryCr = cls.crUid === user.uid;
+  const isTeacher = membership?.role === "teacher" && membership?.status === "approved";
+  const isSecondaryCr = !isPrimaryCr && (membership?.isSecondaryCr === true || cls.secondaryCrUid === user.uid);
+  const isRegularStudent = membership?.role === "student" && !isPrimaryCr && !isSecondaryCr;
 
-  // If user is a regular student (and not CR or 2nd CR): return ONLY their personal attendance records
   if (isRegularStudent) {
-    let query = db.collection("attendance").where("classId", "==", classId).where("studentUid", "==", user.uid);
-    if (subjectId) {
-      query = query.where("subjectId", "==", subjectId);
-    }
-    if (date && !allDates) {
-      query = query.where("date", "==", date);
-    }
+    const whereClause: any = { classId, studentUid: user.uid };
+    if (subjectId) whereClause.subjectId = subjectId;
+    if (date && !allDates) whereClause.date = date;
 
-    const [snap, subjectsSnap] = await Promise.all([
-      query.get(),
-      db.collection("subjects").where("classId", "==", classId).get(),
+    const [attendanceRecordsDb, activeSubjects] = await Promise.all([
+      prisma.attendance.findMany({ where: whereClause }),
+      prisma.subject.findMany({ where: { classId, active: true } })
     ]);
 
-    const activeSubjects = subjectsSnap.docs.filter((s) => s.data().active !== false);
-    const subjectMap = Object.fromEntries(subjectsSnap.docs.map((s) => [s.id, { id: s.id, name: s.data().name }]));
+    const subjectMap: Record<string, {name: string}> = Object.fromEntries(activeSubjects.map((s) => [s.id, {name: s.name}]));
 
-    const attendanceRecords = snap.docs.map((d) => {
-      const data = d.data();
-      return {
-        id: d.id,
-        date: String(data.date),
-        subjectId: String(data.subjectId),
-        subjectName: subjectMap[String(data.subjectId)]?.name ?? "Subject",
-        present: Boolean(data.present),
-      };
-    });
+    const attendanceRecords = attendanceRecordsDb.map((d) => ({
+      id: d.id,
+      date: d.date,
+      subjectId: d.subjectId,
+      subjectName: subjectMap[d.subjectId]?.name ?? "Subject",
+      present: d.present,
+    }));
 
     const total = attendanceRecords.length;
     const present = attendanceRecords.filter((r) => r.present).length;
@@ -75,80 +66,96 @@ export async function GET(request: Request) {
     return NextResponse.json({
       isStudent: true,
       attendance: attendanceRecords,
-      subjects: activeSubjects.map((s) => ({ id: s.id, name: s.data().name })),
+      subjects: activeSubjects.map((s) => ({ id: s.id, name: s.name })),
       summary: { total, present, absent, percentage },
       student: {
         uid: user.uid,
-        fullName: membership.data()?.fullName ?? user.displayName ?? "Student",
-        seatNumber: membership.data()?.seatNumber ?? "",
+        fullName: membership?.fullName ?? user.displayName ?? "Student",
+        seatNumber: membership?.seatNumber ?? "",
       },
-      class: cls.data(),
+      class: cls,
       canManage: false,
       canEdit: false,
     });
   }
 
-  // Teacher, CR, or Secondary CR flow:
   if (!subjectId) return NextResponse.json({ error: "subjectId is required." }, { status: 400 });
-  let query = db.collection("attendance").where("classId", "==", classId).where("subjectId", "==", subjectId);
-  if (date && !allDates) query = query.where("date", "==", date) as typeof query;
-  const snap = await query.get();
-  const students = await db.collection("memberships").where("classId", "==", classId).where("role", "==", "student").where("status", "==", "approved").get();
-  const subjectData = (await db.collection("subjects").doc(subjectId).get()).data() ?? {};
+  const whereClause: any = { classId, subjectId };
+  if (date && !allDates) whereClause.date = date;
+  
+  const snap = await prisma.attendance.findMany({ where: whereClause });
+  const students = await prisma.membership.findMany({ where: { classId, role: "student", status: "approved" } });
+  const subjectData = await prisma.subject.findUnique({ where: { id: subjectId } }) || {} as any;
+  
   const isManager = isPrimaryCr || (isTeacher && subjectData.teacherUid === user.uid);
   const canTakeAttendance = isPrimaryCr || (isTeacher && subjectData.teacherUid === user.uid) || isSecondaryCr;
-  const selectedDateRecords = date ? snap.docs.filter((item) => item.data().date === date) : [];
+  const selectedDateRecords = date ? snap.filter((item) => item.date === date) : [];
   const canEditDate = date !== null && (date === karachiDate() || (date < karachiDate() && selectedDateRecords.length === 0));
+  
   return NextResponse.json({ 
-    attendance: snap.docs.map((d) => ({ id: d.id, ...d.data() })), 
-    students: students.docs.map((d) => ({ uid: d.data().uid, fullName: d.data().fullName, fatherName: d.data().fatherName, seatNumber: d.data().seatNumber })), 
+    attendance: snap, 
+    students: students.map((d) => ({ uid: d.uid, fullName: d.fullName, fatherName: d.fatherName, seatNumber: d.seatNumber })), 
     subject: { id: subjectId, name: subjectData.name, googleSheetTabId: subjectData.googleSheetTabId ?? null, teacherName: subjectData.teacherName ?? null }, 
-    class: cls.data(), 
+    class: cls, 
     canManage: isManager, 
     canEdit: canTakeAttendance && canEditDate, 
     isSecondaryCr: Boolean(isSecondaryCr),
     dateLocked: canTakeAttendance && !canEditDate 
   });
 }
+
 export async function POST(request: Request) {
-  const result = await context(request); if (!result) return unauthorized();
-  const { user, body, db } = result; const { classId, subjectId, date, records } = body;
+  const user = await authenticated(request); if (!user) return unauthorized();
+  const body = await request.json().catch(() => ({}));
+  const { classId, subjectId, date, records } = body;
+  
   if (!classId || !subjectId || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !Array.isArray(records)) return NextResponse.json({ error: "Invalid attendance payload." }, { status: 400 });
-  const cls = await db.collection("classes").doc(classId).get(); const subject = await db.collection("subjects").doc(subjectId).get();
-  const member = await db.collection("memberships").doc(`${classId}_${user.uid}`).get();
-  const isPrimaryCr = cls.data()?.crUid === user.uid;
-  const isTeacher = member.exists && member.data()?.role === "teacher" && subject.data()?.teacherUid === user.uid;
-  const isSecondaryCr = !isPrimaryCr && (member.data()?.isSecondaryCr === true || cls.data()?.secondaryCrUid === user.uid);
+  
+  const cls = await prisma.class.findUnique({ where: { id: classId } });
+  const subject = await prisma.subject.findUnique({ where: { id: subjectId } });
+  const member = await prisma.membership.findUnique({ where: { classId_uid: { classId, uid: user.uid } } });
+  
+  if (!cls || !subject) return NextResponse.json({ error: "Context not found" }, { status: 404 });
+  
+  const isPrimaryCr = cls.crUid === user.uid;
+  const isTeacher = member?.role === "teacher" && subject.teacherUid === user.uid;
+  const isSecondaryCr = !isPrimaryCr && (member?.isSecondaryCr === true || cls.secondaryCrUid === user.uid);
   if (!isPrimaryCr && !isTeacher && !isSecondaryCr) return NextResponse.json({ error: "Only the CR, assigned teacher, or 2nd CR can mark attendance." }, { status: 403 });
   if (date > karachiDate()) return NextResponse.json({ error: "Attendance cannot be marked for a future date." }, { status: 409 });
-  const existingDate = await db.collection("attendance").where("classId", "==", classId).where("subjectId", "==", subjectId).where("date", "==", date).limit(1).get();
-  if (existingDate.size > 0 && date < karachiDate()) return NextResponse.json({ error: "This historical attendance is permanently locked." }, { status: 409 });
-  const batch = db.batch();
-  for (const item of records) {
-    if (typeof item?.studentUid !== "string" || typeof item?.present !== "boolean") continue;
-    batch.set(db.collection("attendance").doc(`${classId}_${subjectId}_${date}_${item.studentUid}`), { classId, subjectId, date, studentUid: item.studentUid, present: item.present, markedBy: user.uid, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
-  }
-
-  await batch.commit();
-  if (cls.data()?.spreadsheetId) {
+  
+  const existingDate = await prisma.attendance.findFirst({ where: { classId, subjectId, date } });
+  if (existingDate && date < karachiDate()) return NextResponse.json({ error: "This historical attendance is permanently locked." }, { status: 409 });
+  
+  const updates = records.map(item => {
+    if (typeof item?.studentUid !== "string" || typeof item?.present !== "boolean") return null;
+    const id = `${classId}_${subjectId}_${date}_${item.studentUid}`;
+    return prisma.attendance.upsert({
+      where: { classId_subjectId_date_studentUid: { classId, subjectId, date, studentUid: item.studentUid } },
+      update: { present: item.present, markedBy: user.uid },
+      create: { id, classId, subjectId, date, studentUid: item.studentUid, present: item.present, markedBy: user.uid }
+    });
+  }).filter(Boolean);
+  
+  await prisma.$transaction(updates as any);
+  
+  if (cls.spreadsheetId) {
     try {
       const { syncAttendanceMatrix } = await import("@/lib/google");
       const [members, attendance] = await Promise.all([
-        db.collection("memberships").where("classId", "==", classId).limit(500).get(),
-        db.collection("attendance").where("classId", "==", classId).where("subjectId", "==", subjectId).limit(5000).get(),
+        prisma.membership.findMany({ where: { classId }, take: 500 }),
+        prisma.attendance.findMany({ where: { classId, subjectId }, take: 5000 }),
       ]);
-      const dates = [...new Set(attendance.docs.map((item) => String(item.data().date)))].sort();
+      const dates = [...new Set(attendance.map((item) => item.date))].sort();
       const values = [
-        [`${cls.data()?.university ?? ""} · ${cls.data()?.department ?? ""} · ${cls.data()?.className ?? ""} · Section ${cls.data()?.section ?? ""} · ${cls.data()?.semester ?? ""}`],
+        [`${cls.university ?? ""} · ${cls.department ?? ""} · ${cls.className ?? ""} · Section ${cls.section ?? ""} · ${cls.semester ?? ""}`],
         ["Seat number", "Student name", "Father name", ...dates, "Total"],
-        ...members.docs.filter((item) => item.data().role === "student" && item.data().status === "approved").sort((a, b) => String(a.data().seatNumber ?? "").localeCompare(String(b.data().seatNumber ?? ""))).map((item) => {
-          const student = item.data();
-          const studentRows = attendance.docs.filter((record) => record.data().studentUid === student.uid);
-          const statuses = dates.map((day) => studentRows.find((record) => record.data().date === day)?.data().present === true ? "1" : studentRows.some((record) => record.data().date === day) ? "0" : "");
+        ...members.filter((item) => item.role === "student" && item.status === "approved").sort((a, b) => String(a.seatNumber ?? "").localeCompare(String(b.seatNumber ?? ""))).map((student) => {
+          const studentRows = attendance.filter((record) => record.studentUid === student.uid);
+          const statuses = dates.map((day) => studentRows.find((record) => record.date === day)?.present === true ? "1" : studentRows.some((record) => record.date === day) ? "0" : "");
           return [String(student.seatNumber ?? ""), String(student.fullName ?? ""), String(student.fatherName ?? ""), ...statuses, `${statuses.filter((status) => status === "1").length}/${statuses.filter(Boolean).length}`];
         }),
       ];
-      await syncAttendanceMatrix(cls.data()!.crUid, cls.data()!.spreadsheetId, subject.data()?.name ?? "Attendance", values);
+      await syncAttendanceMatrix(cls.crUid, cls.spreadsheetId, subject.name ?? "Attendance", values);
     } catch (error) { console.error("Attendance sheet sync failed", error); }
   }
   return NextResponse.json({ ok: true, date, today: date === karachiDate() });
@@ -161,38 +168,39 @@ export async function DELETE(request: Request) {
   const subjectId = url.searchParams.get("subjectId");
   const date = url.searchParams.get("date");
   if (!classId || !subjectId || !date) return NextResponse.json({ error: "classId, subjectId, and date are required." }, { status: 400 });
-  const db = getAdminDb();
-  const cls = await db.collection("classes").doc(classId).get();
-  const subject = await db.collection("subjects").doc(subjectId).get();
-  if (!cls.exists || !subject.exists || subject.data()?.classId !== classId) return NextResponse.json({ error: "Attendance context not found." }, { status: 404 });
-  const member = await db.collection("memberships").doc(`${classId}_${user.uid}`).get();
-  const allowed = cls.data()?.crUid === user.uid || (member.data()?.role === "teacher" && member.data()?.status === "approved" && subject.data()?.teacherUid === user.uid);
+  
+  const cls = await prisma.class.findUnique({ where: { id: classId } });
+  const subject = await prisma.subject.findUnique({ where: { id: subjectId } });
+  if (!cls || !subject || subject.classId !== classId) return NextResponse.json({ error: "Attendance context not found." }, { status: 404 });
+  const member = await prisma.membership.findUnique({ where: { classId_uid: { classId, uid: user.uid } } });
+  
+  const allowed = cls.crUid === user.uid || (member?.role === "teacher" && member?.status === "approved" && subject.teacherUid === user.uid);
   if (!allowed) return NextResponse.json({ error: "Only the CR or assigned teacher can delete attendance." }, { status: 403 });
-  const records = await db.collection("attendance").where("classId", "==", classId).where("subjectId", "==", subjectId).where("date", "==", date).get();
-  if (records.empty) return NextResponse.json({ error: "No attendance records exist for this date." }, { status: 404 });
-  const batch = db.batch();
-  records.docs.forEach((record) => batch.delete(record.ref));
-  await batch.commit();
-  if (cls.data()?.spreadsheetId) {
+  
+  const records = await prisma.attendance.findMany({ where: { classId, subjectId, date } });
+  if (records.length === 0) return NextResponse.json({ error: "No attendance records exist for this date." }, { status: 404 });
+  
+  await prisma.attendance.deleteMany({ where: { classId, subjectId, date } });
+  
+  if (cls.spreadsheetId) {
     try {
       const { syncAttendanceMatrix } = await import("@/lib/google");
       const [members, attendance] = await Promise.all([
-        db.collection("memberships").where("classId", "==", classId).limit(500).get(),
-        db.collection("attendance").where("classId", "==", classId).where("subjectId", "==", subjectId).limit(5000).get(),
+        prisma.membership.findMany({ where: { classId }, take: 500 }),
+        prisma.attendance.findMany({ where: { classId, subjectId }, take: 5000 }),
       ]);
-      const dates = [...new Set(attendance.docs.map((item) => String(item.data().date)))].sort();
+      const dates = [...new Set(attendance.map((item) => item.date))].sort();
       const values = [
-        [`${cls.data()?.university ?? ""} · ${cls.data()?.department ?? ""} · ${cls.data()?.className ?? ""} · Section ${cls.data()?.section ?? ""} · ${cls.data()?.semester ?? ""}`],
+        [`${cls.university ?? ""} · ${cls.department ?? ""} · ${cls.className ?? ""} · Section ${cls.section ?? ""} · ${cls.semester ?? ""}`],
         ["Seat number", "Student name", "Father name", ...dates, "Total"],
-        ...members.docs.filter((item) => item.data().role === "student" && item.data().status === "approved").sort((a, b) => String(a.data().seatNumber ?? "").localeCompare(String(b.data().seatNumber ?? ""))).map((item) => {
-          const student = item.data();
-          const rows = attendance.docs.filter((record) => record.data().studentUid === student.uid);
-          const statuses = dates.map((day) => rows.find((record) => record.data().date === day)?.data().present === true ? "Present" : rows.some((record) => record.data().date === day) ? "Absent" : "");
+        ...members.filter((item) => item.role === "student" && item.status === "approved").sort((a, b) => String(a.seatNumber ?? "").localeCompare(String(b.seatNumber ?? ""))).map((student) => {
+          const rows = attendance.filter((record) => record.studentUid === student.uid);
+          const statuses = dates.map((day) => rows.find((record) => record.date === day)?.present === true ? "Present" : rows.some((record) => record.date === day) ? "Absent" : "");
           return [String(student.seatNumber ?? ""), String(student.fullName ?? ""), String(student.fatherName ?? ""), ...statuses, `${statuses.filter((status) => status === "Present").length}/${statuses.filter(Boolean).length}`];
         }),
       ];
-      await syncAttendanceMatrix(cls.data()!.crUid, cls.data()!.spreadsheetId, subject.data()?.name ?? "Attendance", values);
+      await syncAttendanceMatrix(cls.crUid, cls.spreadsheetId, subject.name ?? "Attendance", values);
     } catch (error) { console.error("Attendance sheet delete sync failed", error); }
   }
-  return NextResponse.json({ ok: true, deleted: records.size });
+  return NextResponse.json({ ok: true, deleted: records.length });
 }

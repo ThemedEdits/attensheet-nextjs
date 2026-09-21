@@ -1,7 +1,6 @@
 "use client";
 
-import { collection, doc, getDocs, query, serverTimestamp, setDoc, where } from "firebase/firestore";
-import { firebaseAuth, firestore } from "@/lib/firebase";
+import { firebaseAuth } from "@/lib/firebase";
 import { classSchema } from "@/lib/validation";
 import { generateClassCode } from "@/lib/class-code";
 import { useState, useEffect, Suspense } from "react";
@@ -111,39 +110,23 @@ function ClassSetupForm() {
         router.replace("/login");
         return;
       }
-      const existing = await getDocs(
-        query(collection(firestore, "classes"), where("crUid", "==", user.uid))
-      );
-      if (!existing.empty) {
-        setError("You already have an active class workspace.");
+      const response = await fetch("/api/class/setup", {
+        method: "POST",
+        headers: await authHeaders(true),
+        body: JSON.stringify({
+          form,
+          addSelfAsStudent,
+          selfSeatNumber,
+          selfFatherName,
+          userEmail: user.email,
+          userDisplayName: user.displayName,
+        }),
+      });
+      const result = await readApiResponse(response);
+      if (!response.ok) {
+        setError(String(result.error ?? "Failed to create class workspace."));
         setBusy(false);
         return;
-      }
-      const id = doc(collection(firestore, "classes")).id;
-      await setDoc(doc(firestore, "classes", id), {
-        ...form,
-        crUid: user.uid,
-        classCode: generateClassCode(),
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-
-      if (addSelfAsStudent && selfSeatNumber.trim()) {
-        await setDoc(doc(firestore, "memberships", `${id}_${user.uid}`), {
-          classId: id,
-          uid: user.uid,
-          role: "student",
-          status: "approved",
-          isPrimaryCr: true,
-          isSecondaryCr: false,
-          fullName: toTitleCase(user.displayName || "Class Representative"),
-          seatNumber: selfSeatNumber.trim(),
-          fatherName: toTitleCase(selfFatherName),
-          email: user.email || "",
-          approvedAt: serverTimestamp(),
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        });
       }
 
       toast("Class workspace created successfully!", "success");

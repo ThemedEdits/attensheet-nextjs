@@ -7,10 +7,11 @@ export const googleScopes = ["https://www.googleapis.com/auth/drive.file", "http
 
 import { google as googleApi } from "googleapis";
 import { decryptSecret } from "./token-crypto";
-import { getAdminDb } from "./firebase-admin";
+import { prisma } from "@/lib/prisma";
+
 export async function getAuthorizedSheets(uid: string) {
-  const snap = await getAdminDb().collection("googleTokens").doc(uid).get();
-  const encrypted = snap.data()?.refreshToken;
+  const googleToken = await prisma.googleToken.findUnique({ where: { uid } });
+  const encrypted = googleToken?.refreshToken;
   if (!encrypted) throw new Error("Google Sheets is not connected.");
   const client = createGoogleOAuthClient();
   client.setCredentials({ refresh_token: decryptSecret(encrypted) });

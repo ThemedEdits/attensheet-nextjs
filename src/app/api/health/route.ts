@@ -18,33 +18,35 @@ export async function GET() {
       "GOOGLE_CLIENT_SECRET",
       "GOOGLE_REDIRECT_URI",
       "TOKEN_ENCRYPTION_KEY",
+      "DATABASE_URL",
     ];
     const missing = required.filter((name) => !process.env[name]?.trim());
     const key = process.env.FIREBASE_ADMIN_PRIVATE_KEY;
     let admin: "not_checked" | "initialized" | "failed" = "not_checked";
-    let firestore: "not_checked" | "reachable" | "failed" = "not_checked";
+    let database: "not_checked" | "reachable" | "failed" = "not_checked";
     let adminError: string | undefined;
     if (missing.length === 0) {
       try {
-        const { getAdminAuth, getAdminDb } = await import("@/lib/firebase-admin");
+        const { getAdminAuth } = await import("@/lib/firebase-admin");
         getAdminAuth();
         admin = "initialized";
-        await getAdminDb().collection("classes").limit(1).get();
-        firestore = "reachable";
+        const { prisma } = await import("@/lib/prisma");
+        await prisma.class.findFirst();
+        database = "reachable";
       } catch (error) {
         admin = "failed";
-        firestore = "failed";
+        database = "failed";
         adminError = error instanceof Error ? error.message : "Firebase Admin initialization failed.";
         console.error("Health Firebase Admin check failed", error);
       }
     }
-    const ok = missing.length === 0 && admin === "initialized" && firestore === "reachable";
+    const ok = missing.length === 0 && admin === "initialized" && database === "reachable";
     return json({
       ok,
       deployment: "health-v3",
       missing,
       admin,
-      firestore,
+      database,
       ...(adminError ? { adminError } : {}),
       privateKeyShape: key ? {
         hasBeginMarker: key.includes("BEGIN PRIVATE KEY"),

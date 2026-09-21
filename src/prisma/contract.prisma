@@ -1,0 +1,131 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  uid         String       @id
+  email       String?
+  displayName String?
+  photoURL    String?
+  role        String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  classesOwned      Class[]          @relation("PrimaryCr")
+  classesSecOwned   Class[]          @relation("SecondaryCr")
+  memberships       Membership[]
+  attendancesMarked Attendance[]     @relation("MarkedBy")
+  attendances       Attendance[]     @relation("StudentAttendance")
+}
+
+model Class {
+  id             String       @id
+  classCode      String       @unique
+  crUid          String
+  secondaryCrUid String?
+  university     String?
+  department     String?
+  className      String?
+  section        String?
+  semester       String?
+  spreadsheetId  String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  primaryCr      User         @relation("PrimaryCr", fields: [crUid], references: [uid])
+  secondaryCr    User?        @relation("SecondaryCr", fields: [secondaryCrUid], references: [uid])
+  memberships    Membership[]
+  subjects       Subject[]
+  attendances    Attendance[]
+  studentRequests StudentRequest[]
+  teacherRequests TeacherRequest[]
+}
+
+model Membership {
+  id            String   @id
+  classId       String
+  uid           String
+  role          String
+  status        String
+  fullName      String?
+  fatherName    String?
+  seatNumber    String?
+  isSecondaryCr Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now()) @updatedAt
+
+  class         Class    @relation(fields: [classId], references: [id])
+  user          User     @relation(fields: [uid], references: [uid])
+
+  @@unique([classId, uid])
+}
+
+model Subject {
+  id               String       @id
+  classId          String
+  name             String
+  teacherUid       String?
+  teacherName      String?
+  googleSheetTabId String?
+  active           Boolean      @default(true)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  class            Class        @relation(fields: [classId], references: [id])
+  attendances      Attendance[]
+}
+
+model Attendance {
+  id         String   @id
+  classId    String
+  subjectId  String
+  date       String
+  studentUid String
+  present    Boolean
+  markedBy   String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  class      Class    @relation(fields: [classId], references: [id])
+  subject    Subject  @relation(fields: [subjectId], references: [id])
+  student    User     @relation("StudentAttendance", fields: [studentUid], references: [uid])
+  marker     User     @relation("MarkedBy", fields: [markedBy], references: [uid])
+
+  @@unique([classId, subjectId, date, studentUid])
+}
+
+model StudentRequest {
+  id         String   @id
+  classId    String
+  uid        String
+  status     String   @default("pending")
+  fullName   String?
+  fatherName String?
+  seatNumber String?
+  email      String?
+  photoURL   String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  class      Class    @relation(fields: [classId], references: [id])
+}
+
+model TeacherRequest {
+  id          String   @id
+  classId     String
+  uid         String
+  status      String   @default("pending")
+  subjectName String?
+  email       String?
+  displayName String?
+  photoURL    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  class       Class    @relation(fields: [classId], references: [id])
+}
