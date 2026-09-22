@@ -323,7 +323,7 @@
     window.addEventListener('online', function() {
       showOnlineState();
       setTimeout(function() {
-        window.location.reload();
+        window.location.href = 'https://attensheet.vercel.app';
       }, 700);
     });
 
@@ -350,12 +350,12 @@
       btnText.innerText = 'Checking...';
       btn.style.pointerEvents = 'none';
 
-      // Test connectivity by pinging an icon or root
-      fetch('/favicon.ico?t=' + Date.now(), { method: 'HEAD', cache: 'no-store' })
+      // Test connectivity by pinging live site
+      fetch('https://attensheet.vercel.app/favicon.ico?t=' + Date.now(), { method: 'HEAD', mode: 'no-cors' })
         .then(function() {
           showOnlineState();
           setTimeout(function() {
-            window.location.reload();
+            window.location.href = 'https://attensheet.vercel.app';
           }, 500);
         })
         .catch(function() {

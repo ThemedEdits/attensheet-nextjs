@@ -47,11 +47,13 @@ export default function Home() {
     }
 
     if (typeof window !== "undefined") {
-      const isStandalone = 
+      const isNative = 
         window.matchMedia("(display-mode: standalone)").matches || 
-        Boolean((window as any).Capacitor?.isNativePlatform());
+        Boolean((window as any).Capacitor?.isNativePlatform()) ||
+        Boolean((window as any).isAttenSheetNative) ||
+        (typeof navigator !== "undefined" && navigator.userAgent.includes("AttenSheetApp"));
       const isSmallScreen = window.innerWidth < 768;
-      setIsMobile(isStandalone || isSmallScreen);
+      setIsMobile(isNative || isSmallScreen);
 
       if (sessionStorage.getItem("view_full_website") === "true") {
         setShowFullWebsite(true);
