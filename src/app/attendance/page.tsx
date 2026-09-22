@@ -26,8 +26,6 @@ import {
   Check,
   X,
   Download,
-  History,
-  ChevronDown,
 } from "lucide-react";
 import { DownloadAttendanceModal } from "@/components/DownloadAttendanceModal";
 
@@ -416,27 +414,17 @@ function AttendanceContent() {
             </button>
 
             {dates.length > 0 && (
-              <div className="relative inline-flex items-center">
-                <History className="absolute left-2.5 h-3.5 w-3.5 text-[var(--text-muted)] pointer-events-none" />
-                <select
-                  className="appearance-none inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] pl-8 pr-8 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition hover:border-[var(--border-hover)] hover:bg-[var(--surface-hover)] hover:text-white cursor-pointer focus:outline-none"
+              <div className="w-44 ml-1">
+                <CustomSelect
                   value=""
-                  onChange={(e) => {
-                    const selected = e.target.value;
-                    if (selected) {
-                      handleRepeatAttendance(selected);
+                  options={dates.map((d) => ({ value: d, label: d }))}
+                  placeholder="Same as/Repeat..."
+                  onChange={(val) => {
+                    if (val) {
+                      handleRepeatAttendance(val);
                     }
                   }}
-                  title="Repeat attendance from a past date"
-                >
-                  <option value="" disabled hidden>Same as/Repeat...</option>
-                  {dates.map((d) => (
-                    <option key={d} value={d} className="bg-[var(--surface-elevated)] text-white">
-                      {d}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-2.5 h-3.5 w-3.5 text-[var(--text-muted)] pointer-events-none" />
+                />
               </div>
             )}
           </div>
