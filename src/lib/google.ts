@@ -24,12 +24,12 @@ export async function createAttendanceSpreadsheet(uid: string, title: string, su
 }
 export async function syncAttendanceTab(uid: string, spreadsheetId: string, tab: string, values: string[][]) {
   const sheets = await getAuthorizedSheets(uid);
-  await sheets.spreadsheets.values.update({ spreadsheetId, range: `${tab}!A1`, valueInputOption: "USER_ENTERED", requestBody: { values } });
+  await sheets.spreadsheets.values.update({ spreadsheetId, range: `'${tab}'!A1`, valueInputOption: "USER_ENTERED", requestBody: { values } });
 }
 export async function createAttendanceTab(uid: string, spreadsheetId: string, title: string, values?: string[][]) {
   const sheets = await getAuthorizedSheets(uid);
   const result = await sheets.spreadsheets.batchUpdate({ spreadsheetId, requestBody: { requests: [{ addSheet: { properties: { title } } }] } });
-  if (values?.length) await sheets.spreadsheets.values.update({ spreadsheetId, range: `${title}!A1`, valueInputOption: "USER_ENTERED", requestBody: { values } });
+  if (values?.length) await sheets.spreadsheets.values.update({ spreadsheetId, range: `'${title}'!A1`, valueInputOption: "USER_ENTERED", requestBody: { values } });
   return result.data.replies?.[0]?.addSheet?.properties?.sheetId;
 }
 
@@ -53,8 +53,8 @@ export async function removeDefaultBlankTabs(uid: string, spreadsheetId: string)
 
 export async function syncAttendanceMatrix(uid: string, spreadsheetId: string, tab: string, values: string[][]) {
   const sheets = await getAuthorizedSheets(uid);
-  await sheets.spreadsheets.values.clear({ spreadsheetId, range: `${tab}!A:ZZ` });
-  await sheets.spreadsheets.values.update({ spreadsheetId, range: `${tab}!A1`, valueInputOption: "USER_ENTERED", requestBody: { values } });
+  await sheets.spreadsheets.values.clear({ spreadsheetId, range: `'${tab}'!A:ZZ` });
+  await sheets.spreadsheets.values.update({ spreadsheetId, range: `'${tab}'!A1`, valueInputOption: "USER_ENTERED", requestBody: { values } });
 
   try {
     const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId });
@@ -207,13 +207,13 @@ export async function syncAttendanceMatrix(uid: string, spreadsheetId: string, t
 export async function addStudentToAttendanceTabs(uid: string, spreadsheetId: string, tabs: string[], student: { uid: string; fullName?: string; fatherName?: string; seatNumber?: string }) {
   const sheets = await getAuthorizedSheets(uid);
   for (const tab of tabs) {
-    const current = await sheets.spreadsheets.values.get({ spreadsheetId, range: `${tab}!A:C` });
+    const current = await sheets.spreadsheets.values.get({ spreadsheetId, range: `'${tab}'!A:C` });
     const rows = current.data.values ?? [];
     const existingIndex = rows.findIndex((row) => String(row[0] ?? "") === student.uid || String(row[1] ?? "") === student.fullName);
     if (existingIndex >= 0) {
       await sheets.spreadsheets.values.update({
         spreadsheetId,
-        range: `${tab}!A${existingIndex + 1}:C${existingIndex + 1}`,
+        range: `'${tab}'!A${existingIndex + 1}:C${existingIndex + 1}`,
         valueInputOption: "USER_ENTERED",
         requestBody: { values: [[student.seatNumber ?? "", student.fullName ?? "", student.fatherName ?? ""]] },
       });
@@ -221,7 +221,7 @@ export async function addStudentToAttendanceTabs(uid: string, spreadsheetId: str
     }
     await sheets.spreadsheets.values.append({
       spreadsheetId,
-      range: `${tab}!A:C`,
+      range: `'${tab}'!A:C`,
       valueInputOption: "USER_ENTERED",
       insertDataOption: "INSERT_ROWS",
       requestBody: { values: [[student.seatNumber ?? "", student.fullName ?? "", student.fatherName ?? ""]] },

@@ -236,7 +236,7 @@ export async function PATCH(request: Request) {
           const allMembers = await prisma.membership.findMany({ where: { classId, role: "student", status: "approved" } });
           
           for (const sub of activeSubjects) {
-            const attDocs = await prisma.attendance.findMany({ where: { classId, subjectId: sub.id }, take: 5000 });
+            const attDocs = await prisma.attendance.findMany({ where: { classId, subjectId: sub.id }, take: 20000 });
             const dates = [...new Set(attDocs.map((d) => String(d.date)))].sort();
             const byStudent = new Map<string, Record<string, unknown>>();
             attDocs.forEach((d) => {
@@ -466,7 +466,7 @@ export async function DELETE(request: Request) {
         const remainingMembers = await prisma.membership.findMany({ where: { classId, role: "student", status: "approved" } });
 
         for (const sub of activeSubjects) {
-          const attDocs = await prisma.attendance.findMany({ where: { classId, subjectId: sub.id }, take: 5000 });
+          const attDocs = await prisma.attendance.findMany({ where: { classId, subjectId: sub.id }, take: 20000 });
           const dates = [...new Set(attDocs.map((d) => String(d.date)))].sort();
           const byStudent = new Map<string, Record<string, unknown>>();
           attDocs.forEach((d) => {

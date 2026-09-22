@@ -143,7 +143,7 @@ export async function POST(request: Request) {
       const { syncAttendanceMatrix } = await import("@/lib/google");
       const [members, attendance] = await Promise.all([
         prisma.membership.findMany({ where: { classId }, take: 500 }),
-        prisma.attendance.findMany({ where: { classId, subjectId }, take: 5000 }),
+        prisma.attendance.findMany({ where: { classId, subjectId }, take: 20000 }),
       ]);
       const dates = [...new Set(attendance.map((item) => item.date))].sort();
       const values = [
@@ -187,7 +187,7 @@ export async function DELETE(request: Request) {
       const { syncAttendanceMatrix } = await import("@/lib/google");
       const [members, attendance] = await Promise.all([
         prisma.membership.findMany({ where: { classId }, take: 500 }),
-        prisma.attendance.findMany({ where: { classId, subjectId }, take: 5000 }),
+        prisma.attendance.findMany({ where: { classId, subjectId }, take: 20000 }),
       ]);
       const dates = [...new Set(attendance.map((item) => item.date))].sort();
       const values = [
@@ -195,8 +195,8 @@ export async function DELETE(request: Request) {
         ["Seat number", "Student name", "Father name", ...dates, "Total"],
         ...members.filter((item) => item.role === "student" && item.status === "approved").sort((a, b) => String(a.seatNumber ?? "").localeCompare(String(b.seatNumber ?? ""))).map((student) => {
           const rows = attendance.filter((record) => record.studentUid === student.uid);
-          const statuses = dates.map((day) => rows.find((record) => record.date === day)?.present === true ? "Present" : rows.some((record) => record.date === day) ? "Absent" : "");
-          return [String(student.seatNumber ?? ""), String(student.fullName ?? ""), String(student.fatherName ?? ""), ...statuses, `${statuses.filter((status) => status === "Present").length}/${statuses.filter(Boolean).length}`];
+          const statuses = dates.map((day) => rows.find((record) => record.date === day)?.present === true ? "1" : rows.some((record) => record.date === day) ? "0" : "");
+          return [String(student.seatNumber ?? ""), String(student.fullName ?? ""), String(student.fatherName ?? ""), ...statuses, `${statuses.filter((status) => status === "1").length}/${statuses.filter(Boolean).length}`];
         }),
       ];
       await syncAttendanceMatrix(cls.crUid, cls.spreadsheetId, subject.name ?? "Attendance", values);
