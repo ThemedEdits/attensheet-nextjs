@@ -51,25 +51,46 @@ export async function removeDefaultBlankTabs(uid: string, spreadsheetId: string)
   if (deletions.length) await sheets.spreadsheets.batchUpdate({ spreadsheetId, requestBody: { requests: deletions } });
 }
 
-export async function syncAttendanceMatrix(uid: string, spreadsheetId: string, tab: string, values: string[][]) {
+export async function syncAttendanceMatrix(uid: string, spreadsheetId: string, tab: string, values: string[][], sheetId?: string | number) {
   const sheets = await getAuthorizedSheets(uid);
-  await sheets.spreadsheets.values.clear({ spreadsheetId, range: `'${tab}'!A:ZZ` });
-  await sheets.spreadsheets.values.update({ spreadsheetId, range: `'${tab}'!A1`, valueInputOption: "USER_ENTERED", requestBody: { values } });
+  
+  let targetTab = tab;
+  let targetSheetId = sheetId !== undefined ? Number(sheetId) : undefined;
 
   try {
     const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId });
-    const sheet = spreadsheet.data.sheets?.find((s) => s.properties?.title === tab);
-    const sheetId = sheet?.properties?.sheetId;
-    if (sheet && sheetId !== undefined) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const requests: any[] = [];
+    if (targetSheetId !== undefined) {
+      const sheet = spreadsheet.data.sheets?.find((s) => s.properties?.sheetId === targetSheetId);
+      if (sheet?.properties?.title) {
+        targetTab = sheet.properties.title;
+      }
+    } else {
+      const sheet = spreadsheet.data.sheets?.find((s) => s.properties?.title === tab);
+      if (sheet?.properties?.sheetId !== undefined) {
+        targetSheetId = sheet.properties.sheetId ?? undefined;
+      }
+    }
+  } catch (err) {
+    console.error("Failed to fetch spreadsheet info before sync:", err);
+  }
+
+  await sheets.spreadsheets.values.clear({ spreadsheetId, range: `'${targetTab}'!A:ZZ` });
+  await sheets.spreadsheets.values.update({ spreadsheetId, range: `'${targetTab}'!A1`, valueInputOption: "USER_ENTERED", requestBody: { values } });
+
+  try {
+    if (targetSheetId !== undefined) {
+      const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId });
+      const sheet = spreadsheet.data.sheets?.find((s) => s.properties?.sheetId === targetSheetId);
+      if (sheet) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const requests: any[] = [];
 
       // Clear existing conditional format rules on this sheet to prevent duplicates
       const existingRules = sheet.conditionalFormats ?? [];
       for (let i = existingRules.length - 1; i >= 0; i--) {
         requests.push({
           deleteConditionalFormatRule: {
-            sheetId,
+            sheetId: targetSheetId,
             index: i,
           },
         });
@@ -78,7 +99,7 @@ export async function syncAttendanceMatrix(uid: string, spreadsheetId: string, t
       const numColumns = values[1]?.length ?? 20;
       const endCol = Math.max(4, numColumns - 1);
       const range = {
-        sheetId,
+        sheetId: targetSheetId,
         startRowIndex: 2,
         endRowIndex: Math.max(3, values.length),
         startColumnIndex: 3,
@@ -179,7 +200,7 @@ export async function syncAttendanceMatrix(uid: string, spreadsheetId: string, t
       requests.push({
         repeatCell: {
           range: {
-            sheetId,
+            sheetId: targetSheetId,
             startRowIndex: 1,
             endRowIndex: Math.max(2, values.length),
             startColumnIndex: 3,
@@ -198,6 +219,7 @@ export async function syncAttendanceMatrix(uid: string, spreadsheetId: string, t
         spreadsheetId,
         requestBody: { requests },
       });
+      }
     }
   } catch (err) {
     console.error("Failed to apply formatting to Google Sheet:", err);

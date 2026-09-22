@@ -155,8 +155,10 @@ export async function POST(request: Request) {
           return [String(student.seatNumber ?? ""), String(student.fullName ?? ""), String(student.fatherName ?? ""), ...statuses, `${statuses.filter((status) => status === "1").length}/${statuses.filter(Boolean).length}`];
         }),
       ];
-      await syncAttendanceMatrix(cls.crUid, cls.spreadsheetId, subject.name ?? "Attendance", values);
-    } catch (error) { console.error("Attendance sheet sync failed", error); }
+      await syncAttendanceMatrix(cls.crUid, cls.spreadsheetId, subject.name ?? "Attendance", values, subject.googleSheetTabId ?? undefined);
+    } catch (error: any) {
+      console.error("Attendance sheet sync failed", error);
+    }
   }
   return NextResponse.json({ ok: true, date, today: date === karachiDate() });
 }
@@ -199,8 +201,10 @@ export async function DELETE(request: Request) {
           return [String(student.seatNumber ?? ""), String(student.fullName ?? ""), String(student.fatherName ?? ""), ...statuses, `${statuses.filter((status) => status === "1").length}/${statuses.filter(Boolean).length}`];
         }),
       ];
-      await syncAttendanceMatrix(cls.crUid, cls.spreadsheetId, subject.name ?? "Attendance", values);
-    } catch (error) { console.error("Attendance sheet delete sync failed", error); }
+      await syncAttendanceMatrix(cls.crUid, cls.spreadsheetId, subject.name ?? "Attendance", values, subject.googleSheetTabId ?? undefined);
+    } catch (error: any) {
+      console.error("Attendance sheet delete sync failed", error);
+    }
   }
   return NextResponse.json({ ok: true, deleted: records.length });
 }
