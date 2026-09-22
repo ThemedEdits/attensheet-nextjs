@@ -40,9 +40,15 @@ self.addEventListener('fetch', (event) => {
   if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request).catch(async () => {
-        const cache = await caches.open(CACHE_NAME);
-        const cachedOffline = await cache.match(OFFLINE_URL);
-        return cachedOffline || Response.error();
+        try {
+          const cache = await caches.open(CACHE_NAME);
+          const cachedOffline = await cache.match(OFFLINE_URL);
+          if (cachedOffline) return cachedOffline;
+        } catch (_) {}
+        return new Response(
+          '<!DOCTYPE html><html><body style="background:#07110d;color:#fff;font-family:sans-serif;text-align:center;padding:40px 20px;"><h2>AttenSheet is Reconnecting...</h2><p>Please check your connection and tap reload.</p><button onclick="window.location.reload()" style="background:#16A66A;color:#fff;border:none;padding:12px 24px;border-radius:12px;font-size:16px;cursor:pointer;">Reload</button></body></html>',
+          { headers: { 'Content-Type': 'text/html' } }
+        );
       })
     );
     return;

@@ -5,29 +5,19 @@ const config: CapacitorConfig = {
   appName: "AttenSheet",
   webDir: "public",
   server: {
-    // Points directly to the live production deployment.
-    // Pushes to the GitHub repo 'main' branch trigger Vercel deployments,
-    // which immediately reflect inside the downloaded mobile app!
     url: "https://attensheet.vercel.app",
-    cleartext: false,
-    allowNavigation: [
-      "attensheet.vercel.app",
-      "*.vercel.app",
-      "*.firebaseapp.com",
-      "accounts.google.com",
-      "*.google.com",
-      "*.googleapis.com",
-    ],
+    cleartext: true,
+    allowNavigation: ["*"],
   },
   android: {
-    allowMixedContent: false,
+    allowMixedContent: true,
     captureInput: true,
     webContentsDebuggingEnabled: false,
     backgroundColor: "#07110d",
   },
   plugins: {
     SplashScreen: {
-      launchShowDuration: 1200,
+      launchShowDuration: 1000,
       launchAutoHide: true,
       backgroundColor: "#07110d",
       androidScaleType: "CENTER_CROP",

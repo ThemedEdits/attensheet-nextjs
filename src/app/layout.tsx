@@ -91,13 +91,22 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             __html: `
               (function() {
                 if (typeof window !== 'undefined') {
-                  // Register Service Worker for offline fallback
+                  // Register Service Worker only for browser PWA, prevent WebView interference in native app
                   if ('serviceWorker' in navigator) {
-                    window.addEventListener('load', function() {
-                      navigator.serviceWorker.register('/sw.js').catch(function(err) {
-                        console.warn('SW registration failed:', err);
+                    var isCap = Boolean(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+                    if (isCap) {
+                      navigator.serviceWorker.getRegistrations().then(function(regs) {
+                        for (var i = 0; i < regs.length; i++) {
+                          regs[i].unregister();
+                        }
                       });
-                    });
+                    } else {
+                      window.addEventListener('load', function() {
+                        navigator.serviceWorker.register('/sw.js').catch(function(err) {
+                          console.warn('SW registration failed:', err);
+                        });
+                      });
+                    }
                   }
 
                   // Error boundary suppression for third-party extensions
