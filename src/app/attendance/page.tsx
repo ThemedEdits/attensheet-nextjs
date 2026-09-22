@@ -298,6 +298,18 @@ function AttendanceContent() {
         <span className="text-xs font-semibold text-[var(--accent)]">{subjectName}</span>
       </div>
 
+      {availableSubjects.length === 0 ? (
+        <div className="mt-8 flex flex-col items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] p-12 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--bg-secondary)] mb-4">
+            <FileSpreadsheet className="h-6 w-6 text-[var(--text-muted)]" />
+          </div>
+          <h3 className="text-lg font-medium text-white">No Subjects Assigned</h3>
+          <p className="mt-2 text-sm text-[var(--text-secondary)] max-w-sm">
+            {message || "You don't have any subjects assigned yet. Ask your Class Representative to add or assign subjects to you."}
+          </p>
+        </div>
+      ) : (
+        <>
       {/* Header Section */}
       <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -771,6 +783,8 @@ function AttendanceContent() {
             attendance,
           }}
         />
+      )}
+        </>
       )}
     </main>
   );
