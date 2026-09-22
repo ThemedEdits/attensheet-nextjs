@@ -12,8 +12,12 @@ export async function GET(request: NextRequest) {
   const uid = request.cookies.get("google_oauth_uid")?.value;
   if (!uid) return NextResponse.json({ error: "OAuth session expired. Please try again." }, { status: 400 });
   
-  // TODO: Save tokens.refresh_token in Prisma schema if needed
-  
+  const encryptedRefreshToken = encryptSecret(tokens.refresh_token);
+  await prisma.googleToken.upsert({
+    where: { uid },
+    update: { refreshToken: encryptedRefreshToken },
+    create: { uid, refreshToken: encryptedRefreshToken },
+  });
   const classId = request.cookies.get("google_oauth_class")?.value;
   if (classId) {
     const cls = await prisma.class.findUnique({ where: { id: classId } });
