@@ -11,6 +11,12 @@ const config: CapacitorConfig = {
     url: "https://attensheet.vercel.app",
     cleartext: false,
     errorPath: "offline.html",
+    allowNavigation: [
+      "*.firebaseapp.com",
+      "accounts.google.com",
+      "*.google.com",
+      "*.googleapis.com",
+    ],
   },
   android: {
     allowMixedContent: false,

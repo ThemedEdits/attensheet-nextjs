@@ -1,7 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useSession } from "@/lib/session-cache";
+import { MobileWelcomeScreen } from "@/components/MobileWelcomeScreen";
 import { 
   ArrowRight, 
   CheckCircle2, 
@@ -28,9 +31,46 @@ import {
 type RoleTab = "cr" | "teacher" | "student";
 
 export default function Home() {
+  const router = useRouter();
+  const { session } = useSession();
+  const [isMobile, setIsMobile] = useState(false);
+  const [showFullWebsite, setShowFullWebsite] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeRole, setActiveRole] = useState<RoleTab>("cr");
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+
+  useEffect(() => {
+    // If user is already authenticated, go directly to dashboard
+    if (session?.profile) {
+      router.replace("/dashboard");
+      return;
+    }
+
+    if (typeof window !== "undefined") {
+      const isStandalone = 
+        window.matchMedia("(display-mode: standalone)").matches || 
+        Boolean((window as any).Capacitor?.isNativePlatform());
+      const isSmallScreen = window.innerWidth < 768;
+      setIsMobile(isStandalone || isSmallScreen);
+
+      if (sessionStorage.getItem("view_full_website") === "true") {
+        setShowFullWebsite(true);
+      }
+    }
+  }, [session, router]);
+
+  if (isMobile && !showFullWebsite && !session?.profile) {
+    return (
+      <main className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
+        <MobileWelcomeScreen 
+          onShowFullWebsite={() => {
+            setShowFullWebsite(true);
+            sessionStorage.setItem("view_full_website", "true");
+          }} 
+        />
+      </main>
+    );
+  }
 
   // Interactive roll call demo state
   const [demoStudents, setDemoStudents] = useState([

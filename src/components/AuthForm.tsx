@@ -7,6 +7,8 @@ import {
   sendPasswordResetEmail, 
   signInWithEmailAndPassword, 
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   onAuthStateChanged,
   sendEmailVerification,
   signOut
@@ -48,8 +50,21 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
         const stored = localStorage.getItem("attensheet_invite_code");
         if (stored) setInviteCode(stored.trim().toUpperCase());
       }
+
+      // Check if user returned from a redirect sign-in
+      getRedirectResult(firebaseAuth)
+        .then((cred) => {
+          if (cred?.user) {
+            router.replace("/dashboard");
+          }
+        })
+        .catch((err) => {
+          if (err && err.code !== "auth/credential-already-in-use") {
+            console.warn("Redirect sign-in check:", err);
+          }
+        });
     }
-  }, []);
+  }, [router]);
 
   // Live password requirements checklist
   const passwordRequirements = useMemo(() => {
@@ -279,7 +294,22 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     setBusy(true);
     setError("");
     try {
-      await signInWithPopup(firebaseAuth, new GoogleAuthProvider());
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: "select_account" });
+      try {
+        await signInWithPopup(firebaseAuth, provider);
+      } catch (popupErr: any) {
+        if (
+          popupErr?.code === "auth/popup-blocked" || 
+          popupErr?.code === "auth/popup-closed-by-user" || 
+          popupErr?.code === "auth/cancelled-popup-request" ||
+          popupErr?.code === "auth/operation-not-supported-in-this-environment"
+        ) {
+          await signInWithRedirect(firebaseAuth, provider);
+          return;
+        }
+        throw popupErr;
+      }
       router.push("/dashboard");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Google sign-in failed.");
