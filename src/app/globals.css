@@ -284,6 +284,23 @@ textarea:focus {
   animation: toast-progress 4.2s linear both;
 }
 
+@keyframes indeterminate {
+  0% {
+    transform: translateX(-100%) scaleX(0.2);
+  }
+  50% {
+    transform: translateX(20%) scaleX(0.7);
+  }
+  100% {
+    transform: translateX(100%) scaleX(0.2);
+  }
+}
+
+.animate-indeterminate {
+  animation: indeterminate 1.5s infinite ease-in-out;
+  transform-origin: left;
+}
+
 @utility skeleton {
   @apply animate-pulse rounded-lg;
   background: linear-gradient(90deg, rgba(21, 45, 35, 0.6) 0%, rgba(35, 70, 56, 0.6) 50%, rgba(21, 45, 35, 0.6) 100%);

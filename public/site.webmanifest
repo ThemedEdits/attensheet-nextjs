@@ -1,21 +1,50 @@
 {
-  "name": "Attensheet",
-  "short_name": "Attensheet",
+  "name": "AttenSheet - University Attendance Management",
+  "short_name": "AttenSheet",
+  "description": "Smart attendance management system for university classes, CRs, teachers, and students.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#07110d",
+  "theme_color": "#07110d",
   "icons": [
+    {
+      "src": "/favicon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
     {
       "src": "/web-app-manifest-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "maskable"
+      "purpose": "any maskable"
     },
     {
       "src": "/web-app-manifest-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "maskable"
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
     }
   ],
-  "theme_color": "#ffffff",
-  "background_color": "#ffffff",
-  "display": "standalone"
+  "categories": ["education", "productivity", "utilities"],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "url": "/dashboard",
+      "description": "Open your attendance dashboard"
+    },
+    {
+      "name": "Take Attendance",
+      "url": "/cr/mark-attendance",
+      "description": "Quickly record class attendance"
+    }
+  ]
 }

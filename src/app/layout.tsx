@@ -1,10 +1,13 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { ToastProvider } from "@/components/ToastProvider";
 import { AppBottomNav } from "@/components/AppBottomNav";
 import { AppHeader } from "@/components/AppHeader";
 import { AppFooter } from "@/components/AppFooter";
+import { AppSplashScreen } from "@/components/AppSplashScreen";
+import { NetworkStatusProvider } from "@/components/NetworkStatusProvider";
+import { InstallAppBanner } from "@/components/InstallAppBanner";
 
 const fontSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -61,6 +64,13 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  themeColor: "#07110d",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+};
+
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={fontSans.variable}>
@@ -69,13 +79,25 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
         <link rel="shortcut icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-        <meta name="apple-mobile-web-app-title" content="Attensheet" />
+        <meta name="apple-mobile-web-app-title" content="AttenSheet" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="mobile-web-app-capable" content="yes" />
         <link rel="manifest" href="/site.webmanifest" />
         <script
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
                 if (typeof window !== 'undefined') {
+                  // Register Service Worker for offline fallback
+                  if ('serviceWorker' in navigator) {
+                    window.addEventListener('load', function() {
+                      navigator.serviceWorker.register('/sw.js').catch(function(err) {
+                        console.warn('SW registration failed:', err);
+                      });
+                    });
+                  }
+
+                  // Error boundary suppression for third-party extensions
                   window.addEventListener('error', function(e) {
                     if (e && e.message && e.message.indexOf("startTime") !== -1) {
                       e.preventDefault();
@@ -95,14 +117,18 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         />
       </head>
       <body className="antialiased min-h-screen text-[var(--text-primary)]">
-        <ToastProvider>
-          <AppHeader />
-          <div className="page-shell">
-            {children}
-            <AppFooter />
-          </div>
-          <AppBottomNav />
-        </ToastProvider>
+        <NetworkStatusProvider>
+          <ToastProvider>
+            <AppSplashScreen />
+            <AppHeader />
+            <div className="page-shell">
+              {children}
+              <AppFooter />
+            </div>
+            <AppBottomNav />
+            <InstallAppBanner />
+          </ToastProvider>
+        </NetworkStatusProvider>
       </body>
     </html>
   );
