@@ -96,7 +96,7 @@ async function migrate() {
           name: data.name,
           teacherUid: data.teacherUid || null,
           teacherName: data.teacherName || null,
-          googleSheetTabId: data.googleSheetTabId || null,
+          googleSheetTabId: data.googleSheetTabId != null ? String(data.googleSheetTabId) : null,
           active: data.active !== false,
         }
       });
@@ -133,7 +133,7 @@ async function migrate() {
         create: {
           id: doc.id,
           classId: data.classId,
-          uid: data.uid,
+          uid: data.uid || "missing-uid-" + doc.id,
           status: data.status || "pending",
           fullName: data.fullName || null,
           fatherName: data.fatherName || null,
@@ -155,7 +155,7 @@ async function migrate() {
         create: {
           id: doc.id,
           classId: data.classId,
-          uid: data.uid,
+          uid: data.uid || "missing-uid-" + doc.id,
           status: data.status || "pending",
           subjectName: data.subjectName || null,
           email: data.email || null,
