@@ -1,10 +1,12 @@
 {
-  "name": "AttenSheet - University Attendance Management",
+  "name": "AttenSheet",
   "short_name": "AttenSheet",
+  "id": "/",
   "description": "Smart attendance management system for university classes, CRs, teachers, and students.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "fullscreen"],
   "orientation": "portrait-primary",
   "background_color": "#07110d",
   "theme_color": "#07110d",
