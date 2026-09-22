@@ -20,7 +20,7 @@ export async function getAuthorizedSheets(uid: string) {
 export async function createAttendanceSpreadsheet(uid: string, title: string, subjects: string[]) {
   const sheets = await getAuthorizedSheets(uid);
   const created = await sheets.spreadsheets.create({ requestBody: { properties: { title }, sheets: subjects.map((name) => ({ properties: { title: name } })) } });
-  return created.data.spreadsheetId;
+  return created.data;
 }
 export async function syncAttendanceTab(uid: string, spreadsheetId: string, tab: string, values: string[][]) {
   const sheets = await getAuthorizedSheets(uid);
