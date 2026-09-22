@@ -20,9 +20,19 @@ export function InstallAppBanner() {
 
     if (isRunningStandalone) return;
 
-    // Check if user previously dismissed banner
+    // Check if user previously dismissed banner permanently (until logout)
     const isDismissed = localStorage.getItem("attensheet_install_dismissed") === "true";
-    setDismissed(isDismissed);
+    
+    // Check if we've already shown it in this session
+    const hasShownThisSession = sessionStorage.getItem("attensheet_install_shown") === "true";
+
+    // Only show if not dismissed AND not already shown this session
+    if (!isDismissed && !hasShownThisSession) {
+      setDismissed(false);
+      sessionStorage.setItem("attensheet_install_shown", "true");
+    } else {
+      setDismissed(true);
+    }
 
     // Detect iOS
     const userAgent = window.navigator.userAgent.toLowerCase();
@@ -33,7 +43,10 @@ export function InstallAppBanner() {
     const handleBeforeInstall = (e: any) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      setDismissed(false);
+      // We only re-trigger it if they haven't dismissed it permanently
+      if (!isDismissed && !hasShownThisSession) {
+        setDismissed(false);
+      }
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstall);

@@ -31,6 +31,7 @@ export default function SettingsPage() {
       if (typeof window !== "undefined") {
         localStorage.removeItem("attensheet_role");
         localStorage.removeItem("attensheet_secondary_cr");
+        localStorage.removeItem("attensheet_install_dismissed");
         window.location.href = "/login";
       }
     }

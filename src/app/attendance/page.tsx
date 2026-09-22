@@ -334,9 +334,9 @@ function AttendanceContent() {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto mt-3 sm:mt-0">
           {availableSubjects.length > 1 && (
-            <div className="w-48">
+            <div className="w-full sm:w-48">
               <CustomSelect
                 value={subjectId ?? ""}
                 options={availableSubjects.map((s) => ({ value: s.id, label: s.name }))}
@@ -345,18 +345,20 @@ function AttendanceContent() {
               />
             </div>
           )}
-          <button
-            type="button"
-            onClick={() => setShowDownloadModal(true)}
-            className="button-secondary text-xs py-2 px-3 inline-flex items-center gap-1.5"
-            title="Download attendance sheet (Excel, PDF, Google Sheet)"
-          >
-            <Download className="h-3.5 w-3.5 text-[var(--accent)]" />
-            <span>Download Sheet</span>
-          </button>
-          <div className="flex items-center gap-2 text-xs font-semibold">
-            <span className="badge-present">{presentCount} Present</span>
-            <span className="badge-absent">{students.length - presentCount} Absent</span>
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={() => setShowDownloadModal(true)}
+              className="button-secondary text-xs py-2 px-3 inline-flex items-center gap-1.5"
+              title="Download attendance sheet (Excel, PDF, Google Sheet)"
+            >
+              <Download className="h-3.5 w-3.5 text-[var(--accent)]" />
+              <span>Download Sheet</span>
+            </button>
+            <div className="flex items-center gap-2 text-xs font-semibold">
+              <span className="badge-present">{presentCount} Present</span>
+              <span className="badge-absent">{students.length - presentCount} Absent</span>
+            </div>
           </div>
         </div>
       </div>
@@ -395,7 +397,7 @@ function AttendanceContent() {
       {/* Roll Call Quick Actions (Mark all / Clear all) */}
       {canEdit && (
         <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={() => markAll(true)}
@@ -414,7 +416,7 @@ function AttendanceContent() {
             </button>
 
             {dates.length > 0 && (
-              <div className="w-44 ml-1">
+              <div className="w-full sm:w-44 sm:ml-1 mt-2 sm:mt-0">
                 <CustomSelect
                   value=""
                   options={dates.map((d) => ({ value: d, label: d }))}
