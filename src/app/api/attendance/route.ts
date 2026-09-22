@@ -158,7 +158,10 @@ export async function POST(request: Request) {
       await syncAttendanceMatrix(cls.crUid, cls.spreadsheetId, subject.name ?? "Attendance", values, subject.googleSheetTabId ?? undefined);
     } catch (error: any) {
       console.error("Attendance sheet sync failed", error);
+      return NextResponse.json({ ok: true, date, today: date === karachiDate(), syncError: "Google Sheets sync failed. Please check if your Google account is still connected and the spreadsheet exists." });
     }
+  } else {
+    return NextResponse.json({ ok: true, date, today: date === karachiDate(), syncError: "Google Sheets is not connected to this class. Please reconnect it from the Dashboard." });
   }
   return NextResponse.json({ ok: true, date, today: date === karachiDate() });
 }
@@ -204,7 +207,10 @@ export async function DELETE(request: Request) {
       await syncAttendanceMatrix(cls.crUid, cls.spreadsheetId, subject.name ?? "Attendance", values, subject.googleSheetTabId ?? undefined);
     } catch (error: any) {
       console.error("Attendance sheet delete sync failed", error);
+      return NextResponse.json({ ok: true, deleted: records.length, syncError: "Google Sheets sync failed. Please check your Google connection." });
     }
+  } else {
+    return NextResponse.json({ ok: true, deleted: records.length, syncError: "Google Sheets is not connected to this class. Please reconnect it from the Dashboard." });
   }
   return NextResponse.json({ ok: true, deleted: records.length });
 }

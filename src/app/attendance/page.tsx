@@ -259,7 +259,11 @@ function AttendanceContent() {
       const result = await readApiResponse(response);
       if (!response.ok) throw new Error(String(result.error ?? "Unable to save attendance."));
       setConfirmSave(false);
-      toast("Attendance saved and synchronized to Google Sheets.", "success");
+      if (result.syncError) {
+        toast(String(result.syncError), "error");
+      } else {
+        toast("Attendance saved and synchronized to Google Sheets.", "success");
+      }
       await load();
     } catch (error) {
       toast(error instanceof Error ? error.message : "Unable to save attendance.", "error");
