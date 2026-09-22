@@ -130,7 +130,7 @@ export default function Home() {
   ];
 
   return (
-    <main className="relative min-h-screen overflow-x-hidden bg-[var(--bg-primary)] text-[var(--text-primary)]">
+    <main className="relative min-h-screen overflow-x-clip bg-[var(--bg-primary)] text-[var(--text-primary)]">
       {/* Background Gradients */}
       <div className="pointer-events-none fixed inset-0 z-0">
         <div className="absolute top-[-10%] left-1/2 h-[600px] w-[900px] -translate-x-1/2 rounded-full bg-emerald-500/[0.08] blur-[140px]" />

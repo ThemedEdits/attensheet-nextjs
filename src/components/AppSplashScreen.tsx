@@ -4,21 +4,28 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 
 export function AppSplashScreen() {
-  const [visible, setVisible] = useState(true);
+  const [visible, setVisible] = useState(false);
   const [fading, setFading] = useState(false);
 
   useEffect(() => {
-    // Only show on initial app launch / cold start per browser tab/session
-    // or always show briefly for 1000ms to provide a smooth native launch experience
-    const timer = setTimeout(() => {
-      setFading(true);
-      const removeTimer = setTimeout(() => {
-        setVisible(false);
-      }, 500); // 500ms fade transition
-      return () => clearTimeout(removeTimer);
-    }, 1100); // Display for 1.1s
+    if (typeof window !== "undefined") {
+      const isStandalone =
+        window.matchMedia("(display-mode: standalone)").matches ||
+        (navigator as any).standalone === true;
 
-    return () => clearTimeout(timer);
+      if (isStandalone && !sessionStorage.getItem("attensheet_splash_shown")) {
+        sessionStorage.setItem("attensheet_splash_shown", "true");
+        setVisible(true);
+        const timer = setTimeout(() => {
+          setFading(true);
+          const removeTimer = setTimeout(() => {
+            setVisible(false);
+          }, 400);
+          return () => clearTimeout(removeTimer);
+        }, 900);
+        return () => clearTimeout(timer);
+      }
+    }
   }, []);
 
   if (!visible) return null;

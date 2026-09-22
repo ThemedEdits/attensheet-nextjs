@@ -91,22 +91,13 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             __html: `
               (function() {
                 if (typeof window !== 'undefined') {
-                  // Register Service Worker only for browser PWA, prevent WebView interference in native app
+                  // Register Service Worker for offline fallback and PWA install
                   if ('serviceWorker' in navigator) {
-                    var isCap = Boolean(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
-                    if (isCap) {
-                      navigator.serviceWorker.getRegistrations().then(function(regs) {
-                        for (var i = 0; i < regs.length; i++) {
-                          regs[i].unregister();
-                        }
+                    window.addEventListener('load', function() {
+                      navigator.serviceWorker.register('/sw.js').catch(function(err) {
+                        console.warn('SW registration failed:', err);
                       });
-                    } else {
-                      window.addEventListener('load', function() {
-                        navigator.serviceWorker.register('/sw.js').catch(function(err) {
-                          console.warn('SW registration failed:', err);
-                        });
-                      });
-                    }
+                    });
                   }
 
                   // Error boundary suppression for third-party extensions
