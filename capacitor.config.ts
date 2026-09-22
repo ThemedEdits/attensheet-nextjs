@@ -10,8 +10,9 @@ const config: CapacitorConfig = {
     // which immediately reflect inside the downloaded mobile app!
     url: "https://attensheet.vercel.app",
     cleartext: false,
-    errorPath: "offline.html",
     allowNavigation: [
+      "attensheet.vercel.app",
+      "*.vercel.app",
       "*.firebaseapp.com",
       "accounts.google.com",
       "*.google.com",
