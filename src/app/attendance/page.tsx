@@ -26,6 +26,8 @@ import {
   Check,
   X,
   Download,
+  History,
+  ChevronDown,
 } from "lucide-react";
 import { DownloadAttendanceModal } from "@/components/DownloadAttendanceModal";
 
@@ -206,6 +208,19 @@ function AttendanceContent() {
       next[student.uid] = status;
     });
     setRecords(next);
+  };
+
+  const handleRepeatAttendance = (selectedDate: string) => {
+    if (!canEdit) return;
+    const next = { ...records };
+    const pastRecords = attendance.filter((item) => item.date === selectedDate);
+    const pastMap = new Map(pastRecords.map((item) => [item.studentUid, item.present]));
+    
+    filteredStudents.forEach((student) => {
+      next[student.uid] = pastMap.get(student.uid) === true;
+    });
+    setRecords(next);
+    toast(`Checkmarks updated to match ${selectedDate}. (Not saved yet)`, "success");
   };
 
   // Quick-mark student when pressing Enter on single search match
@@ -399,6 +414,31 @@ function AttendanceContent() {
               <RotateCcw className="h-3.5 w-3.5" />
               <span>Clear all</span>
             </button>
+
+            {dates.length > 0 && (
+              <div className="relative inline-flex items-center">
+                <History className="absolute left-2.5 h-3.5 w-3.5 text-[var(--text-muted)] pointer-events-none" />
+                <select
+                  className="appearance-none inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] pl-8 pr-8 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition hover:border-[var(--border-hover)] hover:bg-[var(--surface-hover)] hover:text-white cursor-pointer focus:outline-none"
+                  value=""
+                  onChange={(e) => {
+                    const selected = e.target.value;
+                    if (selected) {
+                      handleRepeatAttendance(selected);
+                    }
+                  }}
+                  title="Repeat attendance from a past date"
+                >
+                  <option value="" disabled hidden>Same as/Repeat...</option>
+                  {dates.map((d) => (
+                    <option key={d} value={d} className="bg-[var(--surface-elevated)] text-white">
+                      {d}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-2.5 h-3.5 w-3.5 text-[var(--text-muted)] pointer-events-none" />
+              </div>
+            )}
           </div>
 
           <div className="text-xs text-[var(--text-muted)]">
