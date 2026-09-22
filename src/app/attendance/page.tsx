@@ -441,7 +441,7 @@ function AttendanceContent() {
       <div className="mt-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         {/* Search Box with Quick-Mark Enter */}
         <div className="relative flex-1 sm:max-w-md">
-          <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--text-muted)]" />
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-muted)]" />
           <input
             ref={searchInputRef}
             value={search}
@@ -454,7 +454,7 @@ function AttendanceContent() {
               }
             }}
             enterKeyHint="go"
-            className="field pl-9 pr-7 py-2 text-xs"
+            className="field pl-10 pr-8 py-3 text-sm"
             placeholder="Search student or seat # (Enter to mark)"
           />
           {search && (
@@ -464,9 +464,9 @@ function AttendanceContent() {
                 setSearch("");
                 searchInputRef.current?.focus();
               }}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-white"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-white"
             >
-              <X className="h-3 w-3" />
+              <X className="h-4 w-4" />
             </button>
           )}
         </div>
@@ -515,10 +515,17 @@ function AttendanceContent() {
                   return (
                     <tr
                       key={student.uid}
-                      className={`transition-colors ${isPresent ? "bg-[var(--accent-soft)]/20 hover:bg-[var(--accent-soft)]/30" : "hover:bg-[var(--surface-hover)]"}`}
+                      onClick={() => {
+                        if (!canEdit) return;
+                        setRecords((current) => ({
+                          ...current,
+                          [student.uid]: !isPresent,
+                        }));
+                      }}
+                      className={`transition-colors select-none ${canEdit ? "cursor-pointer" : ""} ${isPresent ? "bg-[var(--accent-soft)]/20 hover:bg-[var(--accent-soft)]/30" : "hover:bg-[var(--surface-hover)]"}`}
                     >
                       <td className="px-6 py-3.5">
-                        <label className="inline-flex items-center gap-2.5 cursor-pointer select-none">
+                        <div className="inline-flex items-center gap-2.5">
                           <div
                             role="checkbox"
                             aria-checked={isPresent}
@@ -527,18 +534,12 @@ function AttendanceContent() {
                             onKeyDown={(e) => {
                               if (canEdit && (e.key === " " || e.key === "Enter")) {
                                 e.preventDefault();
+                                e.stopPropagation();
                                 setRecords((current) => ({
                                   ...current,
                                   [student.uid]: !isPresent,
                                 }));
                               }
-                            }}
-                            onClick={() => {
-                              if (!canEdit) return;
-                              setRecords((current) => ({
-                                ...current,
-                                [student.uid]: !isPresent,
-                              }));
                             }}
                             className={`custom-checkbox ${isPresent ? "is-checked" : ""} ${!canEdit ? "opacity-50 cursor-not-allowed" : ""}`}
                           >
@@ -547,7 +548,7 @@ function AttendanceContent() {
                           <span className={`text-xs font-semibold transition-colors duration-150 ${isPresent ? "text-[var(--accent)]" : "text-[var(--text-muted)]"}`}>
                             {isPresent ? "Present" : "Absent"}
                           </span>
-                        </label>
+                        </div>
                       </td>
                       <td className="px-6 py-3.5 font-mono text-xs font-bold text-white">
                         {student.seatNumber ?? "-"}
@@ -580,54 +581,39 @@ function AttendanceContent() {
               return (
                 <div
                   key={student.uid}
-                  className={`p-4 flex items-center justify-between gap-3 transition-colors ${
-                    isPresent ? "bg-[var(--accent-soft)]/20" : ""
+                  onClick={() => {
+                    if (!canEdit) return;
+                    setRecords((current) => ({
+                      ...current,
+                      [student.uid]: !isPresent,
+                    }));
+                  }}
+                  className={`p-4 flex items-center gap-3.5 transition-colors select-none ${canEdit ? "cursor-pointer" : ""} ${
+                    isPresent ? "bg-[var(--accent-soft)]/20 hover:bg-[var(--accent-soft)]/30" : "hover:bg-[var(--surface-hover)]"
                   }`}
                 >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="rounded bg-[var(--surface-elevated)] border border-[var(--border)] px-1.5 py-0.5 font-mono text-[11px] font-bold text-white">
-                        {student.seatNumber ?? "-"}
-                      </span>
-                      <p className="text-sm font-semibold text-white truncate">
-                        {student.fullName ?? "Unnamed student"}
-                      </p>
-                    </div>
-                    {student.fatherName && (
-                      <p className="mt-1 text-xs text-[var(--text-muted)] truncate">
-                        S/O {student.fatherName}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Touch-Friendly Tap Toggle Button */}
-                  <button
-                    type="button"
-                    disabled={!canEdit}
-                    onClick={() =>
-                      setRecords((current) => ({
-                        ...current,
-                        [student.uid]: !isPresent,
-                      }))
-                    }
-                    className={`flex-none h-11 px-4 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed ${
-                      isPresent
-                        ? "bg-[var(--primary)] text-[#07110D] shadow-md shadow-emerald-950/40"
-                        : "border border-[var(--border)] bg-[var(--surface-elevated)] text-[var(--text-secondary)]"
-                    }`}
+                  <div
+                    role="checkbox"
+                    aria-checked={isPresent}
+                    aria-label={`Mark ${student.fullName ?? student.uid} present`}
+                    tabIndex={canEdit ? 0 : -1}
+                    onKeyDown={(e) => {
+                      if (canEdit && (e.key === " " || e.key === "Enter")) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setRecords((current) => ({
+                          ...current,
+                          [student.uid]: !isPresent,
+                        }));
+                      }
+                    }}
+                    className={`custom-checkbox shrink-0 ${isPresent ? "is-checked" : ""} ${!canEdit ? "opacity-50 cursor-not-allowed" : ""}`}
                   >
-                    {isPresent ? (
-                      <>
-                        <CheckCircle2 className="h-4 w-4" />
-                        <span>PRESENT</span>
-                      </>
-                    ) : (
-                      <>
-                        <XCircle className="h-4 w-4 text-[var(--text-muted)]" />
-                        <span>ABSENT</span>
-                      </>
-                    )}
-                  </button>
+                    <Check className="custom-checkbox-icon" />
+                  </div>
+                  <p className={`text-sm font-semibold truncate transition-colors ${isPresent ? "text-[var(--text-primary)]" : "text-[var(--text-secondary)]"}`}>
+                    {student.fullName ?? "Unnamed student"}
+                  </p>
                 </div>
               );
             })
