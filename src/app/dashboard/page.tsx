@@ -1093,15 +1093,25 @@ export default function DashboardPage() {
 
               {profile?.role === "cr" && (
                 <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={connectSheets}
-                    disabled={connecting}
-                    className="button-secondary text-xs"
-                  >
-                    <FileSpreadsheet className="h-3.5 w-3.5" />
-                    <span>{connecting ? "Connecting..." : classRecord.spreadsheetId ? "Sheets Synced" : "Connect Sheets"}</span>
-                  </button>
+                  {classRecord.spreadsheetId ? (
+                    <Link
+                      href="/google"
+                      className="button-secondary text-xs"
+                    >
+                      <FileSpreadsheet className="h-3.5 w-3.5" />
+                      <span>Manage Sheets</span>
+                    </Link>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={connectSheets}
+                      disabled={connecting}
+                      className="button-secondary text-xs"
+                    >
+                      <FileSpreadsheet className="h-3.5 w-3.5" />
+                      <span>{connecting ? "Connecting..." : "Connect Sheets"}</span>
+                    </button>
+                  )}
                   {classRecord.spreadsheetId && (
                     <a
                       target="_blank"

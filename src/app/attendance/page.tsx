@@ -227,7 +227,7 @@ function AttendanceContent() {
       e.preventDefault();
       e.stopPropagation();
     }
-    if (!canEdit) return;
+    if (!canEdit || !classData.spreadsheetId) return;
     if (filteredStudents.length === 1) {
       const student = filteredStudents[0];
       setRecords((current) => ({
@@ -369,29 +369,44 @@ function AttendanceContent() {
 
       {/* Lock / Editable Status Banner */}
       <div className={`mt-6 flex items-start gap-3 rounded-xl border p-4 text-xs sm:text-sm ${
-        canEdit 
-          ? "border-[var(--border-hover)] bg-[var(--accent-soft)] text-[var(--text-primary)]" 
-          : "border-amber-500/20 bg-amber-500/10 text-amber-200"
+        !classData.spreadsheetId 
+          ? "border-red-500/20 bg-red-500/10 text-red-200"
+          : canEdit 
+            ? "border-[var(--border-hover)] bg-[var(--accent-soft)] text-[var(--text-primary)]" 
+            : "border-amber-500/20 bg-amber-500/10 text-amber-200"
       }`}>
-        {canEdit ? (
+        {!classData.spreadsheetId ? (
+          <FileSpreadsheet className="h-4 w-4 flex-none text-red-400 mt-0.5" />
+        ) : canEdit ? (
           <CheckCircle2 className="h-4 w-4 flex-none text-[var(--accent)] mt-0.5" />
         ) : (
           <Lock className="h-4 w-4 flex-none text-amber-400 mt-0.5" />
         )}
         <div className="flex-1">
           <p className="font-semibold text-white">
-            {canEdit
-              ? isToday
-                ? "Active Daily Register"
-                : "Past Unrecorded Register"
-              : "Register Permanently Locked"}
+            {!classData.spreadsheetId
+              ? "Google Sheet Not Connected"
+              : canEdit
+                ? isToday
+                  ? "Active Daily Register"
+                  : "Past Unrecorded Register"
+                : "Register Permanently Locked"}
           </p>
           <p className="mt-0.5 text-xs opacity-85">
-            {canEdit
-              ? isToday
-                ? "Today's roll-call is open for editing until midnight Asia/Karachi."
-                : "This past date has not been marked yet and can be saved once."
-              : "This date has already been committed to the master register and cannot be altered."}
+            {!classData.spreadsheetId
+              ? (
+                <span>
+                  You must connect a Google Sheet before marking attendance.{" "}
+                  <Link href="/google" className="underline font-bold text-white hover:text-[var(--accent)]">
+                    Connect Sheet
+                  </Link>
+                </span>
+              )
+              : canEdit
+                ? isToday
+                  ? "Today's roll-call is open for editing until midnight Asia/Karachi."
+                  : "This past date has not been marked yet and can be saved once."
+                : "This date has already been committed to the master register and cannot be altered."}
           </p>
         </div>
       </div>
@@ -399,7 +414,7 @@ function AttendanceContent() {
       {message && <p className="mt-4 text-xs text-[var(--text-secondary)]">{message}</p>}
 
       {/* Roll Call Quick Actions (Mark all / Clear all) */}
-      {canEdit && (
+      {canEdit && classData.spreadsheetId && (
         <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
           <div className="flex flex-wrap items-center gap-2">
             <button
@@ -520,13 +535,13 @@ function AttendanceContent() {
                     <tr
                       key={student.uid}
                       onClick={() => {
-                        if (!canEdit) return;
+                        if (!canEdit || !classData.spreadsheetId) return;
                         setRecords((current) => ({
                           ...current,
                           [student.uid]: !isPresent,
                         }));
                       }}
-                      className={`transition-colors select-none ${canEdit ? "cursor-pointer" : ""} ${isPresent ? "bg-[var(--accent-soft)]/20 hover:bg-[var(--accent-soft)]/30" : "hover:bg-[var(--surface-hover)]"}`}
+                      className={`transition-colors select-none ${canEdit && classData.spreadsheetId ? "cursor-pointer" : ""} ${isPresent ? "bg-[var(--accent-soft)]/20 hover:bg-[var(--accent-soft)]/30" : "hover:bg-[var(--surface-hover)]"}`}
                     >
                       <td className="px-6 py-3.5">
                         <div className="inline-flex items-center gap-2.5">
@@ -534,9 +549,9 @@ function AttendanceContent() {
                             role="checkbox"
                             aria-checked={isPresent}
                             aria-label={`Mark ${student.fullName ?? student.uid} present`}
-                            tabIndex={canEdit ? 0 : -1}
+                            tabIndex={canEdit && classData.spreadsheetId ? 0 : -1}
                             onKeyDown={(e) => {
-                              if (canEdit && (e.key === " " || e.key === "Enter")) {
+                              if (canEdit && classData.spreadsheetId && (e.key === " " || e.key === "Enter")) {
                                 e.preventDefault();
                                 e.stopPropagation();
                                 setRecords((current) => ({
@@ -545,7 +560,7 @@ function AttendanceContent() {
                                 }));
                               }
                             }}
-                            className={`custom-checkbox ${isPresent ? "is-checked" : ""} ${!canEdit ? "opacity-50 cursor-not-allowed" : ""}`}
+                            className={`custom-checkbox ${isPresent ? "is-checked" : ""} ${!canEdit || !classData.spreadsheetId ? "opacity-50 cursor-not-allowed" : ""}`}
                           >
                             <Check className="custom-checkbox-icon" />
                           </div>
@@ -586,13 +601,13 @@ function AttendanceContent() {
                 <div
                   key={student.uid}
                   onClick={() => {
-                    if (!canEdit) return;
+                    if (!canEdit || !classData.spreadsheetId) return;
                     setRecords((current) => ({
                       ...current,
                       [student.uid]: !isPresent,
                     }));
                   }}
-                  className={`p-4 flex items-center gap-3.5 transition-colors select-none ${canEdit ? "cursor-pointer" : ""} ${
+                  className={`p-4 flex items-center gap-3.5 transition-colors select-none ${canEdit && classData.spreadsheetId ? "cursor-pointer" : ""} ${
                     isPresent ? "bg-[var(--accent-soft)]/20 hover:bg-[var(--accent-soft)]/30" : "hover:bg-[var(--surface-hover)]"
                   }`}
                 >
@@ -600,9 +615,9 @@ function AttendanceContent() {
                     role="checkbox"
                     aria-checked={isPresent}
                     aria-label={`Mark ${student.fullName ?? student.uid} present`}
-                    tabIndex={canEdit ? 0 : -1}
+                    tabIndex={canEdit && classData.spreadsheetId ? 0 : -1}
                     onKeyDown={(e) => {
-                      if (canEdit && (e.key === " " || e.key === "Enter")) {
+                      if (canEdit && classData.spreadsheetId && (e.key === " " || e.key === "Enter")) {
                         e.preventDefault();
                         e.stopPropagation();
                         setRecords((current) => ({
@@ -611,7 +626,7 @@ function AttendanceContent() {
                         }));
                       }
                     }}
-                    className={`custom-checkbox shrink-0 ${isPresent ? "is-checked" : ""} ${!canEdit ? "opacity-50 cursor-not-allowed" : ""}`}
+                    className={`custom-checkbox shrink-0 ${isPresent ? "is-checked" : ""} ${!canEdit || !classData.spreadsheetId ? "opacity-50 cursor-not-allowed" : ""}`}
                   >
                     <Check className="custom-checkbox-icon" />
                   </div>
@@ -675,24 +690,24 @@ function AttendanceContent() {
       {/* Google Sheets Blueprint Register (Hidden for Secondary CR) */}
       {!isSecondaryCr && (
         <section className="mt-12">
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 text-xs font-semibold text-[var(--accent)]">
-                <FileSpreadsheet className="h-3.5 w-3.5" />
-                <span>Google Sheets Register Blueprint</span>
+                <FileSpreadsheet className="h-3.5 w-3.5 flex-none" />
+                <span className="truncate">Google Sheets Register Blueprint</span>
               </div>
-              <h2 className="mt-1 text-xl font-bold text-white">
+              <h2 className="mt-1 text-xl font-bold text-white break-words">
                 {subjectName} Master Sheet
               </h2>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="badge-neutral text-[11px] hidden sm:inline-flex">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 flex-none">
+              <span className="badge-neutral text-[11px] whitespace-nowrap">
                 Auto-synced
               </span>
               <button
                 type="button"
                 onClick={() => setShowDownloadModal(true)}
-                className="button-secondary text-xs py-1.5 px-2.5 inline-flex items-center gap-1.5"
+                className="button-secondary text-xs py-1.5 px-3 inline-flex items-center justify-center gap-1.5 w-full sm:w-auto whitespace-nowrap"
                 title="Download attendance sheet"
               >
                 <Download className="h-3.5 w-3.5 text-[var(--accent)]" />

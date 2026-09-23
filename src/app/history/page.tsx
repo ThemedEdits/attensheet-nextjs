@@ -131,10 +131,7 @@ function StudentHistoryContent() {
       if (timeframeFilter === "week" && item.date < oneWeekAgo) return false;
       if (timeframeFilter === "month" && item.date < oneMonthAgo) return false;
       if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase();
-        const matchesSubject = item.subjectName.toLowerCase().includes(query);
-        const matchesDate = item.date.includes(query);
-        if (!matchesSubject && !matchesDate) return false;
+        if (item.date !== searchQuery) return false;
       }
       return true;
     });
@@ -338,15 +335,14 @@ function StudentHistoryContent() {
         {/* Filter Bar */}
         <div className="card p-3 sm:p-4">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 items-center">
-            {/* Search Input */}
+            {/* Date Search Input */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--text-muted)]" />
+              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--text-muted)] pointer-events-none" />
               <input
-                type="text"
+                type="date"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search subject or date..."
-                className="field pl-9 text-xs"
+                className="field pl-9 text-xs w-full bg-transparent [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
               />
             </div>
 

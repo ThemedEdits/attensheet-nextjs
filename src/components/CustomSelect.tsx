@@ -59,35 +59,37 @@ export function CustomSelect({
       {open && (
         <div 
           role="listbox" 
-          className="absolute z-30 mt-2 max-h-56 w-full overflow-auto rounded-xl border border-[var(--border-hover)] bg-[var(--surface-elevated)] p-1.5 shadow-2xl shadow-black/50"
+          className="absolute z-30 mt-2 w-full overflow-hidden rounded-xl border border-[var(--border-hover)] bg-[var(--surface-elevated)] shadow-2xl shadow-black/50"
         >
-          {options.length ? (
-            options.map((option) => {
-              const isSelected = option.value === value;
-              return (
-                <button
-                  type="button"
-                  key={option.value}
-                  onClick={() => {
-                    onChange(option.value);
-                    setOpen(false);
-                  }}
-                  className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors ${
-                    isSelected
-                      ? "bg-[var(--accent-soft)] text-[var(--accent)] font-semibold"
-                      : "text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-white"
-                  }`}
-                >
-                  <span>{option.label}</span>
-                  {isSelected && <Check className="h-4 w-4 text-[var(--accent)]" />}
-                </button>
-              );
-            })
-          ) : (
-            <p className="px-3 py-3 text-center text-xs text-[var(--text-muted)]">
-              No options available
-            </p>
-          )}
+          <div className="max-h-56 w-full overflow-auto p-1.5 flex flex-col gap-0.5">
+            {options.length ? (
+              options.map((option) => {
+                const isSelected = option.value === value;
+                return (
+                  <button
+                    type="button"
+                    key={option.value}
+                    onClick={() => {
+                      onChange(option.value);
+                      setOpen(false);
+                    }}
+                    className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+                      isSelected
+                        ? "bg-[var(--accent-soft)] text-[var(--accent)] font-semibold"
+                        : "text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-white"
+                    }`}
+                  >
+                    <span>{option.label}</span>
+                    {isSelected && <Check className="h-4 w-4 text-[var(--accent)]" />}
+                  </button>
+                );
+              })
+            ) : (
+              <p className="px-3 py-3 text-center text-xs text-[var(--text-muted)]">
+                No options available
+              </p>
+            )}
+          </div>
         </div>
       )}
     </div>

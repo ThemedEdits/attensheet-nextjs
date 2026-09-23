@@ -38,6 +38,17 @@ export function AppHeader() {
     setMounted(true);
   }, []);
 
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mobileMenuOpen]);
+
   const profile = session?.profile ?? null;
   const isSecondaryCr = session?.isSecondaryCr ?? false;
   const pending = session?.pending ?? 0;
