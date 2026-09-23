@@ -177,10 +177,10 @@ export default function StudentsPage() {
     if (q) {
       result = result.filter(
         (s) =>
-          s.seatNumber.toLowerCase().includes(q) ||
-          s.fullName.toLowerCase().includes(q) ||
-          s.fatherName.toLowerCase().includes(q) ||
-          s.email.toLowerCase().includes(q)
+          (s.seatNumber || "").toLowerCase().includes(q) ||
+          (s.fullName || "").toLowerCase().includes(q) ||
+          (s.fatherName || "").toLowerCase().includes(q) ||
+          (s.email || "").toLowerCase().includes(q)
       );
     }
 
@@ -219,9 +219,9 @@ export default function StudentsPage() {
     if (!q) return teachers;
     return teachers.filter(
       (t) =>
-        t.fullName.toLowerCase().includes(q) ||
-        t.email.toLowerCase().includes(q) ||
-        t.subjects.some((s) => s.name.toLowerCase().includes(q))
+        (t.fullName || "").toLowerCase().includes(q) ||
+        (t.email || "").toLowerCase().includes(q) ||
+        t.subjects.some((s) => (s.name || "").toLowerCase().includes(q))
     );
   }, [teachers, teacherSearch]);
 
