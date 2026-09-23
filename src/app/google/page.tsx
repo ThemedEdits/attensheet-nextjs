@@ -6,6 +6,7 @@ import { authHeaders } from "@/lib/client-auth";
 import { readApiResponse } from "@/lib/client-response";
 import type { ClassRecord } from "@/lib/domain";
 import { ArrowLeft, FileSpreadsheet, ExternalLink, Loader2, Sparkles } from "lucide-react";
+import { useToast } from "@/components/ToastProvider";
 
 export default function GooglePage() {
   const [classRecord, setClassRecord] = useState<ClassRecord | null>(null);
@@ -65,7 +66,7 @@ export default function GooglePage() {
       const result = await readApiResponse(response);
       if (!response.ok) throw new Error(String(result.error ?? "Failed to disconnect."));
       toast("Sheet disconnected.", "success");
-      setClassRecord({ ...classRecord, spreadsheetId: null });
+      setClassRecord({ ...classRecord, spreadsheetId: undefined });
       setConfirmDisconnect(false);
     } catch (error) {
       toast(error instanceof Error ? error.message : "Unable to disconnect.", "error");
@@ -140,7 +141,7 @@ export default function GooglePage() {
               <a
                 target="_blank"
                 rel="noreferrer"
-                href={`https://docs.google.com/spreadsheets/d/${classRecord.spreadsheetId}`}
+                href={`https://docs.google.com/spreadsheets/d/${classRecord?.spreadsheetId}`}
                 className="button-primary text-xs"
               >
                 <span>Open Spreadsheet</span>
