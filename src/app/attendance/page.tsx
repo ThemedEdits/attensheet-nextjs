@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import { DownloadAttendanceModal } from "@/components/DownloadAttendanceModal";
 
-type Student = { uid: string; fullName?: string; fatherName?: string; seatNumber?: string };
+type Student = { uid: string; fullName?: string; fatherName?: string; seatNumber?: string; totalPresents?: number };
 type Attendance = { studentUid: string; date: string; present: boolean };
 type ClassData = { university?: string; department?: string; className?: string; section?: string; semester?: string; spreadsheetId?: string };
 
@@ -44,6 +44,7 @@ function AttendanceContent() {
   const [teacherName, setTeacherName] = useState<string | undefined>(undefined);
   const [classData, setClassData] = useState<ClassData>({});
   const [search, setSearch] = useState("");
+  const [sortFilter, setSortFilter] = useState<string>("default");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
@@ -172,12 +173,37 @@ function AttendanceContent() {
   }, [authReady, classId, subjectId, load]);
 
   const filteredStudents = useMemo(() => {
+    let result = [...students];
     const needle = search.trim().toLowerCase();
-    if (!needle) return students;
-    return students.filter((student) =>
-      `${student.seatNumber ?? ""} ${student.fullName ?? ""}`.toLowerCase().includes(needle)
-    );
-  }, [students, search]);
+    
+    if (needle) {
+      result = result.filter((student) =>
+        `${student.seatNumber ?? ""} ${student.fullName ?? ""}`.toLowerCase().includes(needle)
+      );
+    }
+    
+    result.sort((a, b) => {
+      if (sortFilter === "a-z") {
+        return String(a.fullName ?? "").localeCompare(String(b.fullName ?? ""));
+      } else if (sortFilter === "z-a") {
+        return String(b.fullName ?? "").localeCompare(String(a.fullName ?? ""));
+      } else if (sortFilter === "seat-asc") {
+        return String(a.seatNumber ?? "").localeCompare(String(b.seatNumber ?? ""));
+      } else if (sortFilter === "seat-desc") {
+        return String(b.seatNumber ?? "").localeCompare(String(a.seatNumber ?? ""));
+      } else {
+        // default sorting: most presents, then alphabetical
+        const aPresents = a.totalPresents || 0;
+        const bPresents = b.totalPresents || 0;
+        if (aPresents !== bPresents) {
+          return bPresents - aPresents; // descending order of presents
+        }
+        return String(a.fullName ?? "").localeCompare(String(b.fullName ?? ""));
+      }
+    });
+
+    return result;
+  }, [students, search, sortFilter]);
 
   const dates = useMemo(() => [...new Set(attendance.map((item) => item.date))].sort(), [attendance]);
   const matrix = useMemo(() => {
@@ -456,42 +482,72 @@ function AttendanceContent() {
         </div>
       )}
 
-      {/* Search Bar Box & Date Selector (Positioned right above table headers and below Mark all/Clear all) */}
-      <div className="mt-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-        {/* Search Box with Quick-Mark Enter */}
-        <div className="relative flex-1 sm:max-w-md">
-          <Search className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-muted)]" />
-          <input
-            ref={searchInputRef}
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                event.stopPropagation();
-                handleSearchEnter(event);
-              }
-            }}
-            enterKeyHint="go"
-            className="field pl-10 pr-8 py-3 text-sm"
-            placeholder="Search student or seat # (Enter to mark)"
-          />
-          {search && (
-            <button
-              type="button"
-              onClick={() => {
-                setSearch("");
-                searchInputRef.current?.focus();
+      {/* Search Bar Box & Date Selector & Sorting (Positioned right above table headers and below Mark all/Clear all) */}
+      <div className="mt-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+        <div className="flex flex-1 flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+          {/* Search Box with Quick-Mark Enter */}
+          <div className="relative flex-1 sm:max-w-xs">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-muted)]" />
+            <input
+              ref={searchInputRef}
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  handleSearchEnter(event);
+                }
               }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-white"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
+              enterKeyHint="go"
+              className="field pl-10 pr-8 py-3 text-sm h-11"
+              placeholder="Search student (Enter to mark)"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch("");
+                  searchInputRef.current?.focus();
+                }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-white"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Sort Selector */}
+          <div className="flex items-center gap-2">
+            <div className="w-full sm:w-40 md:w-44 flex-1">
+              <CustomSelect
+                value={sortFilter}
+                options={[
+                  { value: "default", label: "Default Sort" },
+                  { value: "a-z", label: "Name (A-Z)" },
+                  { value: "z-a", label: "Name (Z-A)" },
+                  { value: "seat-asc", label: "Seat # (Asc)" },
+                  { value: "seat-desc", label: "Seat # (Desc)" },
+                ]}
+                placeholder="Sort by..."
+                onChange={(val) => setSortFilter(val)}
+              />
+            </div>
+            {sortFilter !== "default" && (
+              <button
+                type="button"
+                onClick={() => setSortFilter("default")}
+                className="button-secondary p-2.5 h-11 flex items-center justify-center rounded-xl"
+                title="Reset sorting"
+              >
+                <X className="h-4 w-4 text-[var(--text-muted)]" />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Date Selector & Today Shortcut */}
-        <div className="flex items-center gap-2 self-start sm:self-auto">
+        <div className="flex items-center gap-2 self-start md:self-auto">
           <div className="relative">
             <input
               type="date"

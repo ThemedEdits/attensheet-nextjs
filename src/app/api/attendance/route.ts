@@ -90,6 +90,14 @@ export async function GET(request: Request) {
   
   const snap = await prisma.attendance.findMany({ where: whereClause });
   const students = await prisma.membership.findMany({ where: { classId, role: "student", status: "approved" } });
+  
+  const presentCountsDb = await prisma.attendance.groupBy({
+    by: ['studentUid'],
+    where: { classId, present: true },
+    _count: { present: true }
+  });
+  const presentCounts = Object.fromEntries(presentCountsDb.map(p => [p.studentUid, p._count.present]));
+  
   const subjectData = await prisma.subject.findUnique({ where: { id: subjectId } }) || {} as any;
   
   const isManager = isPrimaryCr || (isTeacher && subjectData.teacherUid === user.uid);
@@ -99,7 +107,7 @@ export async function GET(request: Request) {
   
   return NextResponse.json({ 
     attendance: snap, 
-    students: students.map((d) => ({ uid: d.uid, fullName: d.fullName, fatherName: d.fatherName, seatNumber: d.seatNumber })), 
+    students: students.map((d) => ({ uid: d.uid, fullName: d.fullName, fatherName: d.fatherName, seatNumber: d.seatNumber, totalPresents: presentCounts[d.uid] || 0 })), 
     subject: { id: subjectId, name: subjectData.name, googleSheetTabId: subjectData.googleSheetTabId ?? null, teacherName: subjectData.teacherName ?? null }, 
     class: cls, 
     canManage: isManager, 
