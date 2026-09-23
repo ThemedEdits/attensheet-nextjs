@@ -32,16 +32,25 @@ type RoleTab = "cr" | "teacher" | "student";
 
 export default function Home() {
   const router = useRouter();
-  const { session } = useSession();
-  const [isMobile, setIsMobile] = useState(false);
+  const { session, loading: sessionLoading } = useSession();
+  const [isMobile, setIsMobile] = useState<boolean | null>(null);
   const [showFullWebsite, setShowFullWebsite] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeRole, setActiveRole] = useState<RoleTab>("cr");
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
-    // If user is already authenticated, go directly to dashboard
-    if (session?.profile) {
+    // Force splash screen to show for at least 1.5 seconds to smooth out transitions
+    const timer = setTimeout(() => {
+      setShowSplash(false);
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    // If user is already authenticated and we're done loading, go directly to dashboard
+    if (!sessionLoading && session?.profile) {
       router.replace("/dashboard");
       return;
     }
@@ -59,7 +68,18 @@ export default function Home() {
         setShowFullWebsite(true);
       }
     }
-  }, [session, router]);
+  }, [session, sessionLoading, router]);
+
+  if (sessionLoading || isMobile === null || showSplash) {
+    return (
+      <main className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center">
+        <div className="relative flex flex-col items-center">
+          <div className="absolute -inset-4 rounded-3xl bg-gradient-to-r from-[#16A66A]/20 to-[#35D98A]/10 blur-xl animate-pulse" />
+          <img src="/attensheetlogo.svg" alt="AttenSheet" className="relative h-20 w-20 object-contain drop-shadow-[0_4px_16px_rgba(53,217,138,0.4)] animate-bounce" />
+        </div>
+      </main>
+    );
+  }
 
   if (isMobile && !showFullWebsite && !session?.profile) {
     return (

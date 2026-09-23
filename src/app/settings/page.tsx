@@ -10,7 +10,7 @@ import { useToast } from "@/components/ToastProvider";
 import { ArrowLeft, User, Mail, Shield, KeyRound, LogOut, Sparkles } from "lucide-react";
 
 export default function SettingsPage() {
-  const [profile, setProfile] = useState<{ name?: string; email?: string; role?: string }>({});
+  const [profile, setProfile] = useState<{ name?: string; email?: string; role?: string; actualRole?: string }>({});
   const [loading, setLoading] = useState(true);
   const [resetting, setResetting] = useState(false);
   const toast = useToast();
@@ -202,9 +202,28 @@ export default function SettingsPage() {
 
         {/* Actions */}
         <div className="mt-8 pt-6 border-t border-[var(--border)] flex flex-wrap items-center gap-3">
+          {profile.actualRole === "cr" && (
+            <button
+              type="button"
+              onClick={() => {
+                if (profile.role === "student") {
+                  document.cookie = "attensheet_view_as_student=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+                } else {
+                  document.cookie = "attensheet_view_as_student=true; path=/";
+                }
+                window.location.reload();
+              }}
+              className="button-primary text-xs inline-flex items-center gap-2"
+            >
+              <User className="h-3.5 w-3.5" />
+              <span>{profile.role === "student" ? "Switch back to CR profile" : "View as student"}</span>
+            </button>
+          )}
+
           <button
             type="button"
             disabled={resetting}
+
             onClick={() => void resetPassword()}
             className="button-secondary text-xs inline-flex items-center gap-2"
           >

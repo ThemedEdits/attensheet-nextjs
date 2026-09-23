@@ -12,6 +12,10 @@ export async function GET(request: Request) {
     const profile = await prisma.user.findUnique({ where: { uid: user.uid } });
     if (!profile) return NextResponse.json({ error: "Profile not found." }, { status: 404 });
 
+    const cookieStore = await import("next/headers").then(m => m.cookies());
+    const viewAsStudent = cookieStore.get("attensheet_view_as_student")?.value === "true";
+    const effectiveRole = (profile.role === "cr" && viewAsStudent) ? "student" : profile.role;
+
     let classData;
     if (profile.role === "cr") {
       classData = await prisma.class.findFirst({ where: { crUid: user.uid } });
@@ -92,7 +96,7 @@ export async function GET(request: Request) {
         where: { classId },
         include: { user: true }
       }),
-      profile.role === "student" 
+      effectiveRole === "student" 
         ? prisma.attendance.findMany({ where: { classId } })
         : Promise.resolve([]),
     ]);
@@ -117,11 +121,11 @@ export async function GET(request: Request) {
       }));
 
     const userMembershipDoc = membersRes.find((d) => d.uid === user.uid && d.status === "approved");
-    const isSecondaryCr = profile.role === "student" && (userMembershipDoc?.isSecondaryCr === true || classData.secondaryCrUid === user.uid);
+    const isSecondaryCr = effectiveRole === "student" && (userMembershipDoc?.isSecondaryCr === true || classData.secondaryCrUid === user.uid);
     const isCrEnrolledAsStudent = profile.role === "cr" && membersRes.some((item) => item.uid === user.uid && item.role === "student" && item.status === "approved");
 
     let subjectDocs = subjectsRes.filter((item) => item.active === true);
-    if (profile.role === "teacher") {
+    if (effectiveRole === "teacher") {
       subjectDocs = subjectDocs.filter((item) => item.teacherUid === user.uid);
     }
     
@@ -135,7 +139,7 @@ export async function GET(request: Request) {
     }));
 
     let pendingRequestsCount = 0;
-    if (profile.role === "cr" && classId) {
+    if (effectiveRole === "cr" && classId) {
       try {
         const [studentCount, teacherCount] = await Promise.all([
           prisma.studentRequest.count({ where: { classId, status: "pending" } }),
@@ -148,7 +152,7 @@ export async function GET(request: Request) {
     }
 
     return NextResponse.json({
-      profile: { ...profile, name: profile.displayName, isSecondaryCr },
+      profile: { ...profile, name: profile.displayName, isSecondaryCr, role: effectiveRole, actualRole: profile.role },
       class: { ...classData },
       subjects,
       members,

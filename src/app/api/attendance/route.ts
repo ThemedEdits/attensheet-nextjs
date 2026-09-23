@@ -36,7 +36,12 @@ export async function GET(request: Request) {
   const isPrimaryCr = cls.crUid === user.uid;
   const isTeacher = membership?.role === "teacher" && membership?.status === "approved";
   const isSecondaryCr = !isPrimaryCr && (membership?.isSecondaryCr === true || cls.secondaryCrUid === user.uid);
-  const isRegularStudent = membership?.role === "student" && !isPrimaryCr && !isSecondaryCr;
+  
+  const cookieStore = await import("next/headers").then(m => m.cookies());
+  const viewAsStudent = cookieStore.get("attensheet_view_as_student")?.value === "true";
+  
+  const isRegularStudent = (membership?.role === "student" && !isPrimaryCr && !isSecondaryCr) || ((isPrimaryCr || isSecondaryCr) && viewAsStudent);
+
 
   if (isRegularStudent) {
     const whereClause: any = { classId, studentUid: user.uid };
