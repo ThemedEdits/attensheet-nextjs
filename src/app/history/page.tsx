@@ -327,8 +327,21 @@ function StudentHistoryContent() {
           </div>
 
           {/* Quick Stats Pill */}
-          <div className="text-center sm:text-right text-xs text-[var(--text-muted)]">
-            Showing <strong className="text-white">{filteredRecords.length}</strong> attendance records
+          <div className="flex flex-col sm:flex-row items-center gap-3 sm:text-right text-xs text-[var(--text-muted)]">
+            <span>Showing <strong className="text-white">{filteredRecords.length}</strong> attendance records</span>
+            {(searchQuery || selectedSubject !== "all" || statusFilter !== "all" || timeframeFilter !== "all") && (
+              <button
+                onClick={() => {
+                  setSearchQuery("");
+                  setSelectedSubject("all");
+                  setStatusFilter("all");
+                  setTimeframeFilter("all");
+                }}
+                className="px-2.5 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-hover)] transition-colors text-white font-medium"
+              >
+                Reset Filters
+              </button>
+            )}
           </div>
         </div>
 
@@ -336,13 +349,12 @@ function StudentHistoryContent() {
         <div className="card p-3 sm:p-4">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 items-center">
             {/* Date Search Input */}
-            <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--text-muted)] pointer-events-none" />
+            <div>
               <input
                 type="date"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="field pl-9 text-xs w-full bg-transparent [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                className="field text-xs w-full bg-transparent"
               />
             </div>
 
