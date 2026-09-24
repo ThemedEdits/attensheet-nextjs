@@ -8,6 +8,7 @@ import { AppFooter } from "@/components/AppFooter";
 import { AppSplashScreen } from "@/components/AppSplashScreen";
 import { NetworkStatusProvider } from "@/components/NetworkStatusProvider";
 import { InstallAppBanner } from "@/components/InstallAppBanner";
+import { SwipeableLayout } from "@/components/SwipeableLayout";
 
 const fontSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -125,7 +126,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             <AppSplashScreen />
             <AppHeader />
             <div className="page-shell">
-              {children}
+              <SwipeableLayout>{children}</SwipeableLayout>
               <AppFooter />
             </div>
             <AppBottomNav />
