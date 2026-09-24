@@ -90,7 +90,7 @@ export async function GET(request: Request) {
 
     const classId = classData.id;
     
-    const [subjectsRes, membersRes, attendanceRes] = await Promise.all([
+    const [subjectsRes, membersRes, attendanceRes, sessionsRes] = await Promise.all([
       prisma.subject.findMany({ where: { classId } }),
       prisma.membership.findMany({ 
         where: { classId },
@@ -99,6 +99,11 @@ export async function GET(request: Request) {
       effectiveRole === "student" 
         ? prisma.attendance.findMany({ where: { classId } })
         : Promise.resolve([]),
+      prisma.attendance.findMany({
+        where: { classId },
+        select: { subjectId: true, date: true },
+        distinct: ['subjectId', 'date']
+      })
     ]);
 
     const subjectMap = Object.fromEntries(subjectsRes.map((s) => [s.id, s.name]));
@@ -162,6 +167,7 @@ export async function GET(request: Request) {
       isSecondaryCr,
       isCrEnrolledAsStudent,
       pendingRequestsCount,
+      sessions: sessionsRes.map(s => ({ subjectId: s.subjectId, date: s.date })),
     });
   } catch (error) {
     console.error("GET /api/dashboard failed:", error);

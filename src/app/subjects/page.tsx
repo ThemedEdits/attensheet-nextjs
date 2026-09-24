@@ -20,6 +20,7 @@ import {
   Trash2,
   FileSpreadsheet,
   Download,
+  CalendarDays,
 } from "lucide-react";
 import { DownloadAttendanceModal } from "@/components/DownloadAttendanceModal";
 
@@ -51,6 +52,8 @@ export default function SubjectsPage() {
 
   const toast = useToast();
 
+  const [sessions, setSessions] = useState<{ subjectId: string; date: string }[]>([]);
+
   async function loadData() {
     try {
       const response = await fetch("/api/dashboard", { headers: await authHeaders() });
@@ -60,6 +63,7 @@ export default function SubjectsPage() {
         setClassRecord(result.class as ClassRecord | null);
         setRole((result.profile as { role?: string } | undefined)?.role ?? null);
         setMembers((result.members ?? []) as { uid: string; fullName?: string; role: string }[]);
+        setSessions((result.sessions ?? []) as { subjectId: string; date: string }[]);
       }
     } finally {
       setLoading(false);
@@ -164,6 +168,22 @@ export default function SubjectsPage() {
     }
   }
 
+  const totalSessions = sessions.length;
+  const sessionsBySubject = subjects.reduce((acc, subject) => {
+    acc[subject.id] = sessions.filter(s => s.subjectId === subject.id).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    return acc;
+  }, {} as Record<string, { subjectId: string; date: string }[]>);
+
+  const subjectColors = subjects.reduce((acc, subject, index) => {
+    const colors = [
+      "bg-blue-500", "bg-emerald-500", "bg-purple-500", "bg-pink-500", 
+      "bg-orange-500", "bg-yellow-500", "bg-teal-500", "bg-cyan-500",
+      "bg-indigo-500", "bg-rose-500"
+    ];
+    acc[subject.id] = colors[index % colors.length];
+    return acc;
+  }, {} as Record<string, string>);
+
   if (loading) {
     return <SubjectsSkeleton />;
   }
@@ -210,6 +230,49 @@ export default function SubjectsPage() {
         )}
       </div>
 
+      {/* Session Stats Bar */}
+      {(role === "cr" || role === "teacher") && totalSessions > 0 && (
+        <div className="mt-8 card p-4 sm:p-6 border border-[var(--border)] bg-[var(--surface)]">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
+            <h2 className="text-sm font-semibold text-white">Total Sessions Held</h2>
+            <span className="text-xs font-medium bg-[var(--surface-elevated)] px-2.5 py-1 rounded-full text-white border border-[var(--border)]">
+              {totalSessions} {totalSessions === 1 ? "Session" : "Sessions"} Combined
+            </span>
+          </div>
+          
+          <div className="h-4 w-full rounded-full overflow-hidden flex bg-[var(--surface-elevated)]">
+            {subjects.map(subject => {
+              const count = sessionsBySubject[subject.id]?.length || 0;
+              if (count === 0) return null;
+              const percentage = (count / totalSessions) * 100;
+              return (
+                <div 
+                  key={subject.id} 
+                  className={`h-full ${subjectColors[subject.id]} transition-all hover:opacity-80`}
+                  style={{ width: `${percentage}%` }}
+                  title={`${subject.name}: ${count} sessions (${percentage.toFixed(1)}%)`}
+                />
+              );
+            })}
+          </div>
+          
+          <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2">
+            {subjects.map(subject => {
+              const count = sessionsBySubject[subject.id]?.length || 0;
+              if (count === 0) return null;
+              const percentage = (count / totalSessions) * 100;
+              return (
+                <div key={subject.id} className="flex items-center gap-1.5 text-[10px] sm:text-xs text-[var(--text-secondary)]">
+                  <span className={`h-2 w-2 rounded-full ${subjectColors[subject.id]}`} />
+                  <span className="truncate max-w-[120px] sm:max-w-[200px]">{subject.name}</span>
+                  <span className="font-medium text-white">{percentage.toFixed(1)}%</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Subjects Grid */}
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {subjects.length ? (
@@ -252,9 +315,33 @@ export default function SubjectsPage() {
                       <span>{teacherDisplay}</span>
                     </div>
                   </Link>
+
+                  {(role === "cr" || role === "teacher") && (
+                    <div className="mt-4 pt-3 border-t border-[var(--border)]">
+                      <div className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)] mb-2">
+                        <CalendarDays className="h-3.5 w-3.5 text-[var(--text-muted)]" />
+                        <span className="font-medium text-white">{sessionsBySubject[subject.id]?.length || 0} sessions held</span>
+                      </div>
+                      {(sessionsBySubject[subject.id]?.length || 0) > 0 ? (
+                        <div className="flex flex-wrap gap-1.5 max-h-16 overflow-y-auto scrollbar-thin scrollbar-thumb-[var(--border)]">
+                          {(sessionsBySubject[subject.id] || []).map(session => {
+                            const [year, month, day] = session.date.split('-');
+                            const dateObj = new Date(Number(year), Number(month) - 1, Number(day));
+                            return (
+                              <span key={session.date} className="px-1.5 py-0.5 rounded bg-[var(--surface)] text-[10px] text-[var(--text-secondary)] border border-[var(--border)]">
+                                {dateObj.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: '2-digit' })}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-[var(--text-muted)]">No sessions recorded yet.</span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
-                <div className="mt-6 pt-3.5 border-t border-[var(--border)] flex items-center justify-between">
+                <div className="mt-4 pt-3.5 border-t border-[var(--border)] flex items-center justify-between">
                   <Link
                     href={href}
                     className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--accent)] hover:text-[var(--primary-hover)]"
@@ -450,6 +537,24 @@ function SubjectsSkeleton() {
         <div className="skeleton h-9 w-32 rounded-xl" />
       </div>
 
+      {/* Session Stats Bar Skeleton */}
+      <div className="mt-8 card p-4 sm:p-6 border border-[var(--border)] bg-[var(--surface)]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
+          <div className="skeleton h-5 w-32 rounded-md" />
+          <div className="skeleton h-6 w-24 rounded-full" />
+        </div>
+        <div className="skeleton h-4 w-full rounded-full" />
+        <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="flex items-center gap-1.5">
+              <div className="skeleton h-2 w-2 rounded-full" />
+              <div className="skeleton h-3 w-16 rounded-md" />
+              <div className="skeleton h-3 w-6 rounded-md" />
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Subjects Grid Skeleton */}
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {[1, 2, 3, 4, 5, 6].map((item) => (
@@ -462,6 +567,14 @@ function SubjectsSkeleton() {
               <div className="mt-5 space-y-2">
                 <div className="skeleton h-5 w-40 rounded-md" />
                 <div className="skeleton h-3.5 w-32 rounded-md" />
+              </div>
+              <div className="mt-4 pt-3 border-t border-[var(--border)] space-y-2">
+                <div className="skeleton h-3.5 w-24 rounded-md" />
+                <div className="flex gap-1.5 flex-wrap">
+                  <div className="skeleton h-4 w-12 rounded" />
+                  <div className="skeleton h-4 w-12 rounded" />
+                  <div className="skeleton h-4 w-12 rounded" />
+                </div>
               </div>
             </div>
             <div className="mt-6 pt-3.5 border-t border-[var(--border)] flex items-center justify-between">
