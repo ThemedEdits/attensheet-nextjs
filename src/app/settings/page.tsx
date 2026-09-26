@@ -161,17 +161,17 @@ export default function SettingsPage() {
         {/* Profile Card Header */}
         <div className="flex items-center gap-4 pb-6 border-b border-[var(--border)]">
           {profile.photoURL ? (
-            <img src={profile.photoURL} alt="Avatar" className="h-16 w-16 rounded-2xl object-cover border border-[var(--border)] shadow-md" />
+            <img src={profile.photoURL} alt="Avatar" className="h-16 w-16 rounded-2xl object-cover border border-[var(--border)] shadow-md flex-none" />
           ) : (
-            <div className="grid h-16 w-16 place-items-center rounded-2xl bg-[var(--surface-elevated)] border border-[var(--border)] text-2xl font-bold text-[var(--accent)] shadow-inner">
+            <div className="grid h-16 w-16 place-items-center rounded-2xl bg-[var(--surface-elevated)] border border-[var(--border)] text-2xl font-bold text-[var(--accent)] shadow-inner flex-none">
               {initials}
             </div>
           )}
-          <div>
-            <h2 className="text-lg font-bold text-white sm:text-xl">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-lg font-bold text-white sm:text-xl truncate">
               {profile.fullName ?? profile.name ?? "University Member"}
             </h2>
-            <p className="text-sm text-[var(--text-secondary)]">
+            <p className="text-sm text-[var(--text-secondary)] truncate">
               {email}
             </p>
           </div>
@@ -180,22 +180,22 @@ export default function SettingsPage() {
         {/* Profile Details Rows */}
         <div className="mt-6 divide-y divide-[var(--border)]">
           <div className="flex items-center justify-between py-4">
-            <div className="flex items-center gap-3">
-              <User className="h-4 w-4 text-[var(--text-muted)]" />
-              <div>
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <User className="h-4 w-4 text-[var(--text-muted)] flex-none" />
+              <div className="min-w-0 flex-1">
                 <p className="text-xs font-medium text-[var(--text-secondary)]">Full Name</p>
-                <p className="text-sm font-semibold text-white mt-0.5">{profile.fullName ?? profile.name ?? "Not provided"}</p>
+                <p className="text-sm font-semibold text-white mt-0.5 truncate">{profile.fullName ?? profile.name ?? "Not provided"}</p>
               </div>
             </div>
           </div>
 
           {(profile.role === "student" || profile.fatherName) && (
             <div className="flex items-center justify-between py-4">
-              <div className="flex items-center gap-3">
-                <Users className="h-4 w-4 text-[var(--text-muted)]" />
-                <div>
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <Users className="h-4 w-4 text-[var(--text-muted)] flex-none" />
+                <div className="min-w-0 flex-1">
                   <p className="text-xs font-medium text-[var(--text-secondary)]">Father's Name</p>
-                  <p className="text-sm font-semibold text-white mt-0.5">{profile.fatherName || "Not provided"}</p>
+                  <p className="text-sm font-semibold text-white mt-0.5 truncate">{profile.fatherName || "Not provided"}</p>
                 </div>
               </div>
             </div>
@@ -203,37 +203,37 @@ export default function SettingsPage() {
 
           {(profile.role === "student" || profile.seatNumber) && (
             <div className="flex items-center justify-between py-4">
-              <div className="flex items-center gap-3">
-                <Hash className="h-4 w-4 text-[var(--text-muted)]" />
-                <div>
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <Hash className="h-4 w-4 text-[var(--text-muted)] flex-none" />
+                <div className="min-w-0 flex-1">
                   <p className="text-xs font-medium text-[var(--text-secondary)]">Seat Number</p>
-                  <p className="text-sm font-semibold text-white mt-0.5 uppercase">{profile.seatNumber || "Not assigned"}</p>
+                  <p className="text-sm font-semibold text-white mt-0.5 uppercase truncate">{profile.seatNumber || "Not assigned"}</p>
                 </div>
               </div>
             </div>
           )}
 
           <div className="flex items-center justify-between py-4">
-            <div className="flex items-center gap-3">
-              <Mail className="h-4 w-4 text-[var(--text-muted)]" />
-              <div>
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <Mail className="h-4 w-4 text-[var(--text-muted)] flex-none" />
+              <div className="min-w-0 flex-1">
                 <p className="text-xs font-medium text-[var(--text-secondary)]">Email Address</p>
-                <p className="text-sm font-semibold text-white mt-0.5">{email}</p>
+                <p className="text-sm font-semibold text-white mt-0.5 truncate" title={email}>{email}</p>
               </div>
             </div>
           </div>
 
           <div className="flex items-center justify-between py-4">
-            <div className="flex items-center gap-3">
-              <Shield className="h-4 w-4 text-[var(--text-muted)]" />
-              <div>
+            <div className="flex items-center gap-3 min-w-0 flex-1 pr-4">
+              <Shield className="h-4 w-4 text-[var(--text-muted)] flex-none" />
+              <div className="min-w-0 flex-1">
                 <p className="text-xs font-medium text-[var(--text-secondary)]">Assigned Role</p>
-                <p className="text-sm font-semibold text-white capitalize mt-0.5">
+                <p className="text-sm font-semibold text-white capitalize mt-0.5 truncate">
                   {profile.actualRole === "cr" && profile.role === "student" ? "CR (Viewing as Student)" : profile.role ?? "Student"}
                 </p>
               </div>
             </div>
-            <span className="badge-present text-xs capitalize">
+            <span className="badge-present text-xs capitalize flex-none">
               {profile.role ?? "Student"}
             </span>
           </div>
