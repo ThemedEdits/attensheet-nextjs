@@ -12,6 +12,7 @@ import {
   Calendar,
   Sparkles
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { authHeaders } from "@/lib/client-auth";
 import { readApiResponse } from "@/lib/client-response";
 import { useToast } from "@/components/ToastProvider";
@@ -143,8 +144,23 @@ export function DownloadAttendanceModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/75 p-3 sm:p-4 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
-      <div className="w-full max-w-lg rounded-2xl border border-[var(--border-hover)] bg-[var(--surface)] p-4 sm:p-6 shadow-2xl relative my-auto max-h-[92vh] flex flex-col">
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="fixed inset-0 z-50 grid place-items-center bg-black/75 p-3 sm:p-4 backdrop-blur-sm overflow-y-auto"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <motion.div
+        initial={{ scale: 0.95, opacity: 0, y: 15 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.95, opacity: 0, y: 15 }}
+        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+        className="w-full max-w-lg rounded-2xl border border-[var(--border-hover)] bg-[var(--surface)] p-4 sm:p-6 shadow-2xl relative my-auto max-h-[92vh] flex flex-col"
+      >
         {/* Close button */}
         <button
           type="button"
@@ -157,7 +173,7 @@ export function DownloadAttendanceModal({
 
         {/* Modal Header */}
         <div className="flex items-start gap-3 pb-4 sm:pb-5 border-b border-[var(--border)] pr-8 flex-none">
-          <div className="grid h-10 w-10 sm:h-11 sm:w-11 place-items-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)] border border-[var(--border)] flex-none">
+          <div className="grid h-10 w-10 sm:h-11 sm:w-11 place-items-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)] border border-[var(--border)] flex-none shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]">
             <Download className="h-5 w-5" />
           </div>
           <div className="min-w-0 flex-1">
@@ -182,9 +198,9 @@ export function DownloadAttendanceModal({
           </p>
 
           {/* Option 1: Excel */}
-          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] p-3.5 sm:p-4 hover:border-[var(--border-hover)] transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] p-3.5 sm:p-4 hover:border-[var(--border-hover)] transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 shadow-sm hover:shadow-lg hover:shadow-black/20">
             <div className="flex items-start gap-3 min-w-0 flex-1">
-              <div className="grid h-9 w-9 sm:h-10 sm:w-10 place-items-center rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex-none mt-0.5 sm:mt-0">
+              <div className="grid h-9 w-9 sm:h-10 sm:w-10 place-items-center rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex-none mt-0.5 sm:mt-0 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]">
                 <FileSpreadsheet className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
               </div>
               <div className="min-w-0 flex-1">
@@ -198,7 +214,7 @@ export function DownloadAttendanceModal({
               type="button"
               disabled={Boolean(downloadingFormat)}
               onClick={handleDownloadExcel}
-              className="button-secondary text-xs px-3.5 py-2.5 sm:py-2 flex items-center justify-center gap-1.5 w-full sm:w-auto flex-none text-emerald-400 hover:text-emerald-300 hover:border-emerald-500/40 cursor-pointer"
+              className="button-secondary text-xs px-3.5 py-2.5 sm:py-2 flex items-center justify-center gap-1.5 w-full sm:w-auto flex-none text-emerald-400 hover:text-emerald-300 hover:border-emerald-500/40 cursor-pointer shadow-sm"
             >
               {downloadingFormat === "excel" ? (
                 <>
@@ -215,9 +231,9 @@ export function DownloadAttendanceModal({
           </div>
 
           {/* Option 2: PDF */}
-          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] p-3.5 sm:p-4 hover:border-[var(--border-hover)] transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] p-3.5 sm:p-4 hover:border-[var(--border-hover)] transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 shadow-sm hover:shadow-lg hover:shadow-black/20">
             <div className="flex items-start gap-3 min-w-0 flex-1">
-              <div className="grid h-9 w-9 sm:h-10 sm:w-10 place-items-center rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20 flex-none mt-0.5 sm:mt-0">
+              <div className="grid h-9 w-9 sm:h-10 sm:w-10 place-items-center rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20 flex-none mt-0.5 sm:mt-0 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]">
                 <FileText className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
               </div>
               <div className="min-w-0 flex-1">
@@ -231,7 +247,7 @@ export function DownloadAttendanceModal({
               type="button"
               disabled={Boolean(downloadingFormat)}
               onClick={handleDownloadPdf}
-              className="button-secondary text-xs px-3.5 py-2.5 sm:py-2 flex items-center justify-center gap-1.5 w-full sm:w-auto flex-none text-rose-400 hover:text-rose-300 hover:border-rose-500/40 cursor-pointer"
+              className="button-secondary text-xs px-3.5 py-2.5 sm:py-2 flex items-center justify-center gap-1.5 w-full sm:w-auto flex-none text-rose-400 hover:text-rose-300 hover:border-rose-500/40 cursor-pointer shadow-sm"
             >
               {downloadingFormat === "pdf" ? (
                 <>
@@ -248,9 +264,9 @@ export function DownloadAttendanceModal({
           </div>
 
           {/* Option 3: Google Sheets */}
-          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] p-3.5 sm:p-4 hover:border-[var(--border-hover)] transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] p-3.5 sm:p-4 hover:border-[var(--border-hover)] transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 shadow-sm hover:shadow-lg hover:shadow-black/20">
             <div className="flex items-start gap-3 min-w-0 flex-1">
-              <div className="grid h-9 w-9 sm:h-10 sm:w-10 place-items-center rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20 flex-none mt-0.5 sm:mt-0">
+              <div className="grid h-9 w-9 sm:h-10 sm:w-10 place-items-center rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20 flex-none mt-0.5 sm:mt-0 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]">
                 <ExternalLink className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
               </div>
               <div className="min-w-0 flex-1">
@@ -264,7 +280,7 @@ export function DownloadAttendanceModal({
               type="button"
               disabled={Boolean(downloadingFormat)}
               onClick={handleOpenGoogleSheet}
-              className="button-secondary text-xs px-3.5 py-2.5 sm:py-2 flex items-center justify-center gap-1.5 w-full sm:w-auto flex-none text-sky-400 hover:text-sky-300 hover:border-sky-500/40 cursor-pointer"
+              className="button-secondary text-xs px-3.5 py-2.5 sm:py-2 flex items-center justify-center gap-1.5 w-full sm:w-auto flex-none text-sky-400 hover:text-sky-300 hover:border-sky-500/40 cursor-pointer shadow-sm"
             >
               <ExternalLink className="h-3.5 w-3.5" />
               <span>Open Sheet</span>
@@ -285,7 +301,7 @@ export function DownloadAttendanceModal({
             Close
           </button>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

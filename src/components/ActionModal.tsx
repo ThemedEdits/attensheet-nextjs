@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export function ActionModal({
   title,
@@ -34,17 +35,25 @@ export function ActionModal({
   }, [onClose]);
 
   return (
-    <div 
-      className="fixed inset-0 z-50 grid place-items-center bg-black/75 p-4 backdrop-blur-md transition-all duration-200"
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="fixed inset-0 z-50 grid place-items-center bg-black/75 p-4 backdrop-blur-md"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div
+      <motion.div
+        initial={{ scale: 0.95, opacity: 0, y: 10 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.95, opacity: 0, y: 10 }}
+        transition={{ type: "spring", damping: 25, stiffness: 300 }}
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
-        className="w-full max-w-md rounded-2xl border border-[var(--border-hover)] bg-[var(--surface-elevated)] p-6 shadow-2xl shadow-black/60 transition-transform sm:p-7"
+        className="w-full max-w-md rounded-2xl border border-[var(--border-hover)] bg-[var(--surface-elevated)] p-6 shadow-2xl shadow-black/60 sm:p-7"
       >
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -86,8 +95,8 @@ export function ActionModal({
             {confirmLabel}
           </button>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 

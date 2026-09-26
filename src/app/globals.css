@@ -1,23 +1,23 @@
 @import "tailwindcss";
 
 :root {
-  --bg-primary: #07110d;
-  --bg-secondary: #0B1813;
-  --bg-tertiary: #10221A;
+  --bg-primary: #050807;
+  --bg-secondary: rgba(11, 24, 19, 0.4);
+  --bg-tertiary: rgba(16, 34, 26, 0.4);
 
-  --surface: #0D1C16;
-  --surface-hover: #12271E;
-  --surface-elevated: #152D23;
+  --surface: rgba(13, 28, 22, 0.65);
+  --surface-hover: rgba(18, 39, 30, 0.75);
+  --surface-elevated: rgba(21, 45, 35, 0.85);
 
   --primary: #16A66A;
   --primary-hover: #1CC47C;
   --primary-dark: #0D7A4D;
 
   --accent: #35D98A;
-  --accent-soft: rgba(53, 217, 138, 0.12);
+  --accent-soft: rgba(53, 217, 138, 0.15);
 
-  --border: rgba(120, 180, 150, 0.14);
-  --border-hover: rgba(53, 217, 138, 0.30);
+  --border: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(53, 217, 138, 0.4);
 
   --text-primary: #F1F7F4;
   --text-secondary: #A9BBB3;
@@ -28,7 +28,7 @@
   --danger: #EF6262;
   --info: #55A9E8;
 
-  --shadow: rgba(0, 0, 0, 0.35);
+  --shadow: rgba(0, 0, 0, 0.5);
 
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -80,15 +80,24 @@ input, textarea, [contenteditable="true"] {
 body::before {
   content: "";
   position: fixed;
-  inset: 0;
+  inset: -10%;
   z-index: -1;
   background-image:
-    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(22, 166, 106, 0.12) 0%, transparent 60%),
-    radial-gradient(circle at 90% 10%, rgba(13, 122, 77, 0.08) 0%, transparent 40%);
+    radial-gradient(ellipse at 80% 0%, rgba(22, 166, 106, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 10% 90%, rgba(13, 122, 77, 0.2) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(53, 217, 138, 0.08) 0%, transparent 60%);
+  filter: blur(80px);
   pointer-events: none;
   transform: translateZ(0);
   -webkit-transform: translateZ(0);
   will-change: transform;
+  animation: mesh-movement 20s ease-in-out infinite alternate;
+}
+
+@keyframes mesh-movement {
+  0% { transform: scale(1) translate(0, 0); }
+  50% { transform: scale(1.1) translate(1%, 2%); }
+  100% { transform: scale(1) translate(-1%, -2%); }
 }
 
 /* Base Form Field */
@@ -96,6 +105,9 @@ body::before {
   @apply block w-full rounded-xl px-3.5 py-2.5 text-sm text-[var(--text-primary)] outline-none transition-all duration-150;
   background-color: var(--bg-secondary);
   border: 1px solid var(--border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .field:focus,
@@ -113,56 +125,67 @@ textarea:focus {
 
 /* Buttons */
 @utility button-primary {
-  @apply inline-flex items-center justify-center gap-2 font-semibold text-sm transition-all duration-150 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 select-none;
-  background-color: var(--primary);
-  color: #05140E;
+  @apply inline-flex items-center justify-center gap-2 font-semibold text-sm transition-all duration-300 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 select-none;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: #F1F7F4;
   padding: 0.65rem 1.15rem;
   border-radius: var(--radius-md);
-  box-shadow: 0 2px 10px rgba(22, 166, 106, 0.25);
+  box-shadow: 0 4px 15px rgba(22, 166, 106, 0.3), inset 0 1px 1px rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.1);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
 }
 
 .button-primary:hover:not(:disabled) {
-  background-color: var(--primary-hover);
-  box-shadow: 0 4px 16px rgba(53, 217, 138, 0.35);
-  transform: translateY(-1px);
+  background: linear-gradient(135deg, var(--primary-hover) 0%, var(--primary) 100%);
+  box-shadow: 0 6px 20px rgba(53, 217, 138, 0.4), inset 0 1px 1px rgba(255,255,255,0.3);
+  transform: translateY(-2px) scale(1.02);
 }
 
 .button-primary:active:not(:disabled) {
-  transform: translateY(0);
+  transform: translateY(0) scale(0.98);
 }
 
 @utility button-secondary {
-  @apply inline-flex items-center justify-center gap-2 font-medium text-sm transition-all duration-150 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 select-none;
+  @apply inline-flex items-center justify-center gap-2 font-medium text-sm transition-all duration-300 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 select-none;
   background-color: var(--surface);
   color: var(--text-primary);
   border: 1px solid var(--border);
   padding: 0.65rem 1.15rem;
   border-radius: var(--radius-md);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
 
 .button-secondary:hover:not(:disabled) {
   background-color: var(--surface-hover);
   border-color: var(--border-hover);
   color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
 
 @utility button-danger {
-  @apply inline-flex items-center justify-center gap-2 font-medium text-sm transition-all duration-150 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 select-none;
-  background-color: rgba(239, 98, 98, 0.12);
+  @apply inline-flex items-center justify-center gap-2 font-medium text-sm transition-all duration-300 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 select-none;
+  background: linear-gradient(135deg, rgba(239, 98, 98, 0.15), rgba(239, 98, 98, 0.05));
   color: #FCA5A5;
   border: 1px solid rgba(239, 98, 98, 0.25);
   padding: 0.65rem 1.15rem;
   border-radius: var(--radius-md);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .button-danger:hover:not(:disabled) {
-  background-color: rgba(239, 98, 98, 0.22);
+  background: linear-gradient(135deg, rgba(239, 98, 98, 0.25), rgba(239, 98, 98, 0.1));
   border-color: rgba(239, 98, 98, 0.45);
   color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(239, 98, 98, 0.2);
 }
 
 @utility button-ghost {
-  @apply inline-flex items-center justify-center gap-2 font-medium text-sm transition-all duration-150 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 select-none;
+  @apply inline-flex items-center justify-center gap-2 font-medium text-sm transition-all duration-300 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 select-none;
   background-color: transparent;
   color: var(--text-secondary);
   padding: 0.5rem 0.75rem;
@@ -172,32 +195,39 @@ textarea:focus {
 .button-ghost:hover:not(:disabled) {
   background-color: var(--surface);
   color: var(--text-primary);
+  transform: translateY(-1px);
 }
 
 /* Cards */
 .card {
   background-color: var(--surface);
   border: 1px solid var(--border);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--radius-lg);
-  box-shadow: 0 8px 24px var(--shadow);
+  box-shadow: 0 8px 32px var(--shadow);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 .card-hover {
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .card-hover:hover {
   border-color: var(--border-hover);
   background-color: var(--surface-hover);
-  transform: translateY(-2px);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
 }
 
 .card-elevated {
   background-color: var(--surface-elevated);
   border: 1px solid var(--border-hover);
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: var(--radius-lg);
-  box-shadow: 0 16px 36px var(--shadow);
+  box-shadow: 0 16px 48px var(--shadow);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
 }
 
 /* Status Badges */
