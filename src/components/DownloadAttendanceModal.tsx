@@ -149,7 +149,7 @@ export function DownloadAttendanceModal({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.2 }}
-      className="fixed inset-0 z-50 grid place-items-center bg-black/75 p-3 sm:p-4 backdrop-blur-sm overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-3 sm:p-4 overflow-hidden"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -158,8 +158,8 @@ export function DownloadAttendanceModal({
         initial={{ scale: 0.95, opacity: 0, y: 15 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.95, opacity: 0, y: 15 }}
-        transition={{ type: "spring", damping: 25, stiffness: 300 }}
-        className="w-full max-w-lg rounded-2xl border border-[var(--border-hover)] bg-[var(--surface)] p-4 sm:p-6 shadow-2xl relative my-auto max-h-[92vh] flex flex-col"
+        transition={{ type: "tween", ease: "easeOut", duration: 0.2 }}
+        className="w-full max-w-[calc(100vw-1.5rem)] sm:max-w-lg rounded-2xl border border-[var(--border-hover)] bg-[var(--surface)] p-4 sm:p-6 shadow-2xl relative flex flex-col max-h-[92vh]"
       >
         {/* Close button */}
         <button

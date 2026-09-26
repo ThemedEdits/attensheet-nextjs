@@ -7,10 +7,19 @@ import { firebaseAuth } from "@/lib/firebase";
 import { authHeaders } from "@/lib/client-auth";
 import { readApiResponse } from "@/lib/client-response";
 import { useToast } from "@/components/ToastProvider";
-import { ArrowLeft, User, Mail, Shield, KeyRound, LogOut, Sparkles } from "lucide-react";
+import { ArrowLeft, User, Mail, Shield, KeyRound, LogOut, Sparkles, GraduationCap, Users, Hash } from "lucide-react";
 
 export default function SettingsPage() {
-  const [profile, setProfile] = useState<{ name?: string; email?: string; role?: string; actualRole?: string }>({});
+  const [profile, setProfile] = useState<{ 
+    name?: string; 
+    email?: string; 
+    role?: string; 
+    actualRole?: string;
+    fullName?: string;
+    fatherName?: string;
+    seatNumber?: string;
+    photoURL?: string;
+  }>({});
   const [loading, setLoading] = useState(true);
   const [resetting, setResetting] = useState(false);
   const toast = useToast();
@@ -151,14 +160,18 @@ export default function SettingsPage() {
       <section className="mt-8 card p-6 sm:p-8">
         {/* Profile Card Header */}
         <div className="flex items-center gap-4 pb-6 border-b border-[var(--border)]">
-          <div className="grid h-14 w-14 place-items-center rounded-2xl bg-[var(--surface-elevated)] border border-[var(--border)] text-xl font-bold text-[var(--accent)]">
-            {initials}
-          </div>
+          {profile.photoURL ? (
+            <img src={profile.photoURL} alt="Avatar" className="h-16 w-16 rounded-2xl object-cover border border-[var(--border)] shadow-md" />
+          ) : (
+            <div className="grid h-16 w-16 place-items-center rounded-2xl bg-[var(--surface-elevated)] border border-[var(--border)] text-2xl font-bold text-[var(--accent)] shadow-inner">
+              {initials}
+            </div>
+          )}
           <div>
-            <h2 className="text-base font-bold text-white sm:text-lg">
-              {profile.name ?? "University Member"}
+            <h2 className="text-lg font-bold text-white sm:text-xl">
+              {profile.fullName ?? profile.name ?? "University Member"}
             </h2>
-            <p className="text-xs text-[var(--text-secondary)]">
+            <p className="text-sm text-[var(--text-secondary)]">
               {email}
             </p>
           </div>
@@ -171,10 +184,34 @@ export default function SettingsPage() {
               <User className="h-4 w-4 text-[var(--text-muted)]" />
               <div>
                 <p className="text-xs font-medium text-[var(--text-secondary)]">Full Name</p>
-                <p className="text-sm font-semibold text-white mt-0.5">{profile.name ?? "Not provided"}</p>
+                <p className="text-sm font-semibold text-white mt-0.5">{profile.fullName ?? profile.name ?? "Not provided"}</p>
               </div>
             </div>
           </div>
+
+          {(profile.role === "student" || profile.fatherName) && (
+            <div className="flex items-center justify-between py-4">
+              <div className="flex items-center gap-3">
+                <Users className="h-4 w-4 text-[var(--text-muted)]" />
+                <div>
+                  <p className="text-xs font-medium text-[var(--text-secondary)]">Father's Name</p>
+                  <p className="text-sm font-semibold text-white mt-0.5">{profile.fatherName || "Not provided"}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {(profile.role === "student" || profile.seatNumber) && (
+            <div className="flex items-center justify-between py-4">
+              <div className="flex items-center gap-3">
+                <Hash className="h-4 w-4 text-[var(--text-muted)]" />
+                <div>
+                  <p className="text-xs font-medium text-[var(--text-secondary)]">Seat Number</p>
+                  <p className="text-sm font-semibold text-white mt-0.5 uppercase">{profile.seatNumber || "Not assigned"}</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="flex items-center justify-between py-4">
             <div className="flex items-center gap-3">
@@ -191,7 +228,9 @@ export default function SettingsPage() {
               <Shield className="h-4 w-4 text-[var(--text-muted)]" />
               <div>
                 <p className="text-xs font-medium text-[var(--text-secondary)]">Assigned Role</p>
-                <p className="text-sm font-semibold text-white capitalize mt-0.5">{profile.role ?? "Student"}</p>
+                <p className="text-sm font-semibold text-white capitalize mt-0.5">
+                  {profile.actualRole === "cr" && profile.role === "student" ? "CR (Viewing as Student)" : profile.role ?? "Student"}
+                </p>
               </div>
             </div>
             <span className="badge-present text-xs capitalize">

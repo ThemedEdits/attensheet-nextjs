@@ -40,7 +40,7 @@ export function ActionModal({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.2 }}
-      className="fixed inset-0 z-50 grid place-items-center bg-black/75 p-4 backdrop-blur-md"
+      className="fixed inset-0 z-50 grid place-items-center bg-black/80 p-4"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}

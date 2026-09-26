@@ -157,7 +157,16 @@ export async function GET(request: Request) {
     }
 
     return NextResponse.json({
-      profile: { ...profile, name: profile.displayName, isSecondaryCr, role: effectiveRole, actualRole: profile.role },
+      profile: { 
+        ...profile, 
+        name: profile.displayName, 
+        isSecondaryCr, 
+        role: effectiveRole, 
+        actualRole: profile.role,
+        fullName: userMembershipDoc?.fullName || profile.displayName,
+        fatherName: userMembershipDoc?.fatherName || null,
+        seatNumber: userMembershipDoc?.seatNumber || null
+      },
       class: { ...classData },
       subjects,
       members,
