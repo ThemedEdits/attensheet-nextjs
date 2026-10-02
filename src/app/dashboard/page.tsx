@@ -36,7 +36,8 @@ import {
   Filter,
   ShieldCheck,
   Calendar,
-  Share2
+  Share2,
+  BarChart3
 } from "lucide-react";
 
 type StudentAttendanceRecord = {
@@ -496,6 +497,12 @@ export default function DashboardPage() {
 
         {/* Header Actions */}
         <div className="flex flex-wrap gap-2.5">
+          {classRecord && (
+            <Link href="/dashboard/stats" className="button-secondary text-xs sm:text-sm flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              <span>Advanced Stats</span>
+            </Link>
+          )}
           {profile?.role === "cr" && classRecord && (
             <>
               <Link href="/cr/requests" className="button-secondary text-xs sm:text-sm flex items-center gap-2">
