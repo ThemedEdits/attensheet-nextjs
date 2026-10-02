@@ -171,7 +171,21 @@ export async function POST(request: Request) {
       await syncAttendanceMatrix(cls.crUid, cls.spreadsheetId, subject.name ?? "Attendance", values, subject.googleSheetTabId ?? undefined);
     } catch (error: any) {
       console.error("Attendance sheet sync failed", error);
-      return NextResponse.json({ ok: true, date, today: date === karachiDate(), syncError: "Google Sheets sync failed. Please check if your Google account is still connected and the spreadsheet exists." });
+      let syncError = "Google Sheets sync failed. Please check if your Google account is still connected and the spreadsheet exists.";
+      
+      const errorMessage = error?.message || error?.response?.data?.error || "";
+      if (errorMessage.includes("invalid_grant") || errorMessage.includes("Token has been expired or revoked")) {
+        syncError = "Your Google Sheets connection has expired. Please go to your Dashboard > Google Sheets to disconnect and reconnect your account.";
+        
+        try {
+          await prisma.googleToken.delete({ where: { uid: cls.crUid } }).catch(() => {});
+          await prisma.class.update({ where: { id: cls.id }, data: { spreadsheetId: null } });
+        } catch (dbErr) {
+          console.error("Failed to clear expired google token:", dbErr);
+        }
+      }
+
+      return NextResponse.json({ ok: true, date, today: date === karachiDate(), syncError });
     }
   } else {
     return NextResponse.json({ ok: true, date, today: date === karachiDate(), syncError: "Google Sheets is not connected to this class. Please reconnect it from the Dashboard." });
@@ -220,7 +234,21 @@ export async function DELETE(request: Request) {
       await syncAttendanceMatrix(cls.crUid, cls.spreadsheetId, subject.name ?? "Attendance", values, subject.googleSheetTabId ?? undefined);
     } catch (error: any) {
       console.error("Attendance sheet delete sync failed", error);
-      return NextResponse.json({ ok: true, deleted: records.length, syncError: "Google Sheets sync failed. Please check your Google connection." });
+      let syncError = "Google Sheets sync failed. Please check your Google connection.";
+      
+      const errorMessage = error?.message || error?.response?.data?.error || "";
+      if (errorMessage.includes("invalid_grant") || errorMessage.includes("Token has been expired or revoked")) {
+        syncError = "Your Google Sheets connection has expired. Please go to your Dashboard > Google Sheets to disconnect and reconnect your account.";
+        
+        try {
+          await prisma.googleToken.delete({ where: { uid: cls.crUid } }).catch(() => {});
+          await prisma.class.update({ where: { id: cls.id }, data: { spreadsheetId: null } });
+        } catch (dbErr) {
+          console.error("Failed to clear expired google token:", dbErr);
+        }
+      }
+
+      return NextResponse.json({ ok: true, deleted: records.length, syncError });
     }
   } else {
     return NextResponse.json({ ok: true, deleted: records.length, syncError: "Google Sheets is not connected to this class. Please reconnect it from the Dashboard." });
