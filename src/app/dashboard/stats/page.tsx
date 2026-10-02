@@ -84,16 +84,28 @@ export default function AdvancedStatsPage() {
   if (loading) {
     return (
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="animate-pulse flex space-x-4">
-          <div className="flex-1 space-y-6 py-1">
-            <div className="h-2 bg-slate-700 rounded"></div>
-            <div className="space-y-3">
-              <div className="grid grid-cols-3 gap-4">
-                <div className="h-2 bg-slate-700 rounded col-span-2"></div>
-                <div className="h-2 bg-slate-700 rounded col-span-1"></div>
-              </div>
-              <div className="h-2 bg-slate-700 rounded"></div>
+        <div className="flex flex-col gap-4">
+          <div className="h-5 w-32 bg-[var(--surface-hover)] rounded animate-pulse" />
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="h-8 w-64 bg-[var(--surface-hover)] rounded animate-pulse mb-2" />
+              <div className="h-4 w-48 bg-[var(--surface-hover)] rounded animate-pulse" />
             </div>
+            <div className="w-full sm:w-64 h-10 bg-[var(--surface-hover)] rounded-xl animate-pulse" />
+          </div>
+        </div>
+
+        <div className="mt-8 flex flex-col gap-8">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="card p-5 h-24 border border-[var(--border)] bg-[var(--surface-elevated)] animate-pulse rounded-2xl" />
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="card p-5 h-64 border border-[var(--border)] rounded-2xl bg-[var(--surface-elevated)] animate-pulse" />
+            <div className="card p-5 h-64 border border-[var(--border)] rounded-2xl bg-[var(--surface-elevated)] animate-pulse" />
+            <div className="md:col-span-2 card p-5 h-64 border border-[var(--border)] rounded-2xl bg-[var(--surface-elevated)] animate-pulse" />
           </div>
         </div>
       </main>
@@ -119,25 +131,39 @@ export default function AdvancedStatsPage() {
 
     const mostPresentsDay = daysData.length > 0 ? daysData.reduce((prev, current) => (prev.present > current.present) ? prev : current) : null;
     const mostAbsentsDay = daysData.length > 0 ? daysData.reduce((prev, current) => (prev.absent > current.absent) ? prev : current) : null;
-    const mostAttendedWeek = weeksData.length > 0 ? weeksData.reduce((prev, current) => (prev.present > current.present) ? prev : current) : null;
+    
+    const mostPresentsSubject = subjectsData.length > 0 ? subjectsData.reduce((prev, current) => (prev.present > current.present) ? prev : current) : null;
+    const mostAbsentsSubject = subjectsData.length > 0 ? subjectsData.reduce((prev, current) => (prev.absent > current.absent) ? prev : current) : null;
+
+    const mostPresentsWeek = weeksData.length > 0 ? weeksData.reduce((prev, current) => (prev.present > current.present) ? prev : current) : null;
+    const mostAbsentsWeek = weeksData.length > 0 ? weeksData.reduce((prev, current) => (prev.absent > current.absent) ? prev : current) : null;
 
     return (
       <div className="mt-8 flex flex-col gap-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           <div className="card p-5 border border-[var(--border)] bg-[var(--surface-elevated)] flex flex-col items-center justify-center text-center">
-            <span className="text-xs text-[var(--text-secondary)] mb-1">Most Presents Day</span>
-            <span className="text-2xl font-bold text-emerald-400">{mostPresentsDay ? mostPresentsDay.label : "N/A"}</span>
-            <span className="text-[10px] text-[var(--text-muted)] mt-1">{mostPresentsDay ? `${mostPresentsDay.present} Presents` : ""}</span>
+            <span className="text-xs text-[var(--text-secondary)] mb-1">Most Present Day</span>
+            <span className="text-xl sm:text-2xl font-bold text-emerald-400">{mostPresentsDay ? mostPresentsDay.label : "N/A"}</span>
           </div>
           <div className="card p-5 border border-[var(--border)] bg-[var(--surface-elevated)] flex flex-col items-center justify-center text-center">
-            <span className="text-xs text-[var(--text-secondary)] mb-1">Most Absents Day</span>
-            <span className="text-2xl font-bold text-rose-400">{mostAbsentsDay ? mostAbsentsDay.label : "N/A"}</span>
-            <span className="text-[10px] text-[var(--text-muted)] mt-1">{mostAbsentsDay ? `${mostAbsentsDay.absent} Absents` : ""}</span>
+            <span className="text-xs text-[var(--text-secondary)] mb-1">Most Absent Day</span>
+            <span className="text-xl sm:text-2xl font-bold text-rose-400">{mostAbsentsDay ? mostAbsentsDay.label : "N/A"}</span>
+          </div>
+          <div className="card p-5 border border-[var(--border)] bg-[var(--surface-elevated)] flex flex-col items-center justify-center text-center">
+            <span className="text-xs text-[var(--text-secondary)] mb-1">Most Present Subject</span>
+            <span className="text-xl sm:text-2xl font-bold text-emerald-400 truncate w-full">{mostPresentsSubject ? mostPresentsSubject.label : "N/A"}</span>
+          </div>
+          <div className="card p-5 border border-[var(--border)] bg-[var(--surface-elevated)] flex flex-col items-center justify-center text-center">
+            <span className="text-xs text-[var(--text-secondary)] mb-1">Most Absent Subject</span>
+            <span className="text-xl sm:text-2xl font-bold text-rose-400 truncate w-full">{mostAbsentsSubject ? mostAbsentsSubject.label : "N/A"}</span>
           </div>
           <div className="card p-5 border border-[var(--border)] bg-[var(--surface-elevated)] flex flex-col items-center justify-center text-center">
             <span className="text-xs text-[var(--text-secondary)] mb-1">Highest Attendance Week</span>
-            <span className="text-2xl font-bold text-[var(--accent)]">{mostAttendedWeek ? mostAttendedWeek.label : "N/A"}</span>
-            <span className="text-[10px] text-[var(--text-muted)] mt-1">{mostAttendedWeek ? `${mostAttendedWeek.present} Presents` : ""}</span>
+            <span className="text-xl sm:text-2xl font-bold text-emerald-400">{mostPresentsWeek ? mostPresentsWeek.label : "N/A"}</span>
+          </div>
+          <div className="card p-5 border border-[var(--border)] bg-[var(--surface-elevated)] flex flex-col items-center justify-center text-center">
+            <span className="text-xs text-[var(--text-secondary)] mb-1">Lowest Attendance Week</span>
+            <span className="text-xl sm:text-2xl font-bold text-rose-400">{mostAbsentsWeek ? mostAbsentsWeek.label : "N/A"}</span>
           </div>
         </div>
 
@@ -189,6 +215,7 @@ export default function AdvancedStatsPage() {
                 value={selectedUid}
                 onChange={setSelectedUid}
                 placeholder="Select Student"
+                searchable={true}
               />
             </div>
           )}
