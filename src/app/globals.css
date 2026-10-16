@@ -57,6 +57,8 @@ html {
   background-color: var(--bg-primary);
   color: var(--text-primary);
   color-scheme: dark;
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
 }
 
 body {

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import { useSession } from "@/lib/session-cache";
 import { MobileWelcomeScreen } from "@/components/MobileWelcomeScreen";
 import { 
@@ -10,25 +11,29 @@ import {
   CheckCircle2, 
   FileSpreadsheet, 
   FileText,
-  Download,
+  Download, 
   ShieldCheck, 
   Sparkles, 
   Users, 
   GraduationCap, 
-  Clock,
-  Menu,
-  X,
   Check,
-  ChevronDown,
-  RotateCcw,
-  Smartphone,
-  Layers,
-  Database,
-  ExternalLink,
-  UserCheck
+  ChevronDown, 
+  RotateCcw, 
+  Smartphone, 
+  Database, 
+  ExternalLink, 
+  UserCheck 
 } from "lucide-react";
 
 type RoleTab = "cr" | "teacher" | "student";
+
+const navLinks = [
+  { href: "#how-it-works", label: "How it works" },
+  { href: "#interactive-demo", label: "Live Preview" },
+  { href: "#roles", label: "Who it's for" },
+  { href: "#exports", label: "Exports & Sync" },
+  { href: "#faq", label: "FAQ" },
+];
 
 export default function Home() {
   const router = useRouter();
@@ -40,6 +45,30 @@ export default function Home() {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [showSplash, setShowSplash] = useState(true);
 
+  // Smooth scroll handler for all hashed links with navbar offset
+  const scrollToSection = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    e.preventDefault();
+    if (!href.startsWith("#")) return;
+    const targetId = href.replace(/^#/, "");
+    const elem = document.getElementById(targetId);
+    if (elem) {
+      const headerOffset = 76;
+      const elementPosition = elem.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: "smooth",
+      });
+
+      try {
+        window.history.pushState(null, "", `#${targetId}`);
+      } catch {
+        // Safe fallback
+      }
+    }
+  };
+
   useEffect(() => {
     // Force splash screen to show for at least 1.5 seconds to smooth out transitions
     const timer = setTimeout(() => {
@@ -47,6 +76,26 @@ export default function Home() {
     }, 1500);
     return () => clearTimeout(timer);
   }, []);
+
+  // Handle URL hash on initial load with smooth scroll
+  useEffect(() => {
+    if (!showSplash && typeof window !== "undefined" && window.location.hash) {
+      const targetId = window.location.hash.replace(/^#/, "");
+      const timer = setTimeout(() => {
+        const elem = document.getElementById(targetId);
+        if (elem) {
+          const headerOffset = 76;
+          const elementPosition = elem.getBoundingClientRect().top;
+          const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: "smooth",
+          });
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [showSplash]);
 
   useEffect(() => {
     // If user is already authenticated and we're done loading, go directly to dashboard
@@ -57,12 +106,10 @@ export default function Home() {
 
     if (typeof window !== "undefined") {
       const isNative = 
-        window.matchMedia("(display-mode: standalone)").matches || 
         Boolean((window as any).Capacitor?.isNativePlatform()) ||
         Boolean((window as any).isAttenSheetNative) ||
         (typeof navigator !== "undefined" && navigator.userAgent.includes("AttenSheetApp"));
-      const isSmallScreen = window.innerWidth < 768;
-      setIsMobile(isNative || isSmallScreen);
+      setIsMobile(isNative);
 
       if (sessionStorage.getItem("view_full_website") === "true") {
         setShowFullWebsite(true);
@@ -161,6 +208,7 @@ export default function Home() {
       {/* Navigation Bar */}
       <header className="sticky top-0 z-40 border-b border-[var(--border)]/70 bg-[var(--bg-primary)]/85 backdrop-blur-md">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3.5 sm:px-6 lg:px-8">
+          {/* Logo & Brand (Version removed per requirement) */}
           <Link href="/" className="flex items-center gap-2.5 group">
             <img 
               src="/attensheetlogo.svg" 
@@ -171,19 +219,21 @@ export default function Home() {
               <span className="text-base sm:text-lg font-bold tracking-tight text-white">
                 Atten<span className="text-[var(--accent)]">Sheet</span>
               </span>
-              <span className="rounded-full bg-[var(--surface-elevated)] border border-[var(--border)] px-1.5 py-0.2 text-[10px] font-semibold text-[var(--accent)]">
-                v1.2
-              </span>
             </div>
           </Link>
 
-          {/* Desktop Nav Links */}
+          {/* Desktop Nav Links with Smooth Scroll */}
           <nav className="hidden md:flex items-center gap-7 text-xs font-medium text-[var(--text-secondary)]">
-            <a href="#how-it-works" className="hover:text-white transition-colors">How it works</a>
-            <a href="#interactive-demo" className="hover:text-white transition-colors">Live Preview</a>
-            <a href="#roles" className="hover:text-white transition-colors">Who it&apos;s for</a>
-            <a href="#exports" className="hover:text-white transition-colors">Exports & Sync</a>
-            <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
+            {navLinks.map((link) => (
+              <a 
+                key={link.href}
+                href={link.href} 
+                onClick={(e) => scrollToSection(e, link.href)}
+                className="hover:text-white transition-colors relative py-1 cursor-pointer"
+              >
+                {link.label}
+              </a>
+            ))}
           </nav>
 
           {/* Desktop Right CTA */}
@@ -203,100 +253,165 @@ export default function Home() {
             </Link>
           </div>
 
-          {/* Mobile Menu Button */}
+          {/* Mobile Menu Button with Smooth 3-bar Morphing to Cross */}
           <button
             type="button"
             onClick={() => setMobileMenuOpen((c) => !c)}
-            className="md:hidden rounded-lg p-2 text-[var(--text-secondary)] hover:bg-[var(--surface)] hover:text-white"
-            aria-label="Toggle Navigation Menu"
+            className="relative md:hidden flex flex-col justify-center items-center w-10 h-10 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-white hover:border-[var(--border-hover)] transition-all focus:outline-none focus:ring-1 focus:ring-[var(--accent)] cursor-pointer select-none"
+            aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+            aria-expanded={mobileMenuOpen}
           >
-            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            <div className="w-5 h-4 relative flex flex-col justify-between items-center pointer-events-none">
+              <motion.span
+                animate={mobileMenuOpen ? { rotate: 45, y: 7 } : { rotate: 0, y: 0 }}
+                transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                className="w-5 h-0.5 bg-current rounded-full origin-center"
+              />
+              <motion.span
+                animate={mobileMenuOpen ? { opacity: 0, x: -8, scaleX: 0.3 } : { opacity: 1, x: 0, scaleX: 1 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+                className="w-5 h-0.5 bg-current rounded-full origin-center"
+              />
+              <motion.span
+                animate={mobileMenuOpen ? { rotate: -45, y: -7 } : { rotate: 0, y: 0 }}
+                transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                className="w-5 h-0.5 bg-current rounded-full origin-center"
+              />
+            </div>
           </button>
         </div>
 
-        {/* Mobile Dropdown */}
-        {mobileMenuOpen && (
-          <div className="md:hidden border-b border-[var(--border)] bg-[var(--bg-secondary)] px-4 py-4 space-y-3 animate-in slide-in-from-top-2 duration-150">
-            <div className="flex flex-col space-y-2 text-sm font-medium text-[var(--text-secondary)]">
-              <a 
-                href="#how-it-works" 
-                onClick={() => setMobileMenuOpen(false)} 
-                className="py-1.5 hover:text-white"
-              >
-                How it works
-              </a>
-              <a 
-                href="#interactive-demo" 
-                onClick={() => setMobileMenuOpen(false)} 
-                className="py-1.5 hover:text-white"
-              >
-                Live Preview
-              </a>
-              <a 
-                href="#roles" 
-                onClick={() => setMobileMenuOpen(false)} 
-                className="py-1.5 hover:text-white"
-              >
-                Who it&apos;s for
-              </a>
-              <a 
-                href="#exports" 
-                onClick={() => setMobileMenuOpen(false)} 
-                className="py-1.5 hover:text-white"
-              >
-                Exports & Sync
-              </a>
-              <a 
-                href="#faq" 
-                onClick={() => setMobileMenuOpen(false)} 
-                className="py-1.5 hover:text-white"
-              >
-                FAQ
-              </a>
-            </div>
-            <div className="pt-3 border-t border-[var(--border)] flex flex-col gap-2">
-              <Link
-                href="/login"
-                className="button-secondary text-xs text-center py-2.5"
-              >
-                Sign in to workspace
-              </Link>
-              <Link
-                href="/signup"
-                className="button-primary text-xs text-center py-2.5 justify-center flex items-center gap-1.5"
-              >
-                <span>Create your class free</span>
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </div>
-          </div>
-        )}
+        {/* Mobile Curtain Dropdown Animation */}
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div
+              key="mobile-curtain"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{
+                height: "auto",
+                opacity: 1,
+                transition: {
+                  height: { duration: 0.42, ease: [0.16, 1, 0.3, 1] },
+                  opacity: { duration: 0.28, ease: "easeOut" },
+                },
+              }}
+              exit={{
+                height: 0,
+                opacity: 0,
+                transition: {
+                  height: { duration: 0.32, ease: [0.16, 1, 0.3, 1] },
+                  opacity: { duration: 0.2, ease: "easeIn" },
+                },
+              }}
+              className="overflow-hidden md:hidden border-b border-[var(--border)] bg-[#07110D]/95 backdrop-blur-2xl shadow-2xl"
+            >
+              <div className="px-5 pt-3 pb-6 space-y-4">
+                <div className="flex flex-col space-y-1">
+                  {navLinks.map((link, idx) => (
+                    <motion.a
+                      key={link.href}
+                      href={link.href}
+                      onClick={(e) => {
+                        setMobileMenuOpen(false);
+                        scrollToSection(e, link.href);
+                      }}
+                      initial={{ opacity: 0, x: -18 }}
+                      animate={{
+                        opacity: 1,
+                        x: 0,
+                        transition: {
+                          delay: 0.1 + idx * 0.05,
+                          duration: 0.35,
+                          ease: [0.16, 1, 0.3, 1],
+                        },
+                      }}
+                      className="flex items-center justify-between py-2.5 px-3 rounded-xl text-sm font-medium text-[var(--text-secondary)] hover:text-white hover:bg-[var(--surface)] transition-all group cursor-pointer"
+                    >
+                      <span>{link.label}</span>
+                      <ArrowRight className="h-3.5 w-3.5 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-[var(--accent)]" />
+                    </motion.a>
+                  ))}
+                </div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{
+                    opacity: 1,
+                    y: 0,
+                    transition: {
+                      delay: 0.1 + navLinks.length * 0.05,
+                      duration: 0.35,
+                      ease: [0.16, 1, 0.3, 1],
+                    },
+                  }}
+                  className="pt-3 border-t border-[var(--border)] flex flex-col gap-2.5"
+                >
+                  <Link
+                    href="/login"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="button-secondary text-xs text-center py-2.5 w-full justify-center"
+                  >
+                    Sign in to workspace
+                  </Link>
+                  <Link
+                    href="/signup"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="button-primary text-xs text-center py-2.5 justify-center flex items-center gap-1.5 w-full"
+                  >
+                    <span>Create your class free</span>
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
+                </motion.div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </header>
 
-      {/* Hero Section */}
+      {/* Hero Section with Smooth Reveal In */}
       <section className="relative z-10 mx-auto max-w-7xl px-4 pt-12 pb-16 sm:px-6 sm:pt-20 sm:pb-24 lg:px-8">
         <div className="flex flex-col items-center text-center max-w-3xl mx-auto">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border-hover)] bg-[var(--accent-soft)] px-3.5 py-1.5 text-xs font-semibold text-[var(--accent)]">
+          <motion.div
+            initial={{ opacity: 0, y: -12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            className="inline-flex items-center gap-2 rounded-full border border-[var(--border-hover)] bg-[var(--accent-soft)] px-3.5 py-1.5 text-xs font-semibold text-[var(--accent)]"
+          >
             <Sparkles className="h-3.5 w-3.5" />
             <span>Built by university students, for university classes</span>
-          </div>
+          </motion.div>
 
           {/* Main Title */}
-          <h1 className="mt-6 text-3xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl sm:leading-[1.15]">
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+            className="mt-6 text-3xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl sm:leading-[1.15]"
+          >
             Ditch paper registers.<br />
             <span className="bg-gradient-to-r from-[var(--accent)] via-emerald-400 to-teal-200 bg-clip-text text-transparent">
               Run lecture roll-call in 30 seconds.
             </span>
-          </h1>
+          </motion.h1>
 
           {/* Description */}
-          <p className="mt-5 text-sm sm:text-base leading-relaxed text-[var(--text-secondary)] max-w-2xl">
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            className="mt-5 text-sm sm:text-base leading-relaxed text-[var(--text-secondary)] max-w-2xl"
+          >
             AttenSheet solves the everyday chaos of university attendance. Class Representatives organize the roster once, teachers tap attendance right from their phones, and Google Sheets stays automatically synchronized in real-time.
-          </p>
+          </motion.p>
 
           {/* Primary Action Buttons */}
-          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3.5 w-full sm:w-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3.5 w-full sm:w-auto"
+          >
             <Link
               href="/signup"
               className="button-primary w-full sm:w-auto px-7 py-3 text-xs sm:text-sm font-semibold shadow-xl shadow-emerald-950/60 inline-flex items-center justify-center gap-2"
@@ -306,37 +421,50 @@ export default function Home() {
             </Link>
             <a
               href="#interactive-demo"
-              className="button-secondary w-full sm:w-auto px-6 py-3 text-xs sm:text-sm font-semibold inline-flex items-center justify-center gap-2"
+              onClick={(e) => scrollToSection(e, "#interactive-demo")}
+              className="button-secondary w-full sm:w-auto px-6 py-3 text-xs sm:text-sm font-semibold inline-flex items-center justify-center gap-2 cursor-pointer"
             >
               <Smartphone className="h-4 w-4 text-[var(--accent)]" />
               <span>Try Interactive Demo</span>
             </a>
-          </div>
+          </motion.div>
 
           {/* Trust Highlights */}
-          <div className="mt-10 grid grid-cols-2 sm:grid-cols-4 gap-3 text-left w-full max-w-3xl pt-8 border-t border-[var(--border)]">
-            <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            className="mt-10 grid grid-cols-2 sm:grid-cols-4 gap-3 text-left w-full max-w-3xl pt-8 border-t border-[var(--border)]"
+          >
+            <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)] hover:text-white transition-colors">
               <CheckCircle2 className="h-4 w-4 text-[var(--accent)] flex-none" />
               <span>No lost paper sheets</span>
             </div>
-            <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
+            <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)] hover:text-white transition-colors">
               <FileSpreadsheet className="h-4 w-4 text-[var(--accent)] flex-none" />
               <span>Live Google Sheets sync</span>
             </div>
-            <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
+            <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)] hover:text-white transition-colors">
               <Download className="h-4 w-4 text-[var(--accent)] flex-none" />
               <span>Excel & PDF exports</span>
             </div>
-            <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
+            <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)] hover:text-white transition-colors">
               <ShieldCheck className="h-4 w-4 text-[var(--accent)] flex-none" />
               <span>Zero proxy attendance</span>
             </div>
-          </div>
+          </motion.div>
         </div>
       </section>
 
-      {/* Interactive Roll-Call Demo Section */}
-      <section id="interactive-demo" className="relative z-10 mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
+      {/* Interactive Roll-Call Demo Section with Reveal */}
+      <motion.section 
+        id="interactive-demo" 
+        initial={{ opacity: 0, y: 35 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-60px" }}
+        transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+        className="relative z-10 mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8"
+      >
         <div className="rounded-2xl sm:rounded-3xl border border-[var(--border-hover)] bg-[var(--surface)] p-4 sm:p-8 shadow-2xl shadow-black/80 relative overflow-hidden">
           {/* Subtle top decoration */}
           <div className="absolute -top-24 -right-24 h-48 w-48 rounded-full bg-[var(--accent)]/10 blur-3xl pointer-events-none" />
@@ -446,11 +574,17 @@ export default function Home() {
             <span className="font-mono text-[11px]">Timezone: Asia/Karachi</span>
           </div>
         </div>
-      </section>
+      </motion.section>
 
-      {/* How It Actually Works Section (Step by Step) */}
+      {/* How It Actually Works Section (Step by Step with Staggered Reveal) */}
       <section id="how-it-works" className="relative z-10 mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
-        <div className="text-center max-w-2xl mx-auto">
+        <motion.div 
+          initial={{ opacity: 0, y: 25 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          className="text-center max-w-2xl mx-auto"
+        >
           <span className="text-xs font-bold uppercase tracking-widest text-[var(--accent)]">
             The Complete Workflow
           </span>
@@ -460,11 +594,18 @@ export default function Home() {
           <p className="mt-3 text-xs sm:text-sm text-[var(--text-secondary)]">
             No complicated installations or server setups. Set up once at the start of semester and let it run automatically.
           </p>
-        </div>
+        </motion.div>
 
         <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {/* Step 1 */}
-          <div className="card p-6 relative flex flex-col justify-between">
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-40px" }}
+            transition={{ duration: 0.5, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+            whileHover={{ y: -4, transition: { duration: 0.2 } }}
+            className="card card-hover p-6 relative flex flex-col justify-between"
+          >
             <div>
               <div className="flex items-center justify-between">
                 <div className="grid h-10 w-10 place-items-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)] border border-[var(--border)]">
@@ -480,10 +621,17 @@ export default function Home() {
             <div className="mt-4 pt-3 border-t border-[var(--border)] text-[11px] text-[var(--accent)] font-medium">
               Takes 60 seconds
             </div>
-          </div>
+          </motion.div>
 
           {/* Step 2 */}
-          <div className="card p-6 relative flex flex-col justify-between">
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-40px" }}
+            transition={{ duration: 0.5, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            whileHover={{ y: -4, transition: { duration: 0.2 } }}
+            className="card card-hover p-6 relative flex flex-col justify-between"
+          >
             <div>
               <div className="flex items-center justify-between">
                 <div className="grid h-10 w-10 place-items-center rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
@@ -499,10 +647,17 @@ export default function Home() {
             <div className="mt-4 pt-3 border-t border-[var(--border)] text-[11px] text-blue-400 font-medium">
               Verified Student Roster
             </div>
-          </div>
+          </motion.div>
 
           {/* Step 3 */}
-          <div className="card p-6 relative flex flex-col justify-between">
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-40px" }}
+            transition={{ duration: 0.5, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            whileHover={{ y: -4, transition: { duration: 0.2 } }}
+            className="card card-hover p-6 relative flex flex-col justify-between"
+          >
             <div>
               <div className="flex items-center justify-between">
                 <div className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
@@ -518,10 +673,17 @@ export default function Home() {
             <div className="mt-4 pt-3 border-t border-[var(--border)] text-[11px] text-emerald-400 font-medium">
               Instant Google Sync
             </div>
-          </div>
+          </motion.div>
 
           {/* Step 4 */}
-          <div className="card p-6 relative flex flex-col justify-between">
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-40px" }}
+            transition={{ duration: 0.5, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            whileHover={{ y: -4, transition: { duration: 0.2 } }}
+            className="card card-hover p-6 relative flex flex-col justify-between"
+          >
             <div>
               <div className="flex items-center justify-between">
                 <div className="grid h-10 w-10 place-items-center rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20">
@@ -537,13 +699,19 @@ export default function Home() {
             <div className="mt-4 pt-3 border-t border-[var(--border)] text-[11px] text-purple-400 font-medium">
               Exam Clearance Ready
             </div>
-          </div>
+          </motion.div>
         </div>
       </section>
 
       {/* Role-Based Features Spotlight */}
       <section id="roles" className="relative z-10 mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="text-center max-w-2xl mx-auto">
+        <motion.div 
+          initial={{ opacity: 0, y: 25 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          className="text-center max-w-2xl mx-auto"
+        >
           <span className="text-xs font-bold uppercase tracking-widest text-[var(--accent)]">
             Tailored For Academic Roles
           </span>
@@ -553,7 +721,7 @@ export default function Home() {
           <p className="mt-2 text-xs sm:text-sm text-[var(--text-secondary)]">
             Every person in your batch gets a dedicated, distraction-free workspace suited for their role.
           </p>
-        </div>
+        </motion.div>
 
         {/* Role Tabs Picker */}
         <div className="mt-8 flex justify-center">
@@ -594,180 +762,209 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Tab Content Display */}
+        {/* Tab Content Display with Smooth Crossfade */}
         <div className="mt-8">
-          {activeRole === "cr" && (
-            <div className="card p-6 sm:p-8 grid gap-8 md:grid-cols-2 items-center animate-in fade-in duration-200">
-              <div className="space-y-4">
-                <div className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent-soft)] px-3 py-1 text-xs font-bold text-[var(--accent)]">
-                  <ShieldCheck className="h-4 w-4" />
-                  <span>The CR Command Center</span>
+          <AnimatePresence mode="wait">
+            {activeRole === "cr" && (
+              <motion.div 
+                key="cr"
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                className="card p-6 sm:p-8 grid gap-8 md:grid-cols-2 items-center"
+              >
+                <div className="space-y-4">
+                  <div className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent-soft)] px-3 py-1 text-xs font-bold text-[var(--accent)]">
+                    <ShieldCheck className="h-4 w-4" />
+                    <span>The CR Command Center</span>
+                  </div>
+                  <h3 className="text-xl sm:text-2xl font-bold text-white">
+                    Stop compiling registers manually every weekend.
+                  </h3>
+                  <p className="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
+                    As a CR, keeping paper registers safe and responding to 50 students asking for their attendance percentage is exhausting. AttenSheet automates the busywork completely.
+                  </p>
+                  <ul className="space-y-2.5 text-xs text-[var(--text-secondary)] pt-2">
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-[var(--accent)] flex-none mt-0.5" />
+                      <span>Approve incoming student and teacher join requests with roll number validation.</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-[var(--accent)] flex-none mt-0.5" />
+                      <span>Assign teachers to specific course subjects with live permission isolation.</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-[var(--accent)] flex-none mt-0.5" />
+                      <span>Appoint a Secondary CR to take attendance when you are unavailable.</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-[var(--accent)] flex-none mt-0.5" />
+                      <span>1-click WhatsApp class invite link with your 8-digit class code.</span>
+                    </li>
+                  </ul>
                 </div>
-                <h3 className="text-xl sm:text-2xl font-bold text-white">
-                  Stop compiling registers manually every weekend.
-                </h3>
-                <p className="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
-                  As a CR, keeping paper registers safe and responding to 50 students asking for their attendance percentage is exhausting. AttenSheet automates the busywork completely.
-                </p>
-                <ul className="space-y-2.5 text-xs text-[var(--text-secondary)] pt-2">
-                  <li className="flex items-start gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-[var(--accent)] flex-none mt-0.5" />
-                    <span>Approve incoming student and teacher join requests with roll number validation.</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-[var(--accent)] flex-none mt-0.5" />
-                    <span>Assign teachers to specific course subjects with live permission isolation.</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-[var(--accent)] flex-none mt-0.5" />
-                    <span>Appoint a Secondary CR to take attendance when you are unavailable.</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-[var(--accent)] flex-none mt-0.5" />
-                    <span>1-click WhatsApp class invite link with your 8-digit class code.</span>
-                  </li>
-                </ul>
-              </div>
 
-              <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-5 space-y-3">
-                <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
-                  <span className="text-xs font-bold text-white">CR Class Control</span>
-                  <span className="badge-present text-[10px]">Active Session</span>
-                </div>
-                <div className="space-y-2 text-xs">
-                  <div className="p-3 rounded-lg bg-[var(--surface)] border border-[var(--border)] flex justify-between items-center">
-                    <div>
-                      <p className="font-semibold text-white">Pending Requests</p>
-                      <p className="text-[10px] text-[var(--text-muted)]">3 students awaiting verification</p>
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-5 space-y-3">
+                  <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
+                    <span className="text-xs font-bold text-white">CR Class Control</span>
+                    <span className="badge-present text-[10px]">Active Session</span>
+                  </div>
+                  <div className="space-y-2 text-xs">
+                    <div className="p-3 rounded-lg bg-[var(--surface)] border border-[var(--border)] flex justify-between items-center">
+                      <div>
+                        <p className="font-semibold text-white">Pending Requests</p>
+                        <p className="text-[10px] text-[var(--text-muted)]">3 students awaiting verification</p>
+                      </div>
+                      <span className="rounded bg-amber-500/20 text-amber-300 px-2 py-0.5 font-mono text-[11px] font-bold">Review</span>
                     </div>
-                    <span className="rounded bg-amber-500/20 text-amber-300 px-2 py-0.5 font-mono text-[11px] font-bold">Review</span>
-                  </div>
-                  <div className="p-3 rounded-lg bg-[var(--surface)] border border-[var(--border)] flex justify-between items-center">
-                    <div>
-                      <p className="font-semibold text-white">Student vs Teacher Directory</p>
-                      <p className="text-[10px] text-[var(--text-muted)]">View faculty subjects & student seat numbers</p>
+                    <div className="p-3 rounded-lg bg-[var(--surface)] border border-[var(--border)] flex justify-between items-center">
+                      <div>
+                        <p className="font-semibold text-white">Student vs Teacher Directory</p>
+                        <p className="text-[10px] text-[var(--text-muted)]">View faculty subjects & student seat numbers</p>
+                      </div>
+                      <span className="text-[var(--accent)] font-mono text-[11px]">54 Enrolled</span>
                     </div>
-                    <span className="text-[var(--accent)] font-mono text-[11px]">54 Enrolled</span>
                   </div>
                 </div>
-              </div>
-            </div>
-          )}
+              </motion.div>
+            )}
 
-          {activeRole === "teacher" && (
-            <div className="card p-6 sm:p-8 grid gap-8 md:grid-cols-2 items-center animate-in fade-in duration-200">
-              <div className="space-y-4">
-                <div className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/10 px-3 py-1 text-xs font-bold text-blue-400">
-                  <GraduationCap className="h-4 w-4" />
-                  <span>For Course Teachers & Professors</span>
+            {activeRole === "teacher" && (
+              <motion.div 
+                key="teacher"
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                className="card p-6 sm:p-8 grid gap-8 md:grid-cols-2 items-center"
+              >
+                <div className="space-y-4">
+                  <div className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/10 px-3 py-1 text-xs font-bold text-blue-400">
+                    <GraduationCap className="h-4 w-4" />
+                    <span>For Course Teachers & Professors</span>
+                  </div>
+                  <h3 className="text-xl sm:text-2xl font-bold text-white">
+                    Mark lecture attendance in seconds, not 15 minutes.
+                  </h3>
+                  <p className="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
+                    No carrying paper files or asking CRs to update Excel files. Log into AttenSheet on your phone or laptop during lecture, mark your roll call, and submit.
+                  </p>
+                  <ul className="space-y-2.5 text-xs text-[var(--text-secondary)] pt-2">
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-blue-400 flex-none mt-0.5" />
+                      <span>Instant roll call with quick-mark &apos;Enter&apos; keyboard shortcuts.</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-blue-400 flex-none mt-0.5" />
+                      <span>&apos;Mark all present&apos; button to quickly unmark only absentees.</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-blue-400 flex-none mt-0.5" />
+                      <span>Only access and mark your own assigned course subjects.</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-blue-400 flex-none mt-0.5" />
+                      <span>Download subject-specific attendance registers as Excel or PDF anytime.</span>
+                    </li>
+                  </ul>
                 </div>
-                <h3 className="text-xl sm:text-2xl font-bold text-white">
-                  Mark lecture attendance in seconds, not 15 minutes.
-                </h3>
-                <p className="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
-                  No carrying paper files or asking CRs to update Excel files. Log into AttenSheet on your phone or laptop during lecture, mark your roll call, and submit.
-                </p>
-                <ul className="space-y-2.5 text-xs text-[var(--text-secondary)] pt-2">
-                  <li className="flex items-start gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-blue-400 flex-none mt-0.5" />
-                    <span>Instant roll call with quick-mark &apos;Enter&apos; keyboard shortcuts.</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-blue-400 flex-none mt-0.5" />
-                    <span>&apos;Mark all present&apos; button to quickly unmark only absentees.</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-blue-400 flex-none mt-0.5" />
-                    <span>Only access and mark your own assigned course subjects.</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-blue-400 flex-none mt-0.5" />
-                    <span>Download subject-specific attendance registers as Excel or PDF anytime.</span>
-                  </li>
-                </ul>
-              </div>
 
-              <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-5 space-y-3">
-                <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
-                  <span className="text-xs font-bold text-white">Teacher Roll-Call</span>
-                  <span className="badge-present text-[10px]">Your Subjects</span>
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-5 space-y-3">
+                  <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
+                    <span className="text-xs font-bold text-white">Teacher Roll-Call</span>
+                    <span className="badge-present text-[10px]">Your Subjects</span>
+                  </div>
+                  <div className="p-3 rounded-lg bg-[var(--surface)] border border-[var(--border)] space-y-2 text-xs">
+                    <div className="flex justify-between items-center">
+                      <span className="font-semibold text-white">Artificial Intelligence</span>
+                      <span className="text-[var(--accent)] font-bold">48 / 52 Present</span>
+                    </div>
+                    <div className="w-full bg-[var(--surface-elevated)] h-2 rounded-full overflow-hidden">
+                      <div className="bg-[var(--accent)] h-full w-[92%]" />
+                    </div>
+                    <div className="flex justify-between text-[10px] text-[var(--text-muted)] pt-1">
+                      <span>92% Class Attendance</span>
+                      <span>17 Sep Lecture</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="p-3 rounded-lg bg-[var(--surface)] border border-[var(--border)] space-y-2 text-xs">
-                  <div className="flex justify-between items-center">
-                    <span className="font-semibold text-white">Artificial Intelligence</span>
-                    <span className="text-[var(--accent)] font-bold">48 / 52 Present</span>
-                  </div>
-                  <div className="w-full bg-[var(--surface-elevated)] h-2 rounded-full overflow-hidden">
-                    <div className="bg-[var(--accent)] h-full w-[92%]" />
-                  </div>
-                  <div className="flex justify-between text-[10px] text-[var(--text-muted)] pt-1">
-                    <span>92% Class Attendance</span>
-                    <span>17 Sep Lecture</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+              </motion.div>
+            )}
 
-          {activeRole === "student" && (
-            <div className="card p-6 sm:p-8 grid gap-8 md:grid-cols-2 items-center animate-in fade-in duration-200">
-              <div className="space-y-4">
-                <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-400">
-                  <UserCheck className="h-4 w-4" />
-                  <span>For Class Students</span>
+            {activeRole === "student" && (
+              <motion.div 
+                key="student"
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                className="card p-6 sm:p-8 grid gap-8 md:grid-cols-2 items-center"
+              >
+                <div className="space-y-4">
+                  <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-400">
+                    <UserCheck className="h-4 w-4" />
+                    <span>For Class Students</span>
+                  </div>
+                  <h3 className="text-xl sm:text-2xl font-bold text-white">
+                    Know your exam eligibility percentage anytime.
+                  </h3>
+                  <p className="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
+                    Never face sudden exam debarment due to short attendance. Monitor your live percentage across every subject and see exact lecture dates marked Present or Absent.
+                  </p>
+                  <ul className="space-y-2.5 text-xs text-[var(--text-secondary)] pt-2">
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-none mt-0.5" />
+                      <span>Real-time percentage tracker against the university 75% exam threshold.</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-none mt-0.5" />
+                      <span>Transparent dated attendance history for each course subject.</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-none mt-0.5" />
+                      <span>Safe read-only portal: your records cannot be modified accidentally.</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-none mt-0.5" />
+                      <span>Instant notification when CR approves your class joining request.</span>
+                    </li>
+                  </ul>
                 </div>
-                <h3 className="text-xl sm:text-2xl font-bold text-white">
-                  Know your exam eligibility percentage anytime.
-                </h3>
-                <p className="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
-                  Never face sudden exam debarment due to short attendance. Monitor your live percentage across every subject and see exact lecture dates marked Present or Absent.
-                </p>
-                <ul className="space-y-2.5 text-xs text-[var(--text-secondary)] pt-2">
-                  <li className="flex items-start gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-none mt-0.5" />
-                    <span>Real-time percentage tracker against the university 75% exam threshold.</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-none mt-0.5" />
-                    <span>Transparent dated attendance history for each course subject.</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-none mt-0.5" />
-                    <span>Safe read-only portal: your records cannot be modified accidentally.</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-none mt-0.5" />
-                    <span>Instant notification when CR approves your class joining request.</span>
-                  </li>
-                </ul>
-              </div>
 
-              <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-5 space-y-3">
-                <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
-                  <span className="text-xs font-bold text-white">Student Portal Preview</span>
-                  <span className="text-[10px] font-mono text-[var(--accent)]">BSCS-2022-04</span>
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="p-3 rounded-lg bg-[var(--surface)] border border-[var(--border)]">
-                    <p className="text-[10px] text-[var(--text-muted)]">Overall Attendance</p>
-                    <p className="text-lg font-extrabold text-[var(--accent)] mt-1">86%</p>
-                    <p className="text-[10px] text-emerald-400 font-medium">Eligible for Finals</p>
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-5 space-y-3">
+                  <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
+                    <span className="text-xs font-bold text-white">Student Portal Preview</span>
+                    <span className="text-[10px] font-mono text-[var(--accent)]">BSCS-2022-04</span>
                   </div>
-                  <div className="p-3 rounded-lg bg-[var(--surface)] border border-[var(--border)]">
-                    <p className="text-[10px] text-[var(--text-muted)]">Lectures Attended</p>
-                    <p className="text-lg font-extrabold text-white mt-1">38 / 44</p>
-                    <p className="text-[10px] text-[var(--text-muted)]">6 absents recorded</p>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="p-3 rounded-lg bg-[var(--surface)] border border-[var(--border)]">
+                      <p className="text-[10px] text-[var(--text-muted)]">Overall Attendance</p>
+                      <p className="text-lg font-extrabold text-[var(--accent)] mt-1">86%</p>
+                      <p className="text-[10px] text-emerald-400 font-medium">Eligible for Finals</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-[var(--surface)] border border-[var(--border)]">
+                      <p className="text-[10px] text-[var(--text-muted)]">Lectures Attended</p>
+                      <p className="text-lg font-extrabold text-white mt-1">38 / 44</p>
+                      <p className="text-[10px] text-[var(--text-muted)]">6 absents recorded</p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
-          )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </section>
 
-      {/* Exports & Google Sheets Feature Section */}
+      {/* Exports & Google Sheets Feature Section with Staggered Reveal */}
       <section id="exports" className="relative z-10 mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
-        <div className="card p-6 sm:p-10 border border-[var(--border-hover)] bg-gradient-to-b from-[var(--surface)] to-[var(--bg-secondary)]">
+        <motion.div 
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          className="card p-6 sm:p-10 border border-[var(--border-hover)] bg-gradient-to-b from-[var(--surface)] to-[var(--bg-secondary)]"
+        >
           <div className="max-w-3xl">
             <span className="text-xs font-bold uppercase tracking-widest text-[var(--accent)]">
               Full Document Suite
@@ -782,7 +979,14 @@ export default function Home() {
 
           <div className="mt-8 grid gap-4 sm:grid-cols-3">
             {/* Format 1: Excel */}
-            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] p-4 sm:p-5 flex flex-col justify-between">
+            <motion.div 
+              initial={{ opacity: 0, y: 25 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-30px" }}
+              transition={{ duration: 0.5, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+              whileHover={{ y: -4, transition: { duration: 0.2 } }}
+              className="rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] p-4 sm:p-5 flex flex-col justify-between hover:border-[var(--border-hover)] transition-all"
+            >
               <div>
                 <div className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                   <FileSpreadsheet className="h-5 w-5" />
@@ -795,10 +999,17 @@ export default function Home() {
               <div className="mt-4 pt-3 border-t border-[var(--border)] flex items-center gap-1 text-[11px] text-emerald-400 font-medium">
                 <span>Subject-Specific Download</span>
               </div>
-            </div>
+            </motion.div>
 
             {/* Format 2: PDF */}
-            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] p-4 sm:p-5 flex flex-col justify-between">
+            <motion.div 
+              initial={{ opacity: 0, y: 25 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-30px" }}
+              transition={{ duration: 0.5, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              whileHover={{ y: -4, transition: { duration: 0.2 } }}
+              className="rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] p-4 sm:p-5 flex flex-col justify-between hover:border-[var(--border-hover)] transition-all"
+            >
               <div>
                 <div className="grid h-10 w-10 place-items-center rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20">
                   <FileText className="h-5 w-5" />
@@ -811,10 +1022,17 @@ export default function Home() {
               <div className="mt-4 pt-3 border-t border-[var(--border)] flex items-center gap-1 text-[11px] text-rose-400 font-medium">
                 <span>Print & Notice Board Ready</span>
               </div>
-            </div>
+            </motion.div>
 
             {/* Format 3: Google Sheets */}
-            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] p-4 sm:p-5 flex flex-col justify-between">
+            <motion.div 
+              initial={{ opacity: 0, y: 25 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-30px" }}
+              transition={{ duration: 0.5, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
+              whileHover={{ y: -4, transition: { duration: 0.2 } }}
+              className="rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] p-4 sm:p-5 flex flex-col justify-between hover:border-[var(--border-hover)] transition-all"
+            >
               <div>
                 <div className="grid h-10 w-10 place-items-center rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20">
                   <ExternalLink className="h-5 w-5" />
@@ -827,57 +1045,108 @@ export default function Home() {
               <div className="mt-4 pt-3 border-t border-[var(--border)] flex items-center gap-1 text-[11px] text-sky-400 font-medium">
                 <span>Automated 2-Way Ledger</span>
               </div>
-            </div>
+            </motion.div>
           </div>
-        </div>
+        </motion.div>
       </section>
 
-      {/* Frequently Asked Questions */}
+      {/* Frequently Asked Questions with Butter-Smooth Accordion */}
       <section id="faq" className="relative z-10 mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="text-center max-w-xl mx-auto">
+        <motion.div 
+          initial={{ opacity: 0, y: 25 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          className="text-center max-w-xl mx-auto"
+        >
           <span className="text-xs font-bold uppercase tracking-widest text-[var(--accent)]">
             Clear Answers
           </span>
           <h2 className="mt-2 text-2xl font-bold tracking-tight text-white sm:text-3xl">
             Frequently Asked Questions
           </h2>
-        </div>
+        </motion.div>
 
         <div className="mt-8 space-y-3">
           {faqs.map((faq, i) => {
             const isOpen = openFaq === i;
             return (
-              <div
+              <motion.div
                 key={i}
-                className="rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden transition-colors"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-40px" }}
+                transition={{ duration: 0.45, delay: i * 0.07, ease: [0.16, 1, 0.3, 1] }}
+                className={`rounded-xl border transition-all duration-300 overflow-hidden ${
+                  isOpen
+                    ? "border-[var(--border-hover)] bg-[var(--surface-elevated)] shadow-lg shadow-black/40"
+                    : "border-[var(--border)] bg-[var(--surface)] hover:border-[var(--border-hover)] hover:bg-[var(--surface-hover)]"
+                }`}
               >
                 <button
                   type="button"
                   onClick={() => setOpenFaq(isOpen ? null : i)}
-                  className="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 cursor-pointer"
+                  aria-expanded={isOpen}
+                  className="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 cursor-pointer select-none"
                 >
-                  <span className="text-xs sm:text-sm font-semibold text-white">
+                  <span className={`text-xs sm:text-sm font-semibold transition-colors ${
+                    isOpen ? "text-[var(--accent)]" : "text-white"
+                  }`}>
                     {faq.q}
                   </span>
-                  <ChevronDown
-                    className={`h-4 w-4 text-[var(--text-muted)] transition-transform flex-none ${
-                      isOpen ? "rotate-180 text-[var(--accent)]" : ""
+                  <motion.div
+                    animate={{ rotate: isOpen ? 180 : 0 }}
+                    transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                    className={`flex-none p-1 rounded-lg transition-colors ${
+                      isOpen ? "text-[var(--accent)] bg-[var(--accent-soft)]" : "text-[var(--text-muted)]"
                     }`}
-                  />
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                  </motion.div>
                 </button>
-                {isOpen && (
-                  <div className="px-4 sm:px-5 pb-4 pt-1 text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed border-t border-[var(--border)]/40">
-                    {faq.a}
-                  </div>
-                )}
-              </div>
+                <AnimatePresence initial={false}>
+                  {isOpen && (
+                    <motion.div
+                      key="faq-content"
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{
+                        height: "auto",
+                        opacity: 1,
+                        transition: {
+                          height: { duration: 0.35, ease: [0.16, 1, 0.3, 1] },
+                          opacity: { duration: 0.25, delay: 0.08 },
+                        },
+                      }}
+                      exit={{
+                        height: 0,
+                        opacity: 0,
+                        transition: {
+                          height: { duration: 0.28, ease: [0.16, 1, 0.3, 1] },
+                          opacity: { duration: 0.15 },
+                        },
+                      }}
+                      className="overflow-hidden"
+                    >
+                      <div className="px-4 sm:px-5 pb-5 pt-1 text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed border-t border-[var(--border)]/40">
+                        {faq.a}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
             );
           })}
         </div>
       </section>
 
-      {/* Authentic Creator Credits Section */}
-      <section className="relative z-10 mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+      {/* Authentic Creator Credits Section with Reveal */}
+      <motion.section 
+        initial={{ opacity: 0, y: 25 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-50px" }}
+        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+        className="relative z-10 mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8"
+      >
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)]/80 p-5 sm:p-6 backdrop-blur-sm flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3.5 text-left">
             <div className="grid h-11 w-11 place-items-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)] border border-[var(--border-hover)] flex-none">
@@ -899,10 +1168,16 @@ export default function Home() {
             <span>Built to solve real classroom attendance headaches for peers and faculty.</span>
           </div>
         </div>
-      </section>
+      </motion.section>
 
-      {/* Bottom CTA Banner */}
-      <section className="relative z-10 mx-auto max-w-7xl px-4 pt-8 pb-20 sm:px-6 sm:pb-28 lg:px-8">
+      {/* Bottom CTA Banner with Reveal */}
+      <motion.section 
+        initial={{ opacity: 0, y: 30, scale: 0.98 }}
+        whileInView={{ opacity: 1, y: 0, scale: 1 }}
+        viewport={{ once: true, margin: "-60px" }}
+        transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+        className="relative z-10 mx-auto max-w-7xl px-4 pt-8 pb-20 sm:px-6 sm:pb-28 lg:px-8"
+      >
         <div className="rounded-2xl sm:rounded-3xl border border-[var(--border-hover)] bg-gradient-to-r from-emerald-950/70 via-[var(--surface)] to-teal-950/70 p-8 sm:p-12 text-center relative overflow-hidden shadow-2xl">
           <h2 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
             Ready to upgrade your university class attendance?
@@ -926,7 +1201,7 @@ export default function Home() {
             </Link>
           </div>
         </div>
-      </section>
+      </motion.section>
     </main>
   );
 }
