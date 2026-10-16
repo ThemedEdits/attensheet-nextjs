@@ -46,27 +46,57 @@ export default function Home() {
   const [showSplash, setShowSplash] = useState(true);
 
   // Smooth scroll handler for all hashed links with navbar offset
-  const scrollToSection = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
-    e.preventDefault();
-    if (!href.startsWith("#")) return;
+  const scrollToSection = (e?: React.MouseEvent<HTMLAnchorElement>, href?: string) => {
+    if (e) {
+      e.preventDefault();
+    }
+    if (!href || !href.startsWith("#")) return;
     const targetId = href.replace(/^#/, "");
+
+    // Close mobile menu immediately
+    setMobileMenuOpen(false);
+
+    try {
+      window.history.pushState(null, "", `#${targetId}`);
+    } catch {
+      // Safe fallback
+    }
+
     const elem = document.getElementById(targetId);
-    if (elem) {
+    if (!elem) return;
+
+    const performScroll = () => {
       const headerOffset = 76;
-      const elementPosition = elem.getBoundingClientRect().top;
-      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+      const elemRect = elem.getBoundingClientRect().top;
+      const currentScrollY = window.pageYOffset || window.scrollY || document.documentElement.scrollTop || 0;
+      const targetY = elemRect + currentScrollY - headerOffset;
 
       window.scrollTo({
-        top: offsetPosition,
+        top: Math.max(0, targetY),
         behavior: "smooth",
       });
 
-      try {
-        window.history.pushState(null, "", `#${targetId}`);
-      } catch {
-        // Safe fallback
+      if (document.scrollingElement) {
+        document.scrollingElement.scrollTo({
+          top: Math.max(0, targetY),
+          behavior: "smooth",
+        });
       }
-    }
+
+      try {
+        elem.scrollIntoView({ behavior: "smooth", block: "start" });
+      } catch {
+        // Fallback
+      }
+    };
+
+    // Immediate attempt
+    performScroll();
+
+    // Secondary attempts on subsequent ticks to handle mobile touch completion
+    requestAnimationFrame(performScroll);
+    setTimeout(performScroll, 50);
+    setTimeout(performScroll, 150);
   };
 
   useEffect(() => {
@@ -281,57 +311,64 @@ export default function Home() {
           </button>
         </div>
 
-        {/* Mobile Curtain Dropdown Animation */}
+        {/* Mobile Backdrop & Curtain Dropdown Animation */}
         <AnimatePresence>
           {mobileMenuOpen && (
-            <motion.div
-              key="mobile-curtain"
-              initial={{ height: 0, opacity: 0 }}
-              animate={{
-                height: "auto",
-                opacity: 1,
-                transition: {
-                  height: { duration: 0.42, ease: [0.16, 1, 0.3, 1] },
-                  opacity: { duration: 0.28, ease: "easeOut" },
-                },
-              }}
-              exit={{
-                height: 0,
-                opacity: 0,
-                transition: {
-                  height: { duration: 0.32, ease: [0.16, 1, 0.3, 1] },
-                  opacity: { duration: 0.2, ease: "easeIn" },
-                },
-              }}
-              className="overflow-hidden md:hidden border-b border-[var(--border)] bg-[#07110D]/95 backdrop-blur-2xl shadow-2xl"
-            >
-              <div className="px-5 pt-3 pb-6 space-y-4">
-                <div className="flex flex-col space-y-1">
-                  {navLinks.map((link, idx) => (
-                    <motion.a
-                      key={link.href}
-                      href={link.href}
-                      onClick={(e) => {
-                        setMobileMenuOpen(false);
-                        scrollToSection(e, link.href);
-                      }}
-                      initial={{ opacity: 0, x: -18 }}
-                      animate={{
-                        opacity: 1,
-                        x: 0,
-                        transition: {
-                          delay: 0.1 + idx * 0.05,
-                          duration: 0.35,
-                          ease: [0.16, 1, 0.3, 1],
-                        },
-                      }}
-                      className="flex items-center justify-between py-2.5 px-3 rounded-xl text-sm font-medium text-[var(--text-secondary)] hover:text-white hover:bg-[var(--surface)] transition-all group cursor-pointer"
-                    >
-                      <span>{link.label}</span>
-                      <ArrowRight className="h-3.5 w-3.5 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-[var(--accent)]" />
-                    </motion.a>
-                  ))}
-                </div>
+            <>
+              <motion.div
+                key="mobile-backdrop"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                onClick={() => setMobileMenuOpen(false)}
+                className="fixed inset-0 top-[57px] z-30 bg-black/60 backdrop-blur-xs md:hidden"
+              />
+              <motion.div
+                key="mobile-curtain"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{
+                  height: "auto",
+                  opacity: 1,
+                  transition: {
+                    height: { duration: 0.38, ease: [0.16, 1, 0.3, 1] },
+                    opacity: { duration: 0.25, ease: "easeOut" },
+                  },
+                }}
+                exit={{
+                  height: 0,
+                  opacity: 0,
+                  transition: {
+                    height: { duration: 0.28, ease: [0.16, 1, 0.3, 1] },
+                    opacity: { duration: 0.15, ease: "easeIn" },
+                  },
+                }}
+                className="absolute top-full left-0 right-0 w-full overflow-hidden md:hidden border-b border-[var(--border)] bg-[#07110D]/98 backdrop-blur-2xl shadow-2xl shadow-black/80 z-50"
+              >
+                <div className="px-5 pt-3 pb-6 space-y-4">
+                  <div className="flex flex-col space-y-1">
+                    {navLinks.map((link, idx) => (
+                      <motion.a
+                        key={link.href}
+                        href={link.href}
+                        onClick={(e) => scrollToSection(e, link.href)}
+                        initial={{ opacity: 0, x: -18 }}
+                        animate={{
+                          opacity: 1,
+                          x: 0,
+                          transition: {
+                            delay: 0.08 + idx * 0.04,
+                            duration: 0.3,
+                            ease: [0.16, 1, 0.3, 1],
+                          },
+                        }}
+                        className="flex items-center justify-between py-2.5 px-3 rounded-xl text-sm font-medium text-[var(--text-secondary)] hover:text-white hover:bg-[var(--surface)] transition-all group cursor-pointer"
+                      >
+                        <span>{link.label}</span>
+                        <ArrowRight className="h-3.5 w-3.5 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-[var(--accent)]" />
+                      </motion.a>
+                    ))}
+                  </div>
 
                 <motion.div
                   initial={{ opacity: 0, y: 15 }}
@@ -364,8 +401,9 @@ export default function Home() {
                 </motion.div>
               </div>
             </motion.div>
-          )}
-        </AnimatePresence>
+          </>
+        )}
+      </AnimatePresence>
       </header>
 
       {/* Hero Section with Smooth Reveal In */}
@@ -463,7 +501,7 @@ export default function Home() {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-60px" }}
         transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-        className="relative z-10 mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8"
+        className="relative z-10 mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8 scroll-mt-20"
       >
         <div className="rounded-2xl sm:rounded-3xl border border-[var(--border-hover)] bg-[var(--surface)] p-4 sm:p-8 shadow-2xl shadow-black/80 relative overflow-hidden">
           {/* Subtle top decoration */}
@@ -577,7 +615,7 @@ export default function Home() {
       </motion.section>
 
       {/* How It Actually Works Section (Step by Step with Staggered Reveal) */}
-      <section id="how-it-works" className="relative z-10 mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
+      <section id="how-it-works" className="relative z-10 mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8 scroll-mt-20">
         <motion.div 
           initial={{ opacity: 0, y: 25 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -704,7 +742,7 @@ export default function Home() {
       </section>
 
       {/* Role-Based Features Spotlight */}
-      <section id="roles" className="relative z-10 mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+      <section id="roles" className="relative z-10 mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 scroll-mt-20">
         <motion.div 
           initial={{ opacity: 0, y: 25 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -957,7 +995,7 @@ export default function Home() {
       </section>
 
       {/* Exports & Google Sheets Feature Section with Staggered Reveal */}
-      <section id="exports" className="relative z-10 mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
+      <section id="exports" className="relative z-10 mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8 scroll-mt-20">
         <motion.div 
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -1051,7 +1089,7 @@ export default function Home() {
       </section>
 
       {/* Frequently Asked Questions with Butter-Smooth Accordion */}
-      <section id="faq" className="relative z-10 mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
+      <section id="faq" className="relative z-10 mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8 scroll-mt-20">
         <motion.div 
           initial={{ opacity: 0, y: 25 }}
           whileInView={{ opacity: 1, y: 0 }}
