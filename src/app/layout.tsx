@@ -7,7 +7,6 @@ import { AppHeader } from "@/components/AppHeader";
 import { AppFooter } from "@/components/AppFooter";
 import { AppSplashScreen } from "@/components/AppSplashScreen";
 import { NetworkStatusProvider } from "@/components/NetworkStatusProvider";
-import { InstallAppBanner } from "@/components/InstallAppBanner";
 import { SwipeableLayout } from "@/components/SwipeableLayout";
 
 const fontSans = Plus_Jakarta_Sans({
@@ -130,7 +129,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               <AppFooter />
             </div>
             <AppBottomNav />
-            <InstallAppBanner />
           </ToastProvider>
         </NetworkStatusProvider>
       </body>

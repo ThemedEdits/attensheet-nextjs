@@ -60,7 +60,6 @@ export function AppHeader() {
     } finally {
       clearCachedSession();
       if (typeof window !== "undefined") {
-        localStorage.removeItem("attensheet_install_dismissed");
         window.location.href = "/login";
       }
     }

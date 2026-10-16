@@ -70,30 +70,6 @@ export default function Home() {
     }
   }, [session, sessionLoading, router]);
 
-  if (sessionLoading || isMobile === null || showSplash) {
-    return (
-      <main className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center">
-        <div className="relative flex flex-col items-center">
-          <div className="absolute -inset-4 rounded-3xl bg-gradient-to-r from-[#16A66A]/20 to-[#35D98A]/10 blur-xl animate-pulse" />
-          <img src="/attensheetlogo.svg" alt="AttenSheet" className="relative h-20 w-20 object-contain drop-shadow-[0_4px_16px_rgba(53,217,138,0.4)] animate-bounce" />
-        </div>
-      </main>
-    );
-  }
-
-  if (isMobile && !showFullWebsite && !session?.profile) {
-    return (
-      <main className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
-        <MobileWelcomeScreen 
-          onShowFullWebsite={() => {
-            setShowFullWebsite(true);
-            sessionStorage.setItem("view_full_website", "true");
-          }} 
-        />
-      </main>
-    );
-  }
-
   // Interactive roll call demo state
   const [demoStudents, setDemoStudents] = useState([
     { seat: "BSCS-01", name: "Hammad Ahmed", present: true },
@@ -125,6 +101,30 @@ export default function Home() {
 
   const presentCount = demoStudents.filter((s) => s.present).length;
   const attendanceRate = Math.round((presentCount / demoStudents.length) * 100);
+
+  if (sessionLoading || isMobile === null || showSplash) {
+    return (
+      <main className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center">
+        <div className="relative flex flex-col items-center">
+          <div className="absolute -inset-4 rounded-3xl bg-gradient-to-r from-[#16A66A]/20 to-[#35D98A]/10 blur-xl animate-pulse" />
+          <img src="/attensheetlogo.svg" alt="AttenSheet" className="relative h-20 w-20 object-contain drop-shadow-[0_4px_16px_rgba(53,217,138,0.4)] animate-bounce" />
+        </div>
+      </main>
+    );
+  }
+
+  if (isMobile && !showFullWebsite && !session?.profile) {
+    return (
+      <main className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
+        <MobileWelcomeScreen 
+          onShowFullWebsite={() => {
+            setShowFullWebsite(true);
+            sessionStorage.setItem("view_full_website", "true");
+          }} 
+        />
+      </main>
+    );
+  }
 
   const faqs = [
     {
