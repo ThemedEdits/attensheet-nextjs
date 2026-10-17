@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import heroImage from "./hero-image.webp";
 import { useSession } from "@/lib/session-cache";
 import { MobileWelcomeScreen } from "@/components/MobileWelcomeScreen";
+import { TypewriterHeading } from "@/components/TypewriterHeading";
 import { 
   ArrowRight, 
   CheckCircle2, 
@@ -44,6 +47,34 @@ export default function Home() {
   const [activeRole, setActiveRole] = useState<RoleTab>("cr");
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [showSplash, setShowSplash] = useState(true);
+  const headerRef = useRef<HTMLElement>(null);
+
+  // Close mobile menu on outside click or escape key
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+
+    const handlePointerDown = (event: MouseEvent | TouchEvent) => {
+      if (headerRef.current && !headerRef.current.contains(event.target as Node)) {
+        setMobileMenuOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMobileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("touchstart", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("touchstart", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [mobileMenuOpen]);
 
   // Smooth scroll handler for all hashed links with navbar offset
   const scrollToSection = (e?: React.MouseEvent<HTMLAnchorElement>, href?: string) => {
@@ -236,8 +267,8 @@ export default function Home() {
       </div>
 
       {/* Navigation Bar */}
-      <header className="sticky top-0 z-40 border-b border-[var(--border)]/70 bg-[var(--bg-primary)]/85 backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3.5 sm:px-6 lg:px-8">
+      <header ref={headerRef} className="sticky top-0 z-50 border-b border-[var(--border)]/70 bg-[var(--bg-primary)]/85 backdrop-blur-md">
+        <div className="relative z-50 mx-auto flex max-w-7xl items-center justify-between px-4 py-3.5 sm:px-6 lg:px-8">
           {/* Logo & Brand (Version removed per requirement) */}
           <Link href="/" className="flex items-center gap-2.5 group">
             <img 
@@ -287,7 +318,7 @@ export default function Home() {
           <button
             type="button"
             onClick={() => setMobileMenuOpen((c) => !c)}
-            className="relative md:hidden flex flex-col justify-center items-center w-10 h-10 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-white hover:border-[var(--border-hover)] transition-all focus:outline-none focus:ring-1 focus:ring-[var(--accent)] cursor-pointer select-none"
+            className="relative md:hidden flex flex-col justify-center items-center w-10 h-10 rounded-xl text-[var(--text-secondary)] hover:text-white hover:border-[var(--border-hover)] transition-all focus:outline-none  cursor-pointer select-none"
             aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
             aria-expanded={mobileMenuOpen}
           >
@@ -322,7 +353,7 @@ export default function Home() {
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
                 onClick={() => setMobileMenuOpen(false)}
-                className="fixed inset-0 top-[57px] z-30 bg-black/60 backdrop-blur-xs md:hidden"
+                className="fixed inset-x-0 top-full bottom-0 h-screen z-30 bg-black/60 backdrop-blur-xs md:hidden"
               />
               <motion.div
                 key="mobile-curtain"
@@ -331,76 +362,90 @@ export default function Home() {
                   height: "auto",
                   opacity: 1,
                   transition: {
-                    height: { duration: 0.38, ease: [0.16, 1, 0.3, 1] },
-                    opacity: { duration: 0.25, ease: "easeOut" },
+                    height: { duration: 0.32, ease: [0.16, 1, 0.3, 1] },
+                    opacity: { duration: 0.2, ease: "easeOut" },
                   },
                 }}
                 exit={{
                   height: 0,
                   opacity: 0,
                   transition: {
-                    height: { duration: 0.28, ease: [0.16, 1, 0.3, 1] },
+                    height: { duration: 0.24, ease: [0.16, 1, 0.3, 1] },
                     opacity: { duration: 0.15, ease: "easeIn" },
                   },
                 }}
                 className="absolute top-full left-0 right-0 w-full overflow-hidden md:hidden border-b border-[var(--border)] bg-[#07110D]/98 backdrop-blur-2xl shadow-2xl shadow-black/80 z-50"
               >
                 <div className="px-5 pt-3 pb-6 space-y-4">
-                  <div className="flex flex-col space-y-1">
-                    {navLinks.map((link, idx) => (
+                  <motion.div
+                    initial="hidden"
+                    animate="visible"
+                    variants={{
+                      hidden: {},
+                      visible: {
+                        transition: {
+                          staggerChildren: 0.09,
+                          delayChildren: 0.3,
+                        },
+                      },
+                    }}
+                    className="flex flex-col space-y-1"
+                  >
+                    {navLinks.map((link) => (
                       <motion.a
                         key={link.href}
                         href={link.href}
                         onClick={(e) => scrollToSection(e, link.href)}
-                        initial={{ opacity: 0, x: -18 }}
-                        animate={{
-                          opacity: 1,
-                          x: 0,
-                          transition: {
-                            delay: 0.08 + idx * 0.04,
-                            duration: 0.3,
-                            ease: [0.16, 1, 0.3, 1],
+                        variants={{
+                          hidden: { opacity: 0, x: -28 },
+                          visible: {
+                            opacity: 1,
+                            x: 0,
+                            transition: {
+                              duration: 0.28,
+                              ease: [0.16, 1, 0.3, 1],
+                            },
                           },
                         }}
-                        className="flex items-center justify-between py-2.5 px-3 rounded-xl text-sm font-medium text-[var(--text-secondary)] hover:text-white hover:bg-[var(--surface)] transition-all group cursor-pointer"
+                        className="flex items-center justify-between py-2.5 px-3 rounded-xl text-sm font-medium text-[var(--text-secondary)] hover:text-white hover:bg-[var(--surface)] transition-colors group cursor-pointer"
                       >
                         <span>{link.label}</span>
                         <ArrowRight className="h-3.5 w-3.5 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-[var(--accent)]" />
                       </motion.a>
                     ))}
-                  </div>
+                  </motion.div>
 
-                <motion.div
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{
-                    opacity: 1,
-                    y: 0,
-                    transition: {
-                      delay: 0.1 + navLinks.length * 0.05,
-                      duration: 0.35,
-                      ease: [0.16, 1, 0.3, 1],
-                    },
-                  }}
-                  className="pt-3 border-t border-[var(--border)] flex flex-col gap-2.5"
-                >
-                  <Link
-                    href="/login"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="button-secondary text-xs text-center py-2.5 w-full justify-center"
+                  <motion.div
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{
+                      opacity: 1,
+                      y: 0,
+                      transition: {
+                        delay: 0.06 + navLinks.length * 0.2 + 0.04,
+                        duration: 0.3,
+                        ease: [0.16, 1, 0.3, 1],
+                      },
+                    }}
+                    className="pt-3 border-t border-[var(--border)] flex flex-col gap-2.5"
                   >
-                    Sign in to workspace
-                  </Link>
-                  <Link
-                    href="/signup"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="button-primary text-xs text-center py-2.5 justify-center flex items-center gap-1.5 w-full"
-                  >
-                    <span>Create your class free</span>
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </Link>
-                </motion.div>
-              </div>
-            </motion.div>
+                    <Link
+                      href="/login"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="button-secondary text-xs text-center py-2.5 w-full justify-center"
+                    >
+                      Sign in to workspace
+                    </Link>
+                    <Link
+                      href="/signup"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="button-primary text-xs text-center py-2.5 justify-center flex items-center gap-1.5 w-full"
+                    >
+                      <span>Create your class free</span>
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </motion.div>
+                </div>
+              </motion.div>
           </>
         )}
       </AnimatePresence>
@@ -409,28 +454,16 @@ export default function Home() {
       {/* Hero Section with Smooth Reveal In */}
       <section className="relative z-10 mx-auto max-w-7xl px-4 pt-12 pb-16 sm:px-6 sm:pt-20 sm:pb-24 lg:px-8">
         <div className="flex flex-col items-center text-center max-w-3xl mx-auto">
-          {/* Badge */}
-          <motion.div
-            initial={{ opacity: 0, y: -12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            className="inline-flex items-center gap-2 rounded-full border border-[var(--border-hover)] bg-[var(--accent-soft)] px-3.5 py-1.5 text-xs font-semibold text-[var(--accent)]"
-          >
-            <Sparkles className="h-3.5 w-3.5" />
-            <span>Built by university students, for university classes</span>
-          </motion.div>
 
           {/* Main Title */}
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-            className="mt-6 text-3xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl sm:leading-[1.15]"
+            className="mt-6 text-3xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl sm:leading-[1.15] min-h-[110px] sm:min-h-0"
           >
             Ditch paper registers.<br />
-            <span className="bg-gradient-to-r from-[var(--accent)] via-emerald-400 to-teal-200 bg-clip-text text-transparent">
-              Run lecture roll-call in 30 seconds.
-            </span>
+            <TypewriterHeading />
           </motion.h1>
 
           {/* Description */}
@@ -443,11 +476,27 @@ export default function Home() {
             AttenSheet solves the everyday chaos of university attendance. Class Representatives organize the roster once, teachers tap attendance right from their phones, and Google Sheets stays automatically synchronized in real-time.
           </motion.p>
 
+          {/* Hero Image */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            className="mt-8 w-full max-w-4xl"
+          >
+            <Image
+              src={heroImage}
+              alt="AttenSheet mobile app preview"
+              className="w-full h-auto rounded-xl "
+              priority
+              sizes="(max-width: 896px) 100vw, 896px"
+            />
+          </motion.div>
+
           {/* Primary Action Buttons */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.6, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
             className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3.5 w-full sm:w-auto"
           >
             <Link
@@ -471,7 +520,7 @@ export default function Home() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.6, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
             className="mt-10 grid grid-cols-2 sm:grid-cols-4 gap-3 text-left w-full max-w-3xl pt-8 border-t border-[var(--border)]"
           >
             <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)] hover:text-white transition-colors">
@@ -1115,6 +1164,7 @@ export default function Home() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-40px" }}
                 transition={{ duration: 0.45, delay: i * 0.07, ease: [0.16, 1, 0.3, 1] }}
+                style={{ opacity: 0 }}
                 className={`rounded-xl border transition-all duration-300 overflow-hidden ${
                   isOpen
                     ? "border-[var(--border-hover)] bg-[var(--surface-elevated)] shadow-lg shadow-black/40"
@@ -1178,35 +1228,42 @@ export default function Home() {
       </section>
 
       {/* Authentic Creator Credits Section with Reveal */}
-      <motion.section 
-        initial={{ opacity: 0, y: 25 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: "-50px" }}
-        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-        className="relative z-10 mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8"
-      >
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)]/80 p-5 sm:p-6 backdrop-blur-sm flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5 text-left">
-            <div className="grid h-11 w-11 place-items-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)] border border-[var(--border-hover)] flex-none">
-              <GraduationCap className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wider">
-                Student Project & Creator Note
-              </p>
-              <h3 className="text-sm sm:text-base font-bold text-white mt-0.5">
-                Designed & Built by Hammad Ahmed
-              </h3>
-              <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-                BSCS Student (6th Semester) at Federal Urdu University of Arts, Science and Technology (FUUAST).
-              </p>
-            </div>
-          </div>
-          <div className="text-xs text-[var(--text-muted)] text-center sm:text-right border-t sm:border-t-0 border-[var(--border)] pt-3 sm:pt-0 w-full sm:w-auto">
-            <span>Built to solve real classroom attendance headaches for peers and faculty.</span>
-          </div>
+<motion.section 
+  initial={{ opacity: 0, y: 25 }}
+  whileInView={{ opacity: 1, y: 0 }}
+  viewport={{ once: true, margin: "-50px" }}
+  transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+  className="relative z-10 mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8"
+>
+  <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)]/80 p-5 sm:p-6 backdrop-blur-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+    <div className="flex flex-col sm:flex-row sm:items-center gap-3.5 text-left w-full sm:w-auto">
+      {/* Mobile: icon + label + title inline, then description below */}
+      <div className="flex items-center gap-3.5 w-full sm:w-auto">
+        <div className="grid h-11 w-11 place-items-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)] border border-[var(--border-hover)] flex-none">
+          <GraduationCap className="h-5 w-5" />
         </div>
-      </motion.section>
+        <div className="min-w-0">
+          <p className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wider">
+            Student Project &amp; Creator Note
+          </p>
+          <h3 className="text-sm sm:text-base font-bold text-white mt-0.5">
+            Designed &amp; Built by Hammad Ahmed
+          </h3>
+        </div>
+      </div>
+      <p className="text-xs text-[var(--text-secondary)] sm:mt-0.5 w-full sm:w-auto sm:hidden">
+        BSCS Student (6th Semester) at Federal Urdu University of Arts, Science and Technology (FUUAST).
+      </p>
+      {/* Desktop-only description (kept inside original column) */}
+      <p className="hidden sm:block text-xs text-[var(--text-secondary)] mt-0.5">
+        BSCS Student (6th Semester) at Federal Urdu University of Arts, Science and Technology (FUUAST).
+      </p>
+    </div>
+    <div className="text-xs text-[var(--text-muted)] text-center sm:text-right border-t sm:border-t-0 border-[var(--border)] pt-3 sm:pt-0 w-full sm:w-auto">
+      <span>Built to solve real classroom attendance headaches for peers and faculty.</span>
+    </div>
+  </div>
+</motion.section>
 
       {/* Bottom CTA Banner with Reveal */}
       <motion.section 

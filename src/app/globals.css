@@ -608,3 +608,17 @@ textarea:focus {
   transform: scale(0.4) rotate(-20deg);
   opacity: 0;
 }
+
+/* Typewriter Cursor */
+@keyframes typewriter-blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+.typewriter-cursor {
+  animation: typewriter-blink 0.85s infinite;
+}
