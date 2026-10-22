@@ -9,6 +9,7 @@ import heroImage from "./hero-image.webp";
 import { useSession } from "@/lib/session-cache";
 import { MobileWelcomeScreen } from "@/components/MobileWelcomeScreen";
 import { TypewriterHeading } from "@/components/TypewriterHeading";
+import { AnimatedCounter } from "@/components/AnimatedCounter";
 import { 
   ArrowRight, 
   CheckCircle2, 
@@ -609,13 +610,13 @@ export default function Home() {
 
             <div className="flex items-center gap-2 text-xs font-semibold">
               <span className="badge-present text-xs py-0.5 px-2.5">
-                {presentCount} Present
+                <AnimatedCounter value={presentCount} /> Present
               </span>
               <span className="badge-absent text-xs py-0.5 px-2.5">
-                {demoStudents.length - presentCount} Absent
+                <AnimatedCounter value={demoStudents.length - presentCount} /> Absent
               </span>
               <span className="rounded-full bg-[var(--surface-elevated)] border border-[var(--border)] px-2 py-0.5 text-white">
-                {attendanceRate}% Rate
+                <AnimatedCounter value={attendanceRate} suffix="%" /> Rate
               </span>
             </div>
           </div>

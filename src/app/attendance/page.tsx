@@ -28,6 +28,7 @@ import {
   Download,
 } from "lucide-react";
 import { DownloadAttendanceModal } from "@/components/DownloadAttendanceModal";
+import { AnimatedCounter } from "@/components/AnimatedCounter";
 
 type Student = { uid: string; fullName?: string; fatherName?: string; seatNumber?: string; totalPresents?: number };
 type Attendance = { studentUid: string; date: string; present: boolean };
@@ -386,8 +387,8 @@ function AttendanceContent() {
               <span>Download Sheet</span>
             </button>
             <div className="flex items-center gap-2 text-xs font-semibold">
-              <span className="badge-present">{presentCount} Present</span>
-              <span className="badge-absent">{students.length - presentCount} Absent</span>
+              <span className="badge-present"><AnimatedCounter value={presentCount} /> Present</span>
+              <span className="badge-absent"><AnimatedCounter value={students.length - presentCount} /> Absent</span>
             </div>
           </div>
         </div>

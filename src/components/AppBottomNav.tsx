@@ -14,6 +14,7 @@ import {
   type LucideIcon
 } from "lucide-react";
 import { useSession, type Role } from "@/lib/session-cache";
+import { AnimatedCounter } from "@/components/AnimatedCounter";
 
 type Tab = { label: string; href: string; icon: LucideIcon };
 
@@ -157,7 +158,7 @@ export function AppBottomNav() {
                 {tab.label}
               </span>
               {tab.label === "Requests" && pending > 0 && (
-                <b className="bottom-nav-badge">{pending > 9 ? "9+" : pending}</b>
+                <b className="bottom-nav-badge">{pending > 9 ? "9+" : <AnimatedCounter value={pending} />}</b>
               )}
             </button>
           );

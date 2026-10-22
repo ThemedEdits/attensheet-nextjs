@@ -23,6 +23,7 @@ import {
   CalendarDays,
 } from "lucide-react";
 import { DownloadAttendanceModal } from "@/components/DownloadAttendanceModal";
+import { AnimatedCounter, AnimatedBar } from "@/components/AnimatedCounter";
 
 export default function SubjectsPage() {
   const [subjects, setSubjects] = useState<SubjectRecord[]>([]);
@@ -236,20 +237,21 @@ export default function SubjectsPage() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
             <h2 className="text-sm font-semibold text-white">Total Sessions Held</h2>
             <span className="text-xs font-medium bg-[var(--surface-elevated)] px-2.5 py-1 rounded-full text-white border border-[var(--border)]">
-              {totalSessions} {totalSessions === 1 ? "Session" : "Sessions"} Combined
+              <AnimatedCounter value={totalSessions} /> {totalSessions === 1 ? "Session" : "Sessions"} Combined
             </span>
           </div>
           
           <div className="h-4 w-full rounded-full overflow-hidden flex bg-[var(--surface-elevated)]">
-            {subjects.map(subject => {
+            {subjects.map((subject, index) => {
               const count = sessionsBySubject[subject.id]?.length || 0;
               if (count === 0) return null;
               const percentage = (count / totalSessions) * 100;
               return (
-                <div 
+                <AnimatedBar 
                   key={subject.id} 
-                  className={`h-full ${subjectColors[subject.id]} transition-all hover:opacity-80`}
-                  style={{ width: `${percentage}%` }}
+                  width={percentage}
+                  delay={index * 0.04}
+                  className={`h-full ${subjectColors[subject.id]} hover:opacity-80`}
                   title={`${subject.name}: ${count} sessions (${percentage.toFixed(1)}%)`}
                 />
               );
@@ -265,7 +267,7 @@ export default function SubjectsPage() {
                 <div key={subject.id} className="flex items-center gap-1.5 text-[10px] sm:text-xs text-[var(--text-secondary)]">
                   <span className={`h-2 w-2 rounded-full ${subjectColors[subject.id]}`} />
                   <span className="truncate max-w-[120px] sm:max-w-[200px]">{subject.name}</span>
-                  <span className="font-medium text-white">{percentage.toFixed(1)}%</span>
+                  <span className="font-medium text-white"><AnimatedCounter value={percentage} decimals={1} suffix="%" /></span>
                 </div>
               );
             })}
@@ -320,7 +322,7 @@ export default function SubjectsPage() {
                     <div className="mt-4 pt-3 border-t border-[var(--border)]">
                       <div className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)] mb-2">
                         <CalendarDays className="h-3.5 w-3.5 text-[var(--text-muted)]" />
-                        <span className="font-medium text-white">{sessionsBySubject[subject.id]?.length || 0} sessions held</span>
+                        <span className="font-medium text-white"><AnimatedCounter value={sessionsBySubject[subject.id]?.length || 0} /> sessions held</span>
                       </div>
                       {(sessionsBySubject[subject.id]?.length || 0) > 0 ? (
                         <div className="flex flex-wrap gap-1.5 max-h-16 overflow-y-auto scrollbar-thin scrollbar-thumb-[var(--border)]">

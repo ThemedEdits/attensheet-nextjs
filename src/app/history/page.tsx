@@ -20,6 +20,7 @@ import {
   AlertTriangle 
 } from "lucide-react";
 import { CustomSelect } from "@/components/CustomSelect";
+import { AnimatedCounter } from "@/components/AnimatedCounter";
 
 type AttendanceRecord = {
   id: string;
@@ -231,7 +232,7 @@ function StudentHistoryContent() {
             <span className={`text-2xl sm:text-3xl font-extrabold ${
               currentSummary.percentage >= 75 ? "text-emerald-400" : currentSummary.percentage >= 60 ? "text-amber-400" : "text-red-400"
             }`}>
-              {loading ? "--" : `${currentSummary.percentage}%`}
+              {loading ? "--" : <AnimatedCounter value={currentSummary.percentage} suffix="%" />}
             </span>
             <p className="text-[11px] text-[var(--text-muted)] mt-1">
               {currentSummary.percentage >= 75 ? "Eligible for exams" : "Below 75% requirement"}
@@ -247,7 +248,7 @@ function StudentHistoryContent() {
           </div>
           <div className="mt-3">
             <span className="text-2xl sm:text-3xl font-extrabold text-white">
-              {loading ? "--" : currentSummary.present}
+              {loading ? "--" : <AnimatedCounter value={currentSummary.present} />}
             </span>
             <p className="text-[11px] text-emerald-400 mt-1">
               Recorded presents
@@ -263,7 +264,7 @@ function StudentHistoryContent() {
           </div>
           <div className="mt-3">
             <span className="text-2xl sm:text-3xl font-extrabold text-white">
-              {loading ? "--" : currentSummary.absent}
+              {loading ? "--" : <AnimatedCounter value={currentSummary.absent} />}
             </span>
             <p className="text-[11px] text-red-400 mt-1">
               Total absents
@@ -279,7 +280,7 @@ function StudentHistoryContent() {
           </div>
           <div className="mt-3">
             <span className="text-2xl sm:text-3xl font-extrabold text-white">
-              {loading ? "--" : currentSummary.total}
+              {loading ? "--" : <AnimatedCounter value={currentSummary.total} />}
             </span>
             <p className="text-[11px] text-[var(--text-muted)] mt-1">
               Across enrolled subjects
@@ -328,7 +329,7 @@ function StudentHistoryContent() {
 
           {/* Quick Stats Pill */}
           <div className="flex flex-col sm:flex-row items-center gap-3 sm:text-right text-xs text-[var(--text-muted)]">
-            <span>Showing <strong className="text-white">{filteredRecords.length}</strong> attendance records</span>
+            <span>Showing <strong className="text-white"><AnimatedCounter value={filteredRecords.length} /></strong> attendance records</span>
             {(searchQuery || selectedSubject !== "all" || statusFilter !== "all" || timeframeFilter !== "all") && (
               <button
                 onClick={() => {
@@ -499,12 +500,12 @@ function StudentHistoryContent() {
                       <div className="flex items-center gap-2 text-xs">
                         {dayPresent > 0 && (
                           <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-400 border border-emerald-500/20">
-                            {dayPresent} Present
+                            <AnimatedCounter value={dayPresent} /> Present
                           </span>
                         )}
                         {dayAbsent > 0 && (
                           <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-[11px] font-semibold text-red-400 border border-red-500/20">
-                            {dayAbsent} Absent
+                            <AnimatedCounter value={dayAbsent} /> Absent
                           </span>
                         )}
                       </div>
@@ -588,17 +589,17 @@ function StudentHistoryContent() {
                           </div>
                         </td>
                         <td className="px-4 py-4 text-center font-mono text-white">
-                          {sub.total}
+                          <AnimatedCounter value={sub.total} />
                         </td>
                         <td className="px-4 py-4 text-center font-mono font-bold text-emerald-400">
-                          {sub.present}
+                          <AnimatedCounter value={sub.present} />
                         </td>
                         <td className="px-4 py-4 text-center font-mono font-bold text-red-400">
-                          {sub.absent}
+                          <AnimatedCounter value={sub.absent} />
                         </td>
                         <td className="px-4 py-4 text-center font-mono font-extrabold">
                           <span className={sub.percentage >= 75 ? "text-emerald-400" : "text-amber-400"}>
-                            {sub.percentage}%
+                            <AnimatedCounter value={sub.percentage} suffix="%" />
                           </span>
                         </td>
                         <td className="px-4 py-4">

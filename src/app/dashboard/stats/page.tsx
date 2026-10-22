@@ -7,6 +7,7 @@ import { useToast } from "@/components/ToastProvider";
 import { ArrowLeft, BarChart3 } from "lucide-react";
 import Link from "next/link";
 import { CustomSelect } from "@/components/CustomSelect";
+import { AnimatedCounter, AnimatedBar } from "@/components/AnimatedCounter";
 
 type StatRecord = { present: number; absent: number };
 type StatsData = {
@@ -36,7 +37,7 @@ const BarGraph = ({ data, title }: { data: { label: string; present: number; abs
         {data.length === 0 ? (
           <p className="text-xs text-[var(--text-muted)]">No data available.</p>
         ) : (
-          data.map(d => {
+          data.map((d, index) => {
             const total = d.present + d.absent;
             const pPct = total === 0 ? 0 : (d.present / maxVal) * 100;
             const aPct = total === 0 ? 0 : (d.absent / maxVal) * 100;
@@ -44,14 +45,26 @@ const BarGraph = ({ data, title }: { data: { label: string; present: number; abs
               <div key={d.label} className="flex flex-col gap-1.5">
                 <div className="flex justify-between text-xs text-[var(--text-secondary)]">
                   <span className="font-medium">{d.label}</span>
-                  <span>{d.present} P / {d.absent} A</span>
+                  <span>
+                    <AnimatedCounter value={d.present} /> P / <AnimatedCounter value={d.absent} /> A
+                  </span>
                 </div>
                 <div className="flex h-3 w-full bg-[var(--surface-hover)] rounded-full overflow-hidden">
-                  <div style={{ width: `${pPct}%` }} className="bg-emerald-500 h-full" title={`Present: ${d.present}`} />
-                  <div style={{ width: `${aPct}%` }} className="bg-rose-500 h-full" title={`Absent: ${d.absent}`} />
+                  <AnimatedBar
+                    width={pPct}
+                    delay={index * 0.03}
+                    className="bg-emerald-500 h-full"
+                    title={`Present: ${d.present}`}
+                  />
+                  <AnimatedBar
+                    width={aPct}
+                    delay={index * 0.03}
+                    className="bg-rose-500 h-full"
+                    title={`Absent: ${d.absent}`}
+                  />
                 </div>
               </div>
-            )
+            );
           })
         )}
       </div>
@@ -144,26 +157,56 @@ export default function AdvancedStatsPage() {
           <div className="card p-5 border border-[var(--border)] bg-[var(--surface-elevated)] flex flex-col items-center justify-center text-center">
             <span className="text-xs text-[var(--text-secondary)] mb-1">Most Present Day</span>
             <span className="text-xl sm:text-2xl font-bold text-emerald-400">{mostPresentsDay ? mostPresentsDay.label : "N/A"}</span>
+            {mostPresentsDay && (
+              <span className="text-[11px] text-[var(--text-muted)] mt-1">
+                <AnimatedCounter value={mostPresentsDay.present} /> presents
+              </span>
+            )}
           </div>
           <div className="card p-5 border border-[var(--border)] bg-[var(--surface-elevated)] flex flex-col items-center justify-center text-center">
             <span className="text-xs text-[var(--text-secondary)] mb-1">Most Absent Day</span>
             <span className="text-xl sm:text-2xl font-bold text-rose-400">{mostAbsentsDay ? mostAbsentsDay.label : "N/A"}</span>
+            {mostAbsentsDay && (
+              <span className="text-[11px] text-[var(--text-muted)] mt-1">
+                <AnimatedCounter value={mostAbsentsDay.absent} /> absents
+              </span>
+            )}
           </div>
           <div className="card p-5 border border-[var(--border)] bg-[var(--surface-elevated)] flex flex-col items-center justify-center text-center">
             <span className="text-xs text-[var(--text-secondary)] mb-1">Most Present Subject</span>
             <span className="text-xl sm:text-2xl font-bold text-emerald-400 truncate w-full">{mostPresentsSubject ? mostPresentsSubject.label : "N/A"}</span>
+            {mostPresentsSubject && (
+              <span className="text-[11px] text-[var(--text-muted)] mt-1">
+                <AnimatedCounter value={mostPresentsSubject.present} /> presents
+              </span>
+            )}
           </div>
           <div className="card p-5 border border-[var(--border)] bg-[var(--surface-elevated)] flex flex-col items-center justify-center text-center">
             <span className="text-xs text-[var(--text-secondary)] mb-1">Most Absent Subject</span>
             <span className="text-xl sm:text-2xl font-bold text-rose-400 truncate w-full">{mostAbsentsSubject ? mostAbsentsSubject.label : "N/A"}</span>
+            {mostAbsentsSubject && (
+              <span className="text-[11px] text-[var(--text-muted)] mt-1">
+                <AnimatedCounter value={mostAbsentsSubject.absent} /> absents
+              </span>
+            )}
           </div>
           <div className="card p-5 border border-[var(--border)] bg-[var(--surface-elevated)] flex flex-col items-center justify-center text-center">
             <span className="text-xs text-[var(--text-secondary)] mb-1">Highest Attendance Week</span>
             <span className="text-xl sm:text-2xl font-bold text-emerald-400">{mostPresentsWeek ? mostPresentsWeek.label : "N/A"}</span>
+            {mostPresentsWeek && (
+              <span className="text-[11px] text-[var(--text-muted)] mt-1">
+                <AnimatedCounter value={mostPresentsWeek.present} /> presents
+              </span>
+            )}
           </div>
           <div className="card p-5 border border-[var(--border)] bg-[var(--surface-elevated)] flex flex-col items-center justify-center text-center">
             <span className="text-xs text-[var(--text-secondary)] mb-1">Lowest Attendance Week</span>
             <span className="text-xl sm:text-2xl font-bold text-rose-400">{mostAbsentsWeek ? mostAbsentsWeek.label : "N/A"}</span>
+            {mostAbsentsWeek && (
+              <span className="text-[11px] text-[var(--text-muted)] mt-1">
+                <AnimatedCounter value={mostAbsentsWeek.absent} /> absents
+              </span>
+            )}
           </div>
         </div>
 

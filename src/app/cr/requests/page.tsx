@@ -7,6 +7,7 @@ import { readApiResponse } from "@/lib/client-response";
 import { useToast } from "@/components/ToastProvider";
 import { updatePendingCount } from "@/lib/session-cache";
 import { ActionModal } from "@/components/ActionModal";
+import { AnimatedCounter } from "@/components/AnimatedCounter";
 import { 
   ArrowLeft, 
   UserCheck, 
@@ -127,6 +128,11 @@ export default function RequestsPage() {
 
         {/* Action Controls & Counter Badges */}
         <div className="flex flex-wrap items-center gap-2.5">
+          {items.length > 0 && (
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300">
+              <AnimatedCounter value={items.length} /> Pending
+            </span>
+          )}
           {items.length > 0 && (
             <div className="flex items-center gap-2 mr-1">
               <button

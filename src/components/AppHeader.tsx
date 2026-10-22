@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { firebaseAuth } from "@/lib/firebase";
 import { useSession, clearCachedSession, type Role } from "@/lib/session-cache";
+import { AnimatedCounter } from "@/components/AnimatedCounter";
 
 const publicPaths = ["/", "/login", "/signup", "/complete-profile"];
 
@@ -177,7 +178,7 @@ export function AppHeader() {
                 className="flex items-center gap-1.5 rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-xs font-semibold text-red-300 hover:bg-red-500/20 transition-all"
               >
                 <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
-                <span>{pending} {pending === 1 ? "request" : "requests"}</span>
+                <span><AnimatedCounter value={pending} /> {pending === 1 ? "request" : "requests"}</span>
               </Link>
             )}
 
@@ -215,7 +216,7 @@ export function AppHeader() {
                 title={`${pending} pending requests`}
               >
                 <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
-                <span>{pending > 9 ? "9+" : pending}</span>
+                <span>{pending > 9 ? "9+" : <AnimatedCounter value={pending} />}</span>
               </Link>
             )}
             {currentRole && (

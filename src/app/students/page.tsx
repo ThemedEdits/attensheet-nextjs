@@ -10,6 +10,7 @@ import { readApiResponse } from "@/lib/client-response";
 import { useToast } from "@/components/ToastProvider";
 import { ActionModal } from "@/components/ActionModal";
 import { CustomSelect } from "@/components/CustomSelect";
+import { AnimatedCounter } from "@/components/AnimatedCounter";
 import {
   ArrowLeft,
   Search,
@@ -449,7 +450,7 @@ export default function StudentsPage() {
                     : "bg-[var(--surface-elevated)] text-[var(--text-muted)]"
                 }`}
               >
-                {students.length}
+                <AnimatedCounter value={students.length} />
               </span>
             </button>
 
@@ -471,7 +472,7 @@ export default function StudentsPage() {
                     : "bg-[var(--surface-elevated)] text-[var(--text-muted)]"
                 }`}
               >
-                {teachers.length}
+                <AnimatedCounter value={teachers.length} />
               </span>
             </button>
           </div>
@@ -486,7 +487,7 @@ export default function StudentsPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-xs font-medium text-[var(--text-secondary)]">Total Teachers</p>
-                  <p className="mt-1 text-2xl font-extrabold text-white">{teachers.length}</p>
+                  <p className="mt-1 text-2xl font-extrabold text-white"><AnimatedCounter value={teachers.length} /></p>
                 </div>
                 <div className="grid h-10 w-10 place-items-center rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400">
                   <GraduationCap className="h-5 w-5" />
@@ -502,7 +503,7 @@ export default function StudentsPage() {
                 <div>
                   <p className="text-xs font-medium text-[var(--text-secondary)]">Assigned to Subjects</p>
                   <p className="mt-1 text-2xl font-extrabold text-emerald-400">
-                    {teachers.filter((t) => t.subjects.length > 0).length}
+                    <AnimatedCounter value={teachers.filter((t) => t.subjects.length > 0).length} />
                   </p>
                 </div>
                 <div className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
@@ -519,7 +520,7 @@ export default function StudentsPage() {
                 <div>
                   <p className="text-xs font-medium text-[var(--text-secondary)]">Unassigned</p>
                   <p className="mt-1 text-2xl font-extrabold text-amber-400">
-                    {teachers.filter((t) => t.subjects.length === 0).length}
+                    <AnimatedCounter value={teachers.filter((t) => t.subjects.length === 0).length} />
                   </p>
                 </div>
                 <div className="grid h-10 w-10 place-items-center rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
@@ -670,8 +671,8 @@ export default function StudentsPage() {
             {/* Table Footer */}
             <div className="flex items-center justify-between border-t border-[var(--border)] bg-[var(--bg-secondary)]/60 px-5 py-3 text-xs text-[var(--text-secondary)]">
               <div>
-                Showing <strong className="text-white font-semibold">{filteredTeachers.length}</strong> of{" "}
-                <strong className="text-white font-semibold">{teachers.length}</strong> teachers
+                Showing <strong className="text-white font-semibold"><AnimatedCounter value={filteredTeachers.length} /></strong> of{" "}
+                <strong className="text-white font-semibold"><AnimatedCounter value={teachers.length} /></strong> teachers
               </div>
               <div className="text-[11px] text-[var(--text-muted)]">
                 Assign subjects to teachers from Dashboard or Class Setup.
@@ -737,7 +738,7 @@ export default function StudentsPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-xs font-medium text-[var(--text-secondary)]">Total Enrolled</p>
-                  <p className="mt-1 text-2xl font-extrabold text-white">{students.length}</p>
+                  <p className="mt-1 text-2xl font-extrabold text-white"><AnimatedCounter value={students.length} /></p>
                 </div>
                 <div className="grid h-10 w-10 place-items-center rounded-xl bg-[var(--surface-elevated)] border border-[var(--border)] text-[var(--accent)]">
                   <Users className="h-5 w-5" />
@@ -826,7 +827,7 @@ export default function StudentsPage() {
                   : "text-[var(--text-secondary)] hover:text-white"
               }`}
             >
-              All ({students.length})
+              All (<AnimatedCounter value={students.length} />)
             </button>
             <button
               type="button"
@@ -1013,8 +1014,8 @@ export default function StudentsPage() {
         {/* Table Footer */}
         <div className="flex items-center justify-between border-t border-[var(--border)] bg-[var(--bg-secondary)]/60 px-5 py-3 text-xs text-[var(--text-secondary)]">
           <div>
-            Showing <strong className="text-white font-semibold">{filteredStudents.length}</strong> of{" "}
-            <strong className="text-white font-semibold">{students.length}</strong> enrolled students
+            Showing <strong className="text-white font-semibold"><AnimatedCounter value={filteredStudents.length} /></strong> of{" "}
+            <strong className="text-white font-semibold"><AnimatedCounter value={students.length} /></strong> enrolled students
           </div>
           <div className="text-[11px] text-[var(--text-muted)]">
             Click any row to edit details, assign 2nd CR, or remove student.

@@ -13,6 +13,7 @@ import { CustomSelect } from "@/components/CustomSelect";
 import { ActionModal } from "@/components/ActionModal";
 import { PendingRequestCard, type PendingClassRequest } from "@/components/PendingRequestCard";
 import { getCachedSession, setCachedSession } from "@/lib/session-cache";
+import { AnimatedCounter, AnimatedBar, AnimatedDonutRing } from "@/components/AnimatedCounter";
 import { 
   Users, 
   BookOpen, 
@@ -509,7 +510,7 @@ export default function DashboardPage() {
                 <span>Manage requests</span>
                 {pendingRequestsCount > 0 && (
                   <span className="inline-flex items-center justify-center rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-bold text-white min-w-[1.2rem] leading-none">
-                    {pendingRequestsCount > 9 ? "9+" : pendingRequestsCount}
+                    {pendingRequestsCount > 9 ? "9+" : <AnimatedCounter value={pendingRequestsCount} />}
                   </span>
                 )}
               </Link>
@@ -630,22 +631,18 @@ export default function DashboardPage() {
                       strokeWidth="9"
                       fill="transparent"
                     />
-                    <circle
-                      cx="55"
-                      cy="55"
+                    <AnimatedDonutRing
+                      cx={55}
+                      cy={55}
                       r={46}
+                      strokeWidth={9}
                       stroke={overallTotal === 0 ? "#4b5563" : overallRate >= 75 ? "#10b981" : overallRate >= 65 ? "#f59e0b" : "#f43f5e"}
-                      strokeWidth="9"
-                      strokeDasharray={2 * Math.PI * 46}
-                      strokeDashoffset={overallTotal > 0 ? (2 * Math.PI * 46) - (overallRate / 100) * (2 * Math.PI * 46) : 2 * Math.PI * 46}
-                      strokeLinecap="round"
-                      fill="transparent"
-                      className="transition-all duration-700 ease-out"
+                      percentage={overallTotal > 0 ? overallRate : 0}
                     />
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
                     <span className="text-3xl font-black tracking-tight text-white">
-                      {overallTotal > 0 ? `${overallRate}%` : "0%"}
+                      {overallTotal > 0 ? <AnimatedCounter value={overallRate} suffix="%" /> : "0%"}
                     </span>
                     <span className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">
                       Attended
@@ -660,7 +657,7 @@ export default function DashboardPage() {
                       <span className="h-2 w-2 rounded-full bg-emerald-400" />
                       <span className="text-xs text-[var(--text-secondary)]">Present Sessions</span>
                     </div>
-                    <span className="text-xs font-bold text-white">{overallPresent}</span>
+                    <span className="text-xs font-bold text-white"><AnimatedCounter value={overallPresent} /></span>
                   </div>
 
                   <div className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--surface-elevated)] border border-[var(--border)]">
@@ -668,7 +665,7 @@ export default function DashboardPage() {
                       <span className="h-2 w-2 rounded-full bg-rose-400" />
                       <span className="text-xs text-[var(--text-secondary)]">Absent Sessions</span>
                     </div>
-                    <span className="text-xs font-bold text-white">{overallAbsent}</span>
+                    <span className="text-xs font-bold text-white"><AnimatedCounter value={overallAbsent} /></span>
                   </div>
 
                   <div className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--surface-elevated)] border border-[var(--border)]">
@@ -676,7 +673,7 @@ export default function DashboardPage() {
                       <span className="h-2 w-2 rounded-full bg-blue-400" />
                       <span className="text-xs text-[var(--text-secondary)]">Total Classes</span>
                     </div>
-                    <span className="text-xs font-bold text-white">{overallTotal}</span>
+                    <span className="text-xs font-bold text-white"><AnimatedCounter value={overallTotal} /></span>
                   </div>
                 </div>
               </div>
@@ -705,11 +702,12 @@ export default function DashboardPage() {
                 <div className="mt-5">
                   <div className="flex justify-between items-center text-xs mb-2">
                     <span className="text-[var(--text-secondary)]">Progress towards criteria</span>
-                    <span className="font-bold text-white">{overallRate}% / 75%</span>
+                    <span className="font-bold text-white"><AnimatedCounter value={overallRate} suffix="%" /> / 75%</span>
                   </div>
                   <div className="relative h-3 w-full rounded-full bg-[var(--surface-elevated)] overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all duration-500 ${
+                    <AnimatedBar
+                      width={overallTotal === 0 ? 0 : Math.min(100, overallRate)}
+                      className={`h-full rounded-full ${
                         overallTotal === 0
                           ? "bg-transparent"
                           : overallRate >= 75
@@ -718,7 +716,6 @@ export default function DashboardPage() {
                           ? "bg-gradient-to-r from-amber-500 to-amber-400"
                           : "bg-gradient-to-r from-rose-500 to-rose-400"
                       }`}
-                      style={{ width: `${Math.min(100, overallRate)}%` }}
                     />
                     {/* 75% target marker */}
                     <div 
@@ -753,7 +750,7 @@ export default function DashboardPage() {
                         <span>Safe Attendance Margin</span>
                       </div>
                       <p className="mt-1.5 text-xs text-emerald-200/90 leading-relaxed">
-                        You can afford to miss up to <strong className="text-white font-extrabold text-sm">{maxCanMiss}</strong> more {maxCanMiss === 1 ? "class" : "classes"} while maintaining ≥75% exam eligibility.
+                        You can afford to miss up to <strong className="text-white font-extrabold text-sm"><AnimatedCounter value={maxCanMiss} /></strong> more {maxCanMiss === 1 ? "class" : "classes"} while maintaining ≥75% exam eligibility.
                       </p>
                     </div>
                   ) : (
@@ -763,7 +760,7 @@ export default function DashboardPage() {
                         <span>Attendance Deficit Warning</span>
                       </div>
                       <p className="mt-1.5 text-xs text-rose-200/90 leading-relaxed">
-                        You need to attend the next <strong className="text-white font-extrabold text-sm">{classesNeeded}</strong> consecutive {classesNeeded === 1 ? "class" : "classes"} without absence to regain the 75% exam qualification.
+                        You need to attend the next <strong className="text-white font-extrabold text-sm"><AnimatedCounter value={classesNeeded} /></strong> consecutive {classesNeeded === 1 ? "class" : "classes"} without absence to regain the 75% exam qualification.
                       </p>
                     </div>
                   )}
@@ -773,7 +770,7 @@ export default function DashboardPage() {
               <div className="mt-5 pt-3 border-t border-[var(--border)] grid grid-cols-3 gap-2 text-center">
                 <div>
                   <p className="text-[10px] text-[var(--text-muted)] uppercase">Classes Held</p>
-                  <p className="text-sm font-bold text-white mt-0.5">{overallTotal}</p>
+                  <p className="text-sm font-bold text-white mt-0.5"><AnimatedCounter value={overallTotal} /></p>
                 </div>
                 <div>
                   <p className="text-[10px] text-[var(--text-muted)] uppercase">Exam Status</p>
@@ -784,7 +781,15 @@ export default function DashboardPage() {
                 <div>
                   <p className="text-[10px] text-[var(--text-muted)] uppercase">Margin / Gap</p>
                   <p className="text-sm font-bold text-white mt-0.5">
-                    {overallTotal === 0 ? "0%" : `${overallRate >= 75 ? `+${overallRate - 75}%` : `${overallRate - 75}%`}`}
+                    {overallTotal === 0 ? (
+                      "0%"
+                    ) : (
+                      <AnimatedCounter
+                        value={Math.abs(overallRate - 75)}
+                        prefix={overallRate >= 75 ? "+" : "-"}
+                        suffix="%"
+                      />
+                    )}
                   </p>
                 </div>
               </div>
@@ -821,7 +826,7 @@ export default function DashboardPage() {
                       subjectFilter === "all" ? "bg-[var(--accent)] text-black" : "text-[var(--text-secondary)] hover:text-white"
                     }`}
                   >
-                    All ({studentSubjectList.length})
+                    All (<AnimatedCounter value={studentSubjectList.length} />)
                   </button>
                   <button
                     type="button"
@@ -830,7 +835,7 @@ export default function DashboardPage() {
                       subjectFilter === "eligible" ? "bg-emerald-500 text-white" : "text-[var(--text-secondary)] hover:text-white"
                     }`}
                   >
-                    ≥75% ({studentSubjectList.filter((s) => s.rate !== null && s.rate >= 75).length})
+                    ≥75% (<AnimatedCounter value={studentSubjectList.filter((s) => s.rate !== null && s.rate >= 75).length} />)
                   </button>
                   <button
                     type="button"
@@ -839,7 +844,7 @@ export default function DashboardPage() {
                       subjectFilter === "short" ? "bg-rose-500 text-white" : "text-[var(--text-secondary)] hover:text-white"
                     }`}
                   >
-                    &lt;75% ({studentSubjectList.filter((s) => s.rate !== null && s.rate < 75).length})
+                    &lt;75% (<AnimatedCounter value={studentSubjectList.filter((s) => s.rate !== null && s.rate < 75).length} />)
                   </button>
                 </div>
               </div>
@@ -866,15 +871,15 @@ export default function DashboardPage() {
                             </span>
                           ) : sub.rate >= 75 ? (
                             <span className="badge-present text-[10px] font-semibold">
-                              {sub.rate}% · Good
+                              <AnimatedCounter value={sub.rate} suffix="%" /> · Good
                             </span>
                           ) : sub.rate >= 65 ? (
                             <span className="rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 text-[10px] font-semibold">
-                              {sub.rate}% · At Risk
+                              <AnimatedCounter value={sub.rate} suffix="%" /> · At Risk
                             </span>
                           ) : (
                             <span className="badge-absent text-[10px] font-semibold">
-                              {sub.rate}% · Short
+                              <AnimatedCounter value={sub.rate} suffix="%" /> · Short
                             </span>
                           )}
                         </div>
@@ -896,12 +901,13 @@ export default function DashboardPage() {
                           <div className="flex items-center justify-between text-xs mb-1.5">
                             <span className="text-[11px] text-[var(--text-muted)]">Attendance Ratio</span>
                             <span className="font-bold text-white text-xs">
-                              {sub.presentClasses} / {sub.totalClasses} classes
+                              <AnimatedCounter value={sub.presentClasses} /> / <AnimatedCounter value={sub.totalClasses} /> classes
                             </span>
                           </div>
                           <div className="h-2 w-full rounded-full bg-[var(--surface-elevated)] overflow-hidden">
-                            <div
-                              className={`h-full rounded-full transition-all duration-300 ${
+                            <AnimatedBar
+                              width={sub.rate === null ? 0 : sub.rate}
+                              className={`h-full rounded-full ${
                                 sub.rate === null
                                   ? "bg-transparent"
                                   : sub.rate >= 75
@@ -910,7 +916,6 @@ export default function DashboardPage() {
                                   ? "bg-amber-500"
                                   : "bg-rose-500"
                               }`}
-                              style={{ width: `${sub.rate ?? 0}%` }}
                             />
                           </div>
                         </div>
@@ -1416,7 +1421,7 @@ function StatCard({
         <div>
           <p className="text-xs font-medium text-[var(--text-secondary)]">{label}</p>
           <p className={`mt-2 text-3xl font-extrabold tracking-tight ${accent ? "text-[var(--accent)]" : "text-white"}`}>
-            {value}
+            {!isNaN(Number(value)) && value.trim() !== "" ? <AnimatedCounter value={Number(value)} /> : value}
           </p>
         </div>
         <div className="grid h-10 w-10 place-items-center rounded-xl bg-[var(--surface-elevated)] text-[var(--accent)] border border-[var(--border)]">
